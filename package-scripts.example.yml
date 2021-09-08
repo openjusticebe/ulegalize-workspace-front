@@ -1,0 +1,26 @@
+scripts:
+    default: dotenv -e .env.development.local react-scripts start
+    build: >-
+        nps buildNew
+    testBuild: >-
+        nps testBuildNew
+    testBuildNew: >-
+        dotenv -e .env.test react-scripts build && rm -rf build-new && mv
+        build build-new
+    buildNew: >-
+        dotenv -e .env.production react-scripts build && rm -rf build-new &&
+        mv build build-new
+    test: react-scripts test
+    eject: react-scripts eject
+    watch: >-
+        concurrently --names "webpack, sass" --prefix name "npm run start" "npm run
+        styles:watch"
+    compileSass: >-
+        node-sass src/assets/scss/black-dashboard-pro-react.scss
+        src/assets/css/black-dashboard-pro-react.css
+    minifySass: >-
+        node-sass src/assets/scss/black-dashboard-pro-react.scss
+        src/assets/css/black-dashboard-pro-react.min.css --output-style compressed
+    mapSass: >-
+        node-sass src/assets/scss/black-dashboard-pro-react.scss
+        src/assets/css/black-dashboard-pro-react.css --source-map true

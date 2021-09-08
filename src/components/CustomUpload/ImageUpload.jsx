@@ -1,0 +1,144 @@
+import React, { useEffect, useRef, useState } from 'react';
+// used for making the prop types of this component
+import PropTypes from 'prop-types';
+
+import { Button } from 'reactstrap';
+
+import pdf_thumbnail from 'assets/img/pdf_thumbnail.png';
+import defaultImage from 'assets/img/image_placeholder.jpg';
+import defaultAvatar from 'assets/img/placeholder.jpg';
+
+function ImageUpload( {
+                          avatar, defaultImgBackground,
+                          addBtnColor, addBtnClasses, changeBtnColor, changeBtnClasses,
+                          removeBtnColor, removeBtnClasses, saveFile
+                      } ) {
+
+    const [file, setFile] = useState( null );
+    const [imagePreviewUrl, setImagePreviewUrl] = useState( avatar ? `data:image/jpeg;base64,${avatar}` : defaultImage );
+    const fileInput = useRef( null );
+
+    useEffect( () => {
+        (async () => {
+            setImagePreviewUrl( avatar ? `data:image/jpeg;base64,${avatar}` : defaultImage );
+        })();
+    }, [avatar] );
+
+    const handleImageChange = ( e ) => {
+        e.preventDefault();
+        let reader = new FileReader();
+        let fileTemp = e.target.files[ 0 ];
+        reader.onloadend = () => {
+            setFile( file );
+            saveFile( fileTemp );
+            const type = reader.result.indexOf( 'data:application/pdf;' );
+
+            // it's a pdf
+            if ( type === 0 ) {
+                setImagePreviewUrl( pdf_thumbnail );
+            } else {
+                setImagePreviewUrl( reader.result );
+            }
+
+        };
+        reader.readAsDataURL( fileTemp );
+    };
+    const handleClick = ( e ) => {
+        fileInput.current.click();
+    };
+    const handleRemove = ( e ) => {
+        setFile( null );
+        setImagePreviewUrl( avatar ? defaultAvatar : defaultImage );
+
+        fileInput.current.value = null;
+    };
+
+    return (
+        <div className="fileinput text-center">
+            <input type="file" onChange={handleImageChange} ref={fileInput}/>
+            <div className={'thumbnail' + (avatar ? ' img-circle' : '')}>
+                <img src={imagePreviewUrl} alt="..."/>
+                {defaultImgBackground ? <img src={defaultImgBackground} alt="..."/> : null}
+            </div>
+            <div>
+                {file === null ? (
+                    <Button
+                        color={addBtnColor}
+                        className={addBtnClasses}
+                        onClick={() => handleClick()}
+                    >
+                        {avatar ? 'Add Logo' : 'Select image'}
+                    </Button>
+                ) : (
+                    <span>
+              <Button
+                  color={changeBtnColor}
+                  className={changeBtnClasses}
+                  onClick={() => handleClick()}
+              >
+                Change
+              </Button>
+                        {avatar ? <br/> : null}
+                        <Button
+                            color={removeBtnColor}
+                            className={removeBtnClasses}
+                            onClick={() => handleRemove()}
+                        >
+                <i className="fa fa-times"/> Remove
+              </Button>
+            </span>
+                )}
+            </div>
+        </div>
+    );
+
+}
+
+ImageUpload.defaultProps = {
+    avatar: false,
+    removeBtnClasses: 'btn-round',
+    removeBtnColor: 'danger',
+    addBtnClasses: 'btn-round',
+    addBtnColor: 'primary',
+    changeBtnClasses: 'btn-round',
+    changeBtnColor: 'primary'
+};
+
+ImageUpload.propTypes = {
+    avatar: PropTypes.bool,
+    removeBtnClasses: PropTypes.string,
+    removeBtnColor: PropTypes.oneOf( [
+        'default',
+        'primary',
+        'secondary',
+        'success',
+        'info',
+        'warning',
+        'danger',
+        'link'
+    ] ),
+    addBtnClasses: PropTypes.string,
+    addBtnColor: PropTypes.oneOf( [
+        'default',
+        'primary',
+        'secondary',
+        'success',
+        'info',
+        'warning',
+        'danger',
+        'link'
+    ] ),
+    changeBtnClasses: PropTypes.string,
+    changeBtnColor: PropTypes.oneOf( [
+        'default',
+        'primary',
+        'secondary',
+        'success',
+        'info',
+        'warning',
+        'danger',
+        'link'
+    ] )
+};
+
+export default ImageUpload;

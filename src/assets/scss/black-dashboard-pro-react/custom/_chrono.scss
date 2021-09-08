@@ -1,0 +1,18 @@
+.chrono {
+  .buttons {
+    padding: 1rem;
+  }
+}
+
+.time {
+  font-size: 2.5rem;
+  font-weight: 600;
+  font-family: 'Roboto Mono', monospace;
+  margin-left: 1rem;
+  color: black;
+  padding: 5px;
+  background: rgb(66, 4, 53);
+  background: white;
+  border: 1px solid $primary;
+  border-radius: 3px;
+}
