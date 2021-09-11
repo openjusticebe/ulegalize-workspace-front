@@ -18,8 +18,6 @@ import Drive from './views/Drive';
 import CorrespondenceList from './views/list/CorrespondenceList';
 import Payment from './views/Payment';
 import EmailsList from './views/list/EmailsList';
-import MailList from './views/affaire/mail/MailList';
-import Mail from './views/affaire/mail/Mail';
 import MailRouteList from './views/affaire/mail/MailRouteList';
 
 function routes (label) {

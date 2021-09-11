@@ -1,7 +1,7 @@
 import axios from 'axios';
 import InvoiceSummary from '../model/invoice/InvoiceSummary';
 
-export async function getInvoiceList( accessToken, offset, limit,vckeySelected, searchEcheance, searchDate, searchYearDossier, searchNumberDossier ) {
+export async function getInvoiceList( accessToken, offset, limit,vckeySelected, searchEcheance, searchDate, searchYearDossier, searchNumberDossier, searchClient ) {
     try {
         return axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/invoices/list`, {
             params: {
@@ -11,6 +11,7 @@ export async function getInvoiceList( accessToken, offset, limit,vckeySelected, 
                 searchDate: searchDate,
                 searchYearDossier: searchYearDossier,
                 searchNumberDossier: searchNumberDossier,
+                searchClient: searchClient,
                 vcKey: vckeySelected,
             },
             headers: {
@@ -53,9 +54,11 @@ export async function getDefaultInvoice( accessToken ) {
 export async function getInvoicesByDossierId( accessToken, vckeySelected, dossierId, offset, limit ) {
     try {
         return axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/invoices/list`, {
-            params: { offset: offset, limit: limit,
+            params: { offset: offset,
+                limit: limit,
                 vcKey: vckeySelected,
-                dossierId: dossierId },
+                dossierId: dossierId
+            },
             headers: {
                 Authorization: `Bearer ${accessToken}`
             }

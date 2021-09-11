@@ -47,6 +47,7 @@ export default function InvoicesList( props ) {
     const [filtered, setFiltered] = useState( { echeance: null, date: null, number: null, year: null } );
     const [filteredNumber, setFilteredNumber] = useState( '' );
     const [filteredYear, setFilteredYear] = useState( null );
+    const [filteredClient, setFilteredClient] = useState( '' );
 
     const [data, setData] = useState( [] );
     const [count, setCount] = useState( 0 );
@@ -109,6 +110,12 @@ export default function InvoicesList( props ) {
                 },
                 Filter: DateColumnFilter,
                 filter: 'equals',
+            },
+            {
+                Header: label.invoice.label114,
+                accessor: 'clientItem.label',
+                filter: 'fuzzyText',
+                Filter: NameColumnFilter,
             },
             {
                 Header: label.invoice.label121,
@@ -322,6 +329,28 @@ export default function InvoicesList( props ) {
         );
     }
 
+    const _onChangeNameFilter = async ( value ) => {
+        setFilteredClient( value );
+        setFiltered( { ...filtered, fullname: value } );
+    };
+
+    function NameColumnFilter( { column: { setFilter }, } ) {
+        return (
+            <Input
+                id="custom-select"
+                type="text"
+                placeholder={'Recherche client'}
+                value={filtered.client}
+                onChange={( e ) => {
+                    _onChangeNameFilter( e.target.value );
+                    setFilter( e.target.value || undefined );
+                }}
+
+            >
+            </Input>
+        );
+    }
+
     useEffect( () => {
         (async () => {
             if ( !isNil( driveType ) && driveType === 'dropbox' ) {
@@ -343,7 +372,7 @@ export default function InvoicesList( props ) {
             let result;
             loadRef.current = false;
 
-            result = await getInvoiceList( accessToken, offset, pageSize, vckeySelected, filteredEcheanceRef.current, filteredDate.current, filteredYear, filteredNumber );
+            result = await getInvoiceList( accessToken, offset, pageSize, vckeySelected, filteredEcheanceRef.current, filteredDate.current, filteredYear, filteredNumber, filteredClient );
 
             if ( !result.error ) {
                 skipPageResetRef.current = true;

@@ -194,27 +194,6 @@ export async function attachFileChannel(accessToken, files ) {
         return { error: true, data: {} };
     }
 }
-/*
-create dossier and case
- */
-export async function createCase( accessToken, data ) {
-    try {
-        return axios.post( `${process.env.REACT_APP_TRANSPARENCY_SERVER}v1/cases/agenda`,
-            data,
-            {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
-                }
-            }
-        )
-        .catch( () => {
-            return { error: true };
-        } );
-    } catch ( e ) {
-        return { error: true, data: {} };
-    }
-}
 
 export async function createDossierTransparency( accessToken, caseCreation ) {
     try {
