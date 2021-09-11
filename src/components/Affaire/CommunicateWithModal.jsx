@@ -76,7 +76,6 @@ export const CommunicateWithModal = ( {
         }
 
         // save transparency create case
-        //const resultatCas = await createCase(accessToken, data);
         //data.contact.birthdate = moment( data.contact.birthdate ).toDate()
         const caseCreation = new CaseCreationDTO( data.dossier, clientList );
         let resultatCas = await createDossierTransparency( accessToken, caseCreation );
