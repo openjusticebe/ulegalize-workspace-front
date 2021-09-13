@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 // reactstrap components
-import { Col, Input, InputGroup, InputGroupAddon, InputGroupText, Row } from 'reactstrap';
+import { Col, FormGroup, Input, InputGroup, InputGroupAddon, InputGroupText, Label, Row } from 'reactstrap';
 import CircularProgress from '@material-ui/core/CircularProgress';
 
 const toUpper = require( 'lodash/toUpper' );
@@ -13,8 +13,10 @@ class Step1 extends React.Component {
     constructor( props ) {
         super( props );
         this.state = {
+            conditions: false,
             vckeyName: props.vckeySelected,
-            vckeyNameState: props.vckeyNameState
+            vckeyNameState: props.vckeyNameState,
+            conditionState: props.conditionState
         };
     }
 
@@ -43,7 +45,7 @@ class Step1 extends React.Component {
                     if ( value && /^[a-zA-Z0-9_]+$/.test( value ) ) {
                         this.setState( { [ stateName + 'State' ]: 'has-success' } );
 
-                        if(value.includes(process.env.REACT_APP_TEMP_VCKEY)) {
+                        if ( value.includes( process.env.REACT_APP_TEMP_VCKEY ) ) {
                             // check characters for sequence
                             //ULEGAL
                             const restValue = trim( value, process.env.REACT_APP_TEMP_VCKEY );
@@ -73,7 +75,12 @@ class Step1 extends React.Component {
     };
     isValidated = () => {
         if ( this.state.vckeyNameState === 'has-success' ) {
-            return true;
+            if(!this.state.conditions) {
+                this.setState( { conditionState: 'form-check-sign-red' } );
+
+            } else {
+               return true;
+            }
         } else {
             if ( this.state.vckeyNameState !== 'has-success' ) {
                 this.setState( { vckeyNameState: 'has-danger' } );
@@ -84,6 +91,7 @@ class Step1 extends React.Component {
 
     render() {
         const { label } = this.props;
+
         return (
             <>
                 <h5 className="info-text">
@@ -119,6 +127,25 @@ class Step1 extends React.Component {
                                     ) : (
                                         <label className="error">{label.label4}</label>
                                     )}
+                                    <FormGroup check>
+                                        <Label check>
+                                            <Input
+                                                onChange={( e ) => {
+                                                    this.setState( { conditionState: 'form-check-sign' } );
+                                                    this.setState( {conditions: !this.state.conditions} )
+                                                }}
+                                                type="checkbox"/>{' '}
+                                            {label.terms}
+                                            <span
+                                                className={classnames( this.state.conditionState, {
+                                                    'form-check-sign': this.state.vckeyNameFocus
+                                                } )}>
+                                                <span className="check"></span>
+                                            </span>
+                                        </Label>
+                                        {' '}<a href={process.env.REACT_APP_CONDITIONS} rel="noopener noreferrer" target={`_blank`}>{label.conditions}</a> |
+                                        {' '}<a href={process.env.REACT_APP_PRIVACY} rel="noopener noreferrer" target={`_blank`}>{label.privacy}</a>
+                                    </FormGroup>
                                 </>
 
                             ) :

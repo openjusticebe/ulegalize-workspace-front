@@ -51,6 +51,7 @@ export const Wizard = ( { user, label, history } ) => {
                 originalVcKey: originalVcKey.current,
                 vckeySelected: vckeySelected,
                 vckeyNameState: vckeyNameState,
+                conditionState: 'form-check-sign',
                 changeVcKey: _changeVcKey
             },
             component: Step1

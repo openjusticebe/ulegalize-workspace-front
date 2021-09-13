@@ -42,8 +42,29 @@
   -o-transition: opacity 0.3s linear;
   -ms-transition: opacity 0.3s linear;
   transition: opacity 0.3s linear;
+
+}
+.form-check .form-check-sign-red::before,
+.form-check .form-check-sign-red::after {
+  content: " ";
+  display: inline-block;
+  position: absolute;
+  width: 17px;
+  height: 17px;
+  left: 0;
+  cursor: pointer;
+  border-radius: 3px;
+  top: 0;
+  border: 1px solid darken($danger-states, 10%);
+  -webkit-transition: opacity 0.3s linear;
+  -moz-transition: opacity 0.3s linear;
+  -o-transition: opacity 0.3s linear;
+  -ms-transition: opacity 0.3s linear;
+  transition: opacity 0.3s linear;
+
 }
 
+.form-check input[type="checkbox"]:checked + .form-check-sign-red::before,
 .form-check input[type="checkbox"]:checked + .form-check-sign::before,
 .form-check input[type="checkbox"]:checked + .form-check-sign::before {
   border: none;
@@ -66,7 +87,8 @@
   background-color: $calendar-gray;
 }
 
-.form-check .form-check-sign::after {
+.form-check
+.form-check-sign::after {
   font-family: "nucleo";
   content: "\ea1b";
   top: 0px;
@@ -124,6 +146,24 @@
   height: 18px;
   border-radius: 50%;
   border: 1px solid darken($dark-gray, 10%);
+  display: inline-block;
+  position: absolute;
+  left: 0px;
+  top: 3px;
+  padding: 1px;
+  -webkit-transition: opacity 0.3s linear;
+  -moz-transition: opacity 0.3s linear;
+  -o-transition: opacity 0.3s linear;
+  -ms-transition: opacity 0.3s linear;
+  transition: opacity 0.3s linear;
+}
+.form-check-radio .form-check-sign-red::before,
+.form-check-radio .form-check-sign-red::after {
+  content: " ";
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+    border: 1px solid darken($danger-states, 10%);
   display: inline-block;
   position: absolute;
   left: 0px;

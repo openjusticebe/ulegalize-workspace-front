@@ -958,6 +958,9 @@ const label =
                 'label4': 'Uniquement Lettres et chiffres autorisés (entre 4 et 50 caractères). ULEGAL[NUMERO] est protégé.',
                 'label5': 'Attention uniquement des lettres et chiffres sont autorisés. Entre 4 et 50 caractères.',
                 'label6': "Toutes ces informations seront modifiables dans la partie 'administration' de votre workspace",
+                'terms': "J'ai lu et j'accepte les  ",
+                'conditions': "Conditions d'utilisation ",
+                'privacy': "Politique de confidentialité",
             },
             'newLawfirm': {
                 'label1': 'Nouveau workspace',
