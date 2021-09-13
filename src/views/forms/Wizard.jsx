@@ -48,6 +48,7 @@ export const Wizard = ( { user, label, history } ) => {
             stepIcon: 'tim-icons icon-single-02',
             stepProps: {
                 label: label.wizardSignup,
+                originalVcKey: originalVcKey.current,
                 vckeySelected: vckeySelected,
                 vckeyNameState: vckeyNameState,
                 changeVcKey: _changeVcKey

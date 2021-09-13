@@ -1,6 +1,6 @@
 {
   "name": "lawfirm-front",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "private": true,
   "scripts": {
     "start": "nps",
