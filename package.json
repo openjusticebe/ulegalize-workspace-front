@@ -10,7 +10,7 @@
     "test": "nps test"
   },
   "dependencies": {
-    "@auth0/auth0-react": "^1.1.0",
+    "@auth0/auth0-react": "1.7.0",
     "@fortawesome/fontawesome-svg-core": "^1.2.27",
     "@fortawesome/free-solid-svg-icons": "^5.12.1",
     "@fortawesome/react-fontawesome": "^0.1.9",
@@ -34,7 +34,6 @@
     "jwt-decode": "^3.0.0-beta.2",
     "moment": "^2.24.0",
     "moment-timezone": "^0.5.31",
-    "pdfjs-dist": "^2.5.207",
     "perfect-scrollbar": "^1.4.0",
     "pizzip": "^3.0.6",
     "prop-types": "^15.7.2",
