@@ -1,5 +1,7 @@
 scripts:
     default: dotenv -e .env.development.local react-scripts start
+#    WINDOWS
+#    default: set PORT=3000 dotenv -e .env.development.local react-scripts start
     build: >-
         nps buildNew
     testBuild: >-
