@@ -5,7 +5,7 @@ https://ulegalize.atlassian.net/wiki/spaces/UC/pages/793378817/Open+source
 
 Don't hesitate to create PR in order to change something in the project
 
-####Run in a terminal
+#### Run in a terminal
 `
 yarn install 
 `  
