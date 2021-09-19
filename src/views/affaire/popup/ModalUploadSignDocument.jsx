@@ -77,13 +77,12 @@ export default function ModalUploadSignDocument( {
                     setClient( clientTemp );
                 }
 
-                setIsLoading( false );
-            } else if ( cas.username ) {
+            } else if ( cas && cas.username ) {
                 let clientTemp = new ClientUsignDTO( null, label );
                 clientTemp.email = cas.username.email;
                 setClient( clientTemp );
-                setIsLoading( false );
             }
+            setIsLoading( false );
 
             fetchUsignPaymentPrice( accessToken, ( price ) => {
                 setPriceUsign( price.toFixed( 2 ) );
@@ -97,7 +96,9 @@ export default function ModalUploadSignDocument( {
         files.append( 'content', emailContent );
         files.append( 'contact', JSON.stringify( toRecipientEmail ) );
         // if exists
-        files.append( 'casId', cas.id );
+        if ( cas ) {
+            files.append( 'casId', cas.id );
+        }
 
         // used for list , out of the dossier
         await attachEsignDocument( files, affaireId );
@@ -219,7 +220,7 @@ export default function ModalUploadSignDocument( {
                                             name="emailTo"
                                             component="textarea"
                                             className="form-control"
-                                            placeholder={label.etat.emailUploadTo}
+                                            placeholder={label.etat.fillinEmailUploadTo}
                                             value={client.email}
                                             onChange={( e ) => setClient( { ...client, email: e.target.value } )}
                                         />
@@ -402,12 +403,12 @@ export default function ModalUploadSignDocument( {
             <ModalFooter className="text-align-right">
                 <Button color="default" onClick={toggle}>{label.common.close}</Button>
                 {!isNil( toRecipientEmail ) && !isEmpty( toRecipientEmail )
-                && !isNil( payment ) && payment === true && !isNil( affaireId ) && !isEmpty( affaireId ) ? (
+                && !isNil( payment ) && payment === true ? (
                     <FormGroup>
-                    <Button
-                        disabled={btnIsLoading}
-                        color="primary"
-                        onClick={!btnIsLoading ? _esignDocument : null}>{label.etat.send} ({size(toRecipientEmail) * priceUsign}€)</Button>
+                        <Button
+                            disabled={btnIsLoading}
+                            color="primary"
+                            onClick={!btnIsLoading ? _esignDocument : null}>{label.etat.send} ({size( toRecipientEmail ) * priceUsign}€)</Button>
                         <FormText color="muted">
                             {label.etat.label1} {' '} {priceUsign}€
                         </FormText>

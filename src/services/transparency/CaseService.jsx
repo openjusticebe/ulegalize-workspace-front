@@ -69,6 +69,23 @@ export async function downloadFileChannelAttached( accessToken, channelId, filen
     }
 }
 
+export async function downloadFileAttachedUsign( accessToken, usignId ) {
+    try {
+        return axios.get( `${process.env.REACT_APP_TRANSPARENCY_SERVER}v2/drive/usign/file`, {
+                params: { usignId: usignId },
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            }
+        )
+        .catch( () => {
+            return { error: true, data: 'nok' };
+        } );
+    } catch ( e ) {
+        return { error: true, data: {} };
+    }
+}
+
 export async function attachEsignDocument( accessToken, dossierId, files ) {
     try {
         return axios.post( `${process.env.REACT_APP_TRANSPARENCY_SERVER}v2/cases/connective/${dossierId}/document`,

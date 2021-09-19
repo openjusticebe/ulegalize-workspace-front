@@ -6,13 +6,21 @@ import {
     CardBody,
     CardHeader,
     CardTitle,
-    Col, Modal, ModalBody, ModalFooter, ModalHeader,
+    Col,
+    Modal,
+    ModalBody,
+    ModalFooter,
+    ModalHeader,
     Nav,
     NavItem,
     NavLink,
+    PopoverBody,
+    PopoverHeader,
     Row,
     TabContent,
-    TabPane, UncontrolledTooltip,
+    TabPane,
+    UncontrolledPopover,
+    UncontrolledTooltip,
 } from 'reactstrap';
 import ReactLoading from 'react-loading';
 // nodejs library that concatenates classes
@@ -39,6 +47,15 @@ import ModalMail from './affaire/mail/ModalMail';
 import { getDocumentsMail } from '../services/PostBirdServices';
 import ModalEMailSign from './affaire/mail/recommande/ModalEMailSign';
 import { getEMailRegisteredList } from '../services/EmailRegisteredService';
+import SignatureDTO from '../model/usign/SignatureDTO';
+import ModalUploadSignDocument from './affaire/popup/ModalUploadSignDocument';
+import { downloadFileAttachedUsign } from '../services/transparency/CaseService';
+import { attachEsignDocumentByVcKey, getUsignByVcKey } from '../services/transparency/UsignService';
+import ErrorOutlineOutlinedIcon from '@material-ui/icons/ErrorOutlineOutlined';
+import { CustomPopover } from './affaire/StatusQuestionPopup';
+import CreateIcon from '@material-ui/icons/Create';
+import GetApp from '@material-ui/icons/GetApp';
+import { downloadWithName } from '../utils/TableUtils';
 
 const isNil = require( 'lodash/isNil' );
 const isEmpty = require( 'lodash/isEmpty' );
@@ -56,6 +73,7 @@ export const Dashboard = ( props ) => {
     const [dataDossiers, setDataDossiers] = useState( null );
     const [dataEmailRegistered, setDataEmailRegistered] = useState( null );
     const [dataMail, setDataMail] = useState( null );
+    const [dataUsign, setDataUsign] = useState( null );
     const [dataSharedAffaires, setDataSharedAffaires] = useState( null );
     const [horizontalTabs, setHorizontalTabs] = useState( 'affaire' );
     const { getAccessTokenSilently } = useAuth0();
@@ -66,6 +84,7 @@ export const Dashboard = ( props ) => {
     const payment = useRef( false );
     const [modalEmailDisplay, setModalEmailDisplay] = useState( false );
     const [modalPostMailDisplay, setModalPostMailDisplay] = useState( false );
+    const [modalUsignlDisplay, setModalUsignlDisplay] = useState( false );
     const [modalNotPaidSignDocument, setModalNotPaidSignDocument] = useState( false );
 
     const toggleModalLarge = () => {
@@ -82,13 +101,25 @@ export const Dashboard = ( props ) => {
         }
         setCheckTokenDrive( !checkTokenDrive );
     };
+    const _handleDownloadFile = async ( usignId, filename ) => {
+        const accessToken = await getAccessTokenSilently();
+
+        const result = await downloadFileAttachedUsign( accessToken, usignId );
+        //const name = fileContent.name;
+        //const arrn = name.split( '/' );
+        if ( result.error ) {
+            notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.error1, 'danger' ) );
+        } else {
+            downloadWithName( result.data, filename );
+        }
+    };
 
     useEffect( () => {
         (async () => {
             try {
                 const accessToken = await getAccessTokenSilently();
 
-                getAllRecent( accessToken, vckeySelected,( affaires ) => {
+                getAllRecent( accessToken, vckeySelected, ( affaires ) => {
                     const dataDossiersTmp = affaires ? affaires.map( ( affaire ) => {
                         return {
                             label: (<Link to={`/admin/affaire/${affaire.id}`}>{affaire.label}</Link>),
@@ -109,17 +140,24 @@ export const Dashboard = ( props ) => {
 
                 }, ( emailRegistered ) => {
                     const dataemailRegisteredTmp = emailRegistered ? emailRegistered.map( ( registered ) => {
-                        return new EmailDTO(registered);
+                        return new EmailDTO( registered );
                     } ) : [];
 
                     setDataEmailRegistered( dataemailRegisteredTmp );
 
-                },( mail ) => {
+                }, ( mail ) => {
                     const dataMailTmp = mail ? mail.map( ( registered ) => {
-                        return new DocumentDTO(registered);
+                        return new DocumentDTO( registered );
                     } ) : [];
 
                     setDataMail( dataMailTmp );
+
+                }, ( usign ) => {
+                    const dataMailTmp = usign ? usign.map( ( sign ) => {
+                        return new SignatureDTO( sign );
+                    } ) : [];
+
+                    setDataUsign( dataMailTmp );
 
                 } );
                 if ( !isNil( driveType ) && driveType === 'dropbox' ) {
@@ -222,7 +260,7 @@ export const Dashboard = ( props ) => {
                     return getDateDetails( row.value );
                 }
             }
-        ]);
+        ] );
 
     const columnsMail = React.useMemo(
         () => [
@@ -243,7 +281,7 @@ export const Dashboard = ( props ) => {
                         <Button
                             className="btn-icon btn-link margin-left-10"
                             onClick={() => {
-                                _openPostMail(row.value);
+                                _openPostMail( row.value );
                             }}
                             color="primary" size="sm">
                             <i className="fa fa-paper-plane "/>
@@ -273,6 +311,123 @@ export const Dashboard = ( props ) => {
         ],
 
         [] );
+    const columnsUsign = React.useMemo(
+        () => [
+            {
+                Header: '#',
+                accessor: 'usignId',
+                Cell: row => {
+                    let statusGlyph = (<Col sm={6} md={6}>
+                        <Button
+                            color="primary"
+                            className="btn-icon btn-link margin-left-10"
+                            type="button"
+                            id={`PopoverNormal-${row.value}`}>
+                            <ErrorOutlineOutlinedIcon/>
+                        </Button>
+                        <UncontrolledPopover trigger="focus" placement="left" target={`PopoverNormal-${row.value}`}>
+                            <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                            <PopoverBody>
+                                <CustomPopover label={label}/>
+                            </PopoverBody>
+                        </UncontrolledPopover>
+                    </Col>);
+                    if ( row.row.original.status === 'SIGN' ) {
+                        statusGlyph = (<Col sm={6} md={6}>
+                            <Button
+                                type="button"
+                                color="primary"
+                                className="btn-icon btn-link margin-left-10"
+                                id={`PopoverSign-${row.value}`}>
+                                <CreateIcon className="green"/>
+                            </Button>
+                            <UncontrolledPopover trigger="focus" placement="left" target={`PopoverSign-${row.value}`}>
+                                <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                                <PopoverBody>
+                                    <CustomPopover label={label}/>
+                                </PopoverBody>
+                            </UncontrolledPopover>
+                        </Col>);
+                    } else if ( row.row.original.status === 'WAITING' ) {
+                        statusGlyph = (<Col sm={6} md={6}>
+                            <Button
+                                type="button"
+                                id={`PopoverStart-${row.value}`}
+                                color="primary"
+                                className="btn-icon btn-link margin-left-10">
+                                <CreateIcon className="red glyphicon-ring"/>
+                            </Button>
+                            <UncontrolledPopover trigger="focus" placement="left" target={`PopoverStart-${row.value}`}>
+                                <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                                <PopoverBody>
+                                    <CustomPopover label={label}/>
+                                </PopoverBody>
+                            </UncontrolledPopover>
+                        </Col>);
+                    } else if ( row.row.original.status === 'START' ) {
+                        statusGlyph = (<Col sm={6} md={6}>
+                            <Button
+                                type="button"
+                                id={`PopoverStart-${row.value}`}
+                                color="primary"
+                                className="btn-icon btn-link margin-left-10">
+                                <CreateIcon className="red glyphicon-ring"/>
+                            </Button>
+                            <UncontrolledPopover trigger="focus" placement="left" target={`PopoverStart-${row.value}`}>
+                                <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                                <PopoverBody>
+                                    <CustomPopover label={label}/>
+                                </PopoverBody>
+                            </UncontrolledPopover>
+                        </Col>);
+                    } else if ( row.row.original.status === 'NORMAL' ) {
+                        statusGlyph = (<Col sm={6} md={6}>
+                            <Button
+                                type="button"
+                                id={`PopoverNormal-${row.value}`}
+                                size="sm"
+                                color="primary"
+                                className="btn-icon btn-link margin-left-10">
+                                <ErrorOutlineOutlinedIcon/>
+                            </Button>
+                            <UncontrolledPopover trigger="focus" placement="left" target={`PopoverNormal-${row.value}`}>
+                                <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                                <PopoverBody>
+                                    <CustomPopover label={label}/>
+                                </PopoverBody>
+                            </UncontrolledPopover>
+                        </Col>);
+                    }
+                    return <Row>
+                        {statusGlyph}
+                        <Col sm={1} md={1}>
+                            <Button
+                                size="sm"
+                                color="primary"
+                                disabled={row.row.original.status === 'WAITING'}
+                                className="btn-icon"
+                                onClick={() => _handleDownloadFile( row.row.original.usignId, row.row.original.documentName )}>
+                                <GetApp/>
+                            </Button>
+                        </Col>
+                        {` `}
+                    </Row>;
+                }
+            },
+            {
+                Header: label.mail.label10,
+                accessor: 'documentName'
+            },
+            {
+                Header: label.mail.label12,
+                accessor: 'creDate',
+                Cell: row => {
+                    return getDateDetails( row.value );
+                }
+            }
+        ],
+
+        [] );
     const _openPostMail = async ( documentId ) => {
         documentIdRef.current = documentId;
         const accessToken = await getAccessTokenSilently();
@@ -282,6 +437,20 @@ export const Dashboard = ( props ) => {
             payment.current = resultPayment.data;
             if ( payment.current === true ) {
                 setModalPostMailDisplay( !modalPostMailDisplay );
+            } else {
+                setModalNotPaidSignDocument( !modalNotPaidSignDocument );
+            }
+        }
+    };
+
+    const _openUsign = async () => {
+        const accessToken = await getAccessTokenSilently();
+
+        let resultPayment = await checkPaymentActivated( accessToken );
+        if ( !isNil( resultPayment ) ) {
+            payment.current = resultPayment.data;
+            if ( payment.current === true ) {
+                setModalUsignlDisplay( !modalUsignlDisplay );
             } else {
                 setModalNotPaidSignDocument( !modalNotPaidSignDocument );
             }
@@ -302,7 +471,30 @@ export const Dashboard = ( props ) => {
         }
     };
 
+    const _attachEsignDocument = async ( file ) => {
+        const accessToken = await getAccessTokenSilently();
 
+        if ( isNil( file ) ) {
+            notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.error2, 'danger' ) );
+            return;
+        }
+        notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.label9, 'warning' ) );
+
+        const result = await attachEsignDocumentByVcKey( accessToken, file );
+
+        if ( !result.error ) {
+            notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.success1, 'success' ) );
+        }
+        const resultUsign = await getUsignByVcKey( accessToken, 0, 5 );
+
+        if ( !resultUsign.error && resultUsign.data.content ) {
+            const dataUsignTmp = resultUsign.data.content ? resultUsign.data.content.map( ( sign ) => {
+                return new SignatureDTO( sign );
+            } ) : [];
+
+            setDataUsign( dataUsignTmp );
+        }
+    };
 
     const showMailFun = () => {
         setShowMail( !showMail );
@@ -327,7 +519,7 @@ export const Dashboard = ( props ) => {
         </ReactBSAlert> );
     };
     const _deleteEMailRegistered = async ( ticketTokens ) => {
-        notificationAlert.current.notificationAlert( getOptionNotification(  label.common.success2, 'primary' ) );
+        notificationAlert.current.notificationAlert( getOptionNotification( label.common.success2, 'primary' ) );
 
     };
     const changeActiveTab = async ( e, tabState, tadName ) => {
@@ -346,13 +538,13 @@ export const Dashboard = ( props ) => {
     const _toggleUnPaid = () => {
         setModalNotPaidSignDocument( !modalNotPaidSignDocument );
     };
-    const _updateMailList = async() => {
+    const _updateMailList = async () => {
         const accessToken = await getAccessTokenSilently();
         const result = await getDocumentsMail( accessToken, 0, 5, null );
 
-        if(!result.error && result.data.content) {
+        if ( !result.error && result.data.content ) {
             const dataMailTmp = result.data.content ? result.data.content.map( ( registered ) => {
-                return new DocumentDTO(registered);
+                return new DocumentDTO( registered );
             } ) : [];
 
             setDataMail( dataMailTmp );
@@ -363,9 +555,9 @@ export const Dashboard = ( props ) => {
         const accessToken = await getAccessTokenSilently();
         const result = await getEMailRegisteredList( accessToken, 0, 5, null );
 
-        if(!result.error && result.data.content) {
+        if ( !result.error && result.data.content ) {
             const dataMailTmp = result.data.content ? result.data.content.map( ( registered ) => {
-                return new EmailDTO(registered);
+                return new EmailDTO( registered );
             } ) : [];
 
             setDataEmailRegistered( dataMailTmp );
@@ -490,7 +682,8 @@ export const Dashboard = ( props ) => {
                                 {dataEmailRegistered && !isNil( dataEmailRegistered ) ? (
                                     <Row>
                                         <Col md="12">
-                                            <ReactTableLocal columns={columnsEmailRegistered} data={dataEmailRegistered}/>
+                                            <ReactTableLocal columns={columnsEmailRegistered}
+                                                             data={dataEmailRegistered}/>
 
                                         </Col>
                                     </Row>
@@ -546,7 +739,51 @@ export const Dashboard = ( props ) => {
                     </Col>
                 </Row>
                 <Row>
-                    <Col className="ml-auto mr-auto margin-bottom-15" md="12" sm={12}>
+                    {/* RECENT usign */}
+                    <Col lg="4" sm={6}>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>
+                                    <h4>{label.dashboard.label7}
+                                        <Button
+                                            onClick={() => _openUsign()}
+                                            className="btn-icon float-right"
+                                            color="primary"
+                                            data-placement="bottom"
+                                            id="tooltip811118932"
+                                            type="button"
+                                            size="sm"
+                                        >
+                                            <i className="tim-icons icon-simple-add"/>
+                                        </Button>
+                                        <UncontrolledTooltip
+                                            delay={0}
+                                            placement="bottom"
+                                            target="tooltip811118932"
+                                        >
+                                            {label.dashboard.label7}
+                                        </UncontrolledTooltip>
+                                    </h4>
+                                </CardTitle>
+                                <p className="card-category">
+                                    {label.dashboard.label4}
+                                </p>
+                            </CardHeader>
+                            <CardBody>
+                                {dataUsign && !isNil( dataUsign ) ? (
+                                    <Row>
+                                        <Col md="12">
+                                            <ReactTableLocal columns={columnsUsign} data={dataUsign}/>
+
+                                        </Col>
+                                    </Row>
+                                ) : (
+                                    <ReactLoading className="loading" height={'20%'} width={'20%'}/>
+                                )}
+                            </CardBody>
+                        </Card>
+                    </Col>
+                    <Col className="ml-auto mr-auto margin-bottom-15" md="8" sm={12}>
                         <Agenda
                             onlyDossier={false}
                             auth0={auth0}
@@ -621,6 +858,19 @@ export const Dashboard = ( props ) => {
                     showMessagePopup={_showMessage}
                     toggleModalDetails={_openEmail}
                     modalDisplay={modalEmailDisplay}/>
+            ) : null}
+            {/* POPUP USIGN */}
+            {modalUsignlDisplay ? (
+                <ModalUploadSignDocument
+                    showMessagePopup={_showMessage}
+                    affaireId={null}
+                    vckeySelected={vckeySelected}
+                    cas={null}
+                    label={label}
+                    payment={payment.current}
+                    toggleModalDetails={_openUsign}
+                    attachEsignDocument={_attachEsignDocument}
+                    modalDisplay={modalUsignlDisplay}/>
             ) : null}
             {/* POPUP PAYMENT NOT REGISTERED */}
             {modalNotPaidSignDocument ? (
