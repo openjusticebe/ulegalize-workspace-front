@@ -27,6 +27,7 @@ import { getLawfirmList } from '../../services/LawfirmsService';
 import { RegisterClientModal } from '../client/RegisterClientModal';
 import PrestationChrono from './PrestationChrono';
 import NotificationAlert from 'react-notification-alert';
+import ModalReportPrestation from '../../views/popup/reports/ModalReportPrestation';
 
 const map = require( 'lodash/map' );
 const isNil = require( 'lodash/isNil' );
@@ -36,6 +37,7 @@ class AdminNavbar extends React.Component {
         super( props );
         this.state = {
             vcKeys: [],
+            togglePopupCreatePrest: false,
             togglePopupCreateCab: false,
             togglePopupClient: false,
             chronoVisible: false,
@@ -129,6 +131,12 @@ class AdminNavbar extends React.Component {
     toggleChrono = () => {
         this.setState( {
             chronoVisible: !this.state.chronoVisible
+        } );
+    };
+    // this function is to open the Search modal
+    togglePopupCreatePrestation = () => {
+        this.setState( {
+            togglePopupCreatePrest: !this.state.togglePopupCreatePrest
         } );
     };
     // this function is to open the Search modal
@@ -237,6 +245,8 @@ class AdminNavbar extends React.Component {
                                         <DropdownMenu>
                                             <DropdownItem tag={Link}
                                                           to="/admin/create/affaire">{label.header.label2}</DropdownItem>
+                                            <DropdownItem tag={Link}
+                                                          onClick={this.togglePopupCreatePrestation}>{label.header.label10}</DropdownItem>
                                             <DropdownItem tag={Link}
                                                           to="/admin/create/compta">{label.header.label3}</DropdownItem>
                                             <DropdownItem tag={Link}
@@ -354,6 +364,14 @@ class AdminNavbar extends React.Component {
                             label={this.props.label}
                             toggle={this.togglePopupCreateCab}
                             openDialog={this.state.togglePopupCreateCab}/>
+                    ) : null}
+                {this.state.togglePopupCreatePrest ?
+                    (
+                        <ModalReportPrestation
+                            showMessage={this._showMessage}
+                            label={label}
+                            openDialog={this.state.togglePopupCreateCab}
+                            toggle={this.togglePopupCreatePrestation}/>
                     ) : null}
                 {this.state.togglePopupClient ?
                     (

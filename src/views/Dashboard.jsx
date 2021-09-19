@@ -76,6 +76,7 @@ export const Dashboard = ( props ) => {
     const [dataUsign, setDataUsign] = useState( null );
     const [dataSharedAffaires, setDataSharedAffaires] = useState( null );
     const [horizontalTabs, setHorizontalTabs] = useState( 'affaire' );
+    const [horizontalEmailTabs, setHorizontalEmailTabs] = useState( 'emailRegistered' );
     const { getAccessTokenSilently } = useAuth0();
     const [deleteAlert, setDeleteAlert] = useState( null );
     const mailSelected = useRef( null );
@@ -420,7 +421,7 @@ export const Dashboard = ( props ) => {
             },
             {
                 Header: label.mail.label12,
-                accessor: 'creDate',
+                accessor: 'createDate',
                 Cell: row => {
                     return getDateDetails( row.value );
                 }
@@ -528,6 +529,9 @@ export const Dashboard = ( props ) => {
         if ( tabState === 'horizontalTabs' ) {
             setHorizontalTabs( tadName );
         }
+        if ( tabState === 'horizontalEmailTabs' ) {
+            setHorizontalEmailTabs( tadName );
+        }
 
     };
     const _showMessage = async ( message, type ) => {
@@ -615,6 +619,14 @@ export const Dashboard = ( props ) => {
                                             </NavItem>
                                         </Nav>
                                     </Col>
+                                    <Col md={2}>
+                                        <h4>
+                                            <Link className="btn btn-icon btn-primary float-right btn-sm"
+                                                          to="/admin/create/affaire">
+                                                <i className="tim-icons icon-simple-add"/>
+                                            </Link>
+                                        </h4>
+                                    </Col>
                                 </Row>
                                 <p className="card-category" style={{ marginBottom: 0 }}>
                                     {label.dashboard.label4}
@@ -647,98 +659,6 @@ export const Dashboard = ( props ) => {
                         </Card>
                     </Col>
 
-                    {/* RECENT email registered, mail */}
-                    <Col lg="4" sm={6}>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>
-                                    <h4>{label.dashboard.label1}
-                                        <Button
-                                            onClick={() => _openEmail()}
-                                            className="btn-icon float-right"
-                                            color="primary"
-                                            data-placement="bottom"
-                                            id="tooltip811118932"
-                                            type="button"
-                                            size="sm"
-                                        >
-                                            <i className="tim-icons icon-simple-add"/>
-                                        </Button>
-                                        <UncontrolledTooltip
-                                            delay={0}
-                                            placement="bottom"
-                                            target="tooltip811118932"
-                                        >
-                                            {label.dashboard.label1}
-                                        </UncontrolledTooltip>
-                                    </h4>
-                                </CardTitle>
-                                <p className="card-category">
-                                    {label.dashboard.label4}
-                                </p>
-
-                            </CardHeader>
-                            <CardBody>
-                                {dataEmailRegistered && !isNil( dataEmailRegistered ) ? (
-                                    <Row>
-                                        <Col md="12">
-                                            <ReactTableLocal columns={columnsEmailRegistered}
-                                                             data={dataEmailRegistered}/>
-
-                                        </Col>
-                                    </Row>
-                                ) : (
-                                    <ReactLoading className="loading" height={'20%'} width={'20%'}/>
-                                )}
-                            </CardBody>
-                        </Card>
-                    </Col>
-                    {/* RECENT mail bpost */}
-                    <Col lg="4" sm={6}>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>
-                                    <h4>{label.dashboard.label2}
-                                        <Button
-                                            onClick={() => _openPostMail()}
-                                            className="btn-icon float-right"
-                                            color="primary"
-                                            data-placement="bottom"
-                                            id="tooltip811118932"
-                                            type="button"
-                                            size="sm"
-                                        >
-                                            <i className="tim-icons icon-simple-add"/>
-                                        </Button>
-                                        <UncontrolledTooltip
-                                            delay={0}
-                                            placement="bottom"
-                                            target="tooltip811118932"
-                                        >
-                                            {label.dashboard.label2}
-                                        </UncontrolledTooltip>
-                                    </h4>
-                                </CardTitle>
-                                <p className="card-category">
-                                    {label.dashboard.label4}
-                                </p>
-                            </CardHeader>
-                            <CardBody>
-                                {dataMail && !isNil( dataMail ) ? (
-                                    <Row>
-                                        <Col md="12">
-                                            <ReactTableLocal columns={columnsMail} data={dataMail}/>
-
-                                        </Col>
-                                    </Row>
-                                ) : (
-                                    <ReactLoading className="loading" height={'20%'} width={'20%'}/>
-                                )}
-                            </CardBody>
-                        </Card>
-                    </Col>
-                </Row>
-                <Row>
                     {/* RECENT usign */}
                     <Col lg="4" sm={6}>
                         <Card>
@@ -783,7 +703,113 @@ export const Dashboard = ( props ) => {
                             </CardBody>
                         </Card>
                     </Col>
-                    <Col className="ml-auto mr-auto margin-bottom-15" md="8" sm={12}>
+
+                    {/* RECENT email registered, mail */}
+                    {/* RECENT mail bpost */}
+                    <Col lg="4" sm={6}>
+                        <Card>
+                            <CardHeader>
+                                <Row>
+                                    <Col md={10}>
+                                        <Nav className="nav-pills-info" pills>
+                                            <NavItem>
+                                                <NavLink
+                                                    data-toggle="tab"
+                                                    href="#pablo"
+                                                    className={
+                                                        horizontalEmailTabs === 'emailRegistered'
+                                                            ? 'active'
+                                                            : ''
+                                                    }
+                                                    onClick={e =>
+                                                        changeActiveTab( e, 'horizontalEmailTabs', 'emailRegistered' )
+                                                    }
+                                                >
+                                                    {label.dashboard.label1}
+                                                </NavLink>
+                                            </NavItem>
+                                            <NavItem>
+                                                <NavLink
+                                                    data-toggle="tab"
+                                                    href="#"
+                                                    className={
+                                                        horizontalEmailTabs === 'mailPost'
+                                                            ? 'active'
+                                                            : ''
+                                                    }
+                                                    onClick={e =>
+                                                        changeActiveTab( e, 'horizontalEmailTabs', 'mailPost' )
+                                                    }
+                                                >
+                                                    {label.dashboard.label2}
+                                                </NavLink>
+                                            </NavItem>
+                                        </Nav>
+                                    </Col>
+                                    <Col md={2}>
+                                        {horizontalEmailTabs === 'emailRegistered' ? (
+                                            <Button
+                                                onClick={() => _openEmail()}
+                                                className="btn-icon float-right"
+                                                color="primary"
+                                                data-placement="bottom"
+                                                type="button"
+                                                size="sm"
+                                            >
+                                                <i className="tim-icons icon-simple-add"/>
+                                            </Button>
+                                        ): null}
+                                        {horizontalEmailTabs === 'mailPost' ? (
+                                            <Button
+                                                onClick={() => _openPostMail()}
+                                                className="btn-icon float-right"
+                                                color="primary"
+                                                data-placement="bottom"
+                                                type="button"
+                                                size="sm"
+                                            >
+                                                <i className="tim-icons icon-simple-add"/>
+                                            </Button>
+                                        ): null}
+                                    </Col>
+                                </Row>
+                                <p className="card-category" style={{ marginBottom: 0 }}>
+                                    {label.dashboard.label4}
+                                </p>
+                            </CardHeader>
+
+                            <CardBody>
+                                <TabContent
+                                    className="tab-space no-padding"
+                                    activeTab={horizontalEmailTabs}
+                                >
+                                    {dataEmailRegistered && !isNil( dataEmailRegistered ) ? (
+                                            <TabPane tabId="emailRegistered">
+                                                <ReactTableLocal columns={columnsEmailRegistered} data={dataEmailRegistered}/>
+                                            </TabPane>
+                                    ) : (
+                                        <ReactLoading className="loading" height={'20%'} width={'20%'}/>
+                                    )}
+                                    <TabPane tabId="mailPost">
+                                        {dataMail && !isNil( dataMail ) ? (
+                                            <Row>
+                                                <Col md="12">
+                                                    <ReactTableLocal columns={columnsMail} data={dataMail}/>
+
+                                                </Col>
+                                            </Row>
+                                        ) : (
+                                            <ReactLoading className="loading" height={'20%'} width={'20%'}/>
+                                        )}
+                                    </TabPane>
+                                </TabContent>
+
+
+                            </CardBody>
+                        </Card>
+                    </Col>
+
+                    <Col className="ml-auto mr-auto margin-bottom-15" md="12" sm={12}>
                         <Agenda
                             onlyDossier={false}
                             auth0={auth0}

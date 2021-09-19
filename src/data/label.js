@@ -238,6 +238,7 @@ const label =
                 'label7': 'Profil',
                 'label8': 'Log out',
                 'label9': 'Change workspace',
+                'label10': 'Prestation',
             },
             'dashboard': {
                 'label1': 'Emails recommandés',
@@ -1315,6 +1316,7 @@ const label =
                 'label7': 'Profile',
                 'label8': 'Log out',
                 'label9': 'Switch workspace',
+                'label10': 'Benefit',
             },
             'prestation': {
                 'label1': 'Package',
@@ -2387,6 +2389,7 @@ const label =
                 'label7': 'Profiel',
                 'label8': 'uitloggen',
                 'label9': 'Switch workspace',
+                'label10': 'voordeel',
             },
             'prestation': {
                 'label1': 'Pakket',
