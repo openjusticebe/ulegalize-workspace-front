@@ -63,7 +63,7 @@
   &::before {
     position: absolute;
     top: (
-      ($font-size-base * $line-height-base - $custom-control-indicator-size) / 2
+      ($font-size-base * $line-height-base - $custom-control-indicator-size) * 0.5
     );
     left: -$custom-control-gutter;
     display: block;
@@ -80,7 +80,7 @@
   &::after {
     position: absolute;
     top: (
-      ($font-size-base * $line-height-base - $custom-control-indicator-size) / 2
+      ($font-size-base * $line-height-base - $custom-control-indicator-size) * 0.5
     );
     left: -$custom-control-gutter;
     display: block;
@@ -347,7 +347,7 @@
     width: $custom-range-thumb-width;
     height: $custom-range-thumb-height;
     margin-top: (
-      ($custom-range-track-height - $custom-range-thumb-height) / 2
+      ($custom-range-track-height - $custom-range-thumb-height) * 0.5
     ); // Webkit specific
     @include gradient-bg($custom-range-thumb-bg);
     border: $custom-range-thumb-border;

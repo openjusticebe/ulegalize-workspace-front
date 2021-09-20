@@ -88,7 +88,6 @@ const BankAccounts = (props) => {
         });
         const accessToken = await getAccessTokenSilently();
         let result = await createAdminBankAccountType(accessToken, obj);
-        debugger
         if (!result.error) {
           setAccountNumber("");
           setAccountDescription("");

@@ -7,7 +7,7 @@ Don't hesitate to create PR in order to change something in the project
 
 #### Run in a terminal
 `
-yarn install 
+yarn install
 `  
 change the file p`ackage-scripts.example.yml` to `package-scripts.yml`
 

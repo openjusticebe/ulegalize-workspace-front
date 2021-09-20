@@ -2,8 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Auth0Provider } from '@auth0/auth0-react';
 
-import 'assets/css/nucleo-icons.css';
-import 'assets/scss/black-dashboard-pro-react.scss';
+import './assets/css/nucleo-icons.css';
+import './assets/scss/black-dashboard-pro-react.scss';
 import '@repay/react-credit-card/dist/react-credit-card.css';
 import 'react-notification-alert/dist/animate.css';
 

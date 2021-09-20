@@ -91,14 +91,6 @@ class DriveContent extends Component {
         this._getObjectList = this._getObjectList.bind( this );
     }
 
-    componentWillMount() {
-        //if ( this.props.match.params.drivePath ) {
-        //    this.props.getFolderDrive( this.props.match.params.drivePath );
-        //} else {
-        //    this.props.loadDrivePage();
-        //}
-    }
-
     onDrop( files ) {
         let formData = new FormData();
         formData.append( 'files', files[ 0 ] );

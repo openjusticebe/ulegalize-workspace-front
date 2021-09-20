@@ -154,9 +154,6 @@ export default function Drive(props) {
         setLoading(true);
         const accessToken = await getAccessTokenSilently();
 
-        if(isEmpty(currentPath.current)) {
-
-        }
         const pathFrom =  path;
         const pathTo = currentPath.current ;
 
@@ -170,9 +167,6 @@ export default function Drive(props) {
         setLoading(true);
         const accessToken = await getAccessTokenSilently();
 
-        if(isEmpty(currentPath.current)) {
-
-        }
         const pathFrom =  currentFolderName;
         const pathTo = currentPath.current + newFolderName;
 
