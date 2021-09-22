@@ -1,6 +1,6 @@
 {
   "name": "lawfirm-front",
-  "version": "2.5.4",
+  "version": "2.6.0",
   "private": true,
   "scripts": {
     "start": "nps",
@@ -10,7 +10,7 @@
     "test": "nps test"
   },
   "dependencies": {
-    "@auth0/auth0-react": "1.7.0",
+    "@auth0/auth0-react": "1.8.0",
     "@fortawesome/fontawesome-svg-core": "^1.2.27",
     "@fortawesome/free-solid-svg-icons": "^5.12.1",
     "@fortawesome/react-fontawesome": "^0.1.9",

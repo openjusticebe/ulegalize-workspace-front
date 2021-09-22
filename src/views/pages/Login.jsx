@@ -5,7 +5,7 @@ import Lock from '../../components/Lock';
 
 export default function Login() {
     const { loginWithRedirect } = useAuth0();
-    loginWithRedirect();
+    loginWithRedirect({ui_locales:`fr-FR`, screen_hint:'signup'});
 
     return (
         <>

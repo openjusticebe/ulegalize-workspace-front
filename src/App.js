@@ -15,7 +15,7 @@ import {
     Container, DropdownItem,
     DropdownMenu,
     DropdownToggle,
-    Nav, Navbar,
+    Nav, Navbar, NavItem,
     NavLink,
     UncontrolledDropdown
 } from 'reactstrap';
@@ -117,36 +117,17 @@ class App extends Component {
                             </div>
                             <Collapse navbar isOpen={true}>
                                 <Nav className="ml-auto" navbar>
-                                    <UncontrolledDropdown nav>
-                                        <DropdownToggle
-                                            caret
-                                            color="default"
-                                            data-toggle="dropdown"
-                                            nav
-                                            onClick={e => e.preventDefault()}
-                                        >
-                                            <b className="caret d-none d-lg-block d-xl-block"/>
-                                            <i className="far fa-user"/>
-
-                                            <p className="d-lg-none">Log out</p>
-                                        </DropdownToggle>
-                                        <DropdownMenu className="dropdown-navbar" right tag="ul">
-                                            <NavLink tag="li">
-                                                <DropdownItem
-                                                    onClick={() => {
-                                                        logout( { returnTo: window.location.origin } );
-                                                    }}
-                                                    className="nav-item">Log out</DropdownItem>
-                                            </NavLink>
-                                        </DropdownMenu>
-                                    </UncontrolledDropdown>
+                                    <NavItem>
+                                        <NavLink href="#"  onClick={() => {
+                                            logout( { returnTo: window.location.origin } );
+                                        }} active>Log out</NavLink>
+                                    </NavItem>
                                     <li className="separator d-lg-none"/>
                                 </Nav>
                             </Collapse>
                         </Container>
                     </Navbar>
                 <h3 className="text-center">Oops... {error.message}</h3>
-                    <Link to={`/`}>Click</Link>
             </div>);
         }
 

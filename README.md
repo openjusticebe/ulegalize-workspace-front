@@ -30,3 +30,52 @@ https://github.com/openjusticebe/ulegalize-workspace-front/issues/new
 
 Labels are sorted like :  
 https://github.com/openjusticebe/ulegalize-workspace-front/labels
+
+## Auth0
+### language tenant 
+the first is the default
+```
+curl --request PATCH \
+--url 'https://YOUR_DOMAIN/api/v2/tenants/settings' \
+--header 'authorization: Bearer MGMT_API_ACCESS_TOKEN' \
+--header 'content-type: application/json' \
+--data '{ "enabled_locales" : [ "fr", "en"]}'
+```
+
+### login
+#### english
+```
+curl --request PUT \
+--url 'https://YOUR_DOMAIN/api/v2/prompts/login/custom-text/en' \
+--header 'authorization: Bearer MGMT_API_ACCESS_TOKEN' \
+--header 'content-type: application/json' \
+--data '{ "login": { "description": "Login to your workspace" } }'
+```
+#### french
+```
+curl --request PUT \
+--url 'https://YOUR_DOMAIN/api/v2/prompts/login/custom-text/fr-FR' \
+--header 'authorization: Bearer MGMT_API_ACCESS_TOKEN' \
+--header 'content-type: application/json' \
+--data '{ "login": { "description": "Se connecter à votre workspace" } }'
+```
+### signup
+customize the labels
+#### english
+```
+curl --request PUT \
+--url 'https://YOUR_DOMAIN/api/v2/prompts/signup/custom-text/en' \
+--header 'authorization: Bearer MGMT_API_ACCESS_TOKEN' \
+--header 'content-type: application/json' \
+--data '{ "signup": { "description": "Create your Workspace" } }'
+```
+#### french
+```
+curl --request PUT \
+--url 'https://YOUR_DOMAIN/api/v2/prompts/signup/custom-text/fr-FR' \
+--header 'authorization: Bearer MGMT_API_ACCESS_TOKEN' \
+--header 'content-type: application/json' \
+--data '{ "signup": { "description": "Creation d'\''un Workspace" } }'
+```
+
+
