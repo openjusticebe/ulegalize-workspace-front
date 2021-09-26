@@ -74,7 +74,9 @@ const PaymentMethodBancontact = ( {
         <>
             <Row>
                 <Col md={12} className="stripe-pay">
-                    <h3>{amount}€</h3>
+                    <h3 style={{display:'grid'}} className="text-align-center">{amount}€ *
+                        <small className="text-muted">(*) Bancontact impose un prélèvement minimal de 1 eur</small>
+                        </h3>
                 </Col>
             </Row>
             <Row>
@@ -89,7 +91,7 @@ const PaymentMethodBancontact = ( {
                                 color="secondary"
                             />
                         ) : null}
-                        {' '} {label.payment.bancontact}
+                        {' '} {label.payment.registerCard}
                     </Button>
                 </Col>
             </Row>

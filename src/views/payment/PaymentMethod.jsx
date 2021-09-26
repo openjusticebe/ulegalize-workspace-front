@@ -46,7 +46,7 @@ export default function PaymentMethod( {
                                            paymentUpdated,
                                            isPaymentLoading, paymentLoading
                                        } ) {
-    const [paymentMethodVerticalTabsIcons, setPaymentMethodVerticalTabsIcons] = useState( 'card' );
+    const [paymentMethodVerticalTabsIcons, setPaymentMethodVerticalTabsIcons] = useState( 'bancontact' );
     const [popupLawfirmEmail, setPopupLawfirmEmail] = useState( false );
     const [lawfirmEmail, setLawfirmEmail] = useState( lawfirmDto.email );
     const [lastCard, setLastCard] = useState( null );
@@ -132,23 +132,6 @@ export default function PaymentMethod( {
                                 data-toggle="tab"
                                 href="#pablo"
                                 className={
-                                    paymentMethodVerticalTabsIcons === 'card'
-                                        ? 'active'
-                                        : ''
-                                }
-                                onClick={e =>
-                                    changeUsersTab( e, 'card' )
-
-                                }
-                            >
-                                {label.payment.card}
-                            </NavLink>
-                        </NavItem>
-                        <NavItem>
-                            <NavLink
-                                data-toggle="tab"
-                                href="#pablo"
-                                className={
                                     paymentMethodVerticalTabsIcons === 'bancontact'
                                         ? 'active'
                                         : ''
@@ -159,6 +142,23 @@ export default function PaymentMethod( {
                                 }
                             >
                                 {label.payment.bancontact}
+                            </NavLink>
+                        </NavItem>
+                        <NavItem>
+                            <NavLink
+                                data-toggle="tab"
+                                href="#pablo"
+                                className={
+                                    paymentMethodVerticalTabsIcons === 'card'
+                                        ? 'active'
+                                        : ''
+                                }
+                                onClick={e =>
+                                    changeUsersTab( e, 'card' )
+
+                                }
+                            >
+                                {label.payment.card}
                             </NavLink>
                         </NavItem>
                     </Nav>
@@ -207,7 +207,7 @@ export default function PaymentMethod( {
                                 <>
                                     <Card
                                         name={lastCard.name}
-                                        number={`************${lastCard.last4}`}
+                                        number={`************${!isNil(lastCard.last4) ? lastCard.last4 : '' }`}
                                         expiration={`${lastCard.exp_month}/${lastCard.exp_year}`}
                                         cvc={lastCard.cvc_check}
                                         type={lastCard.brand}

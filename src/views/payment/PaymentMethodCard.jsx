@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Button, Col, FormGroup, Label, Row, Spinner } from 'reactstrap';
 import { CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { useAuth0 } from '@auth0/auth0-react';
-import { createSetupIntent } from '../../services/PaymentServices';
+import { createSetupIntent, deactivatePayment } from '../../services/PaymentServices';
 import useResponsiveFontSize from './useResponsiveFontSize';
 import { updateVirtualcab } from '../../services/generalInfo/LawfirmService';
 
@@ -91,6 +91,8 @@ const PaymentMethodCard = ( {
         } );
 
         if ( result.error ) {
+            deactivatePayment( accessToken );
+
             showMessage( result.error.message  + label.payment.error2, 'danger' );
         } else {
             showMessage( label.payment.success1, 'primary' );
@@ -125,7 +127,7 @@ const PaymentMethodCard = ( {
                                 color="secondary"
                             />
                         ) : null}
-                        {' '} {label.payment.pay}
+                        {' '} {label.payment.registerCard}
                     </Button>
                 </Col>
             </Row>

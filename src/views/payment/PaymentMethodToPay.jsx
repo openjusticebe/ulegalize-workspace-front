@@ -192,7 +192,7 @@ export default function PaymentMethodToPay( {
                                                     color="secondary"
                                                 />
                                             ) : null}
-                                            {' '} {label.payment.pay}
+                                            {' '} {label.payment.activateCard}
                                         </Button>
                                     </Col>
                                 </Row>

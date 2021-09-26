@@ -58,7 +58,7 @@ export default function Payment( props ) {
     useEffect( () => {
         (async () => {
             const accessToken = await getAccessTokenSilently();
-            let virtualCabtResult = await getVirtualcabById( accessToken, vckeySelected );
+            let virtualCabtResult = await getVirtualcabById( accessToken );
             let checkResult = await checkPaymentActivated( accessToken );
             let lastErrorResult = await getLastPaymentError( accessToken );
 
