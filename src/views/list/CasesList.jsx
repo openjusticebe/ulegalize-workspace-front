@@ -303,7 +303,7 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
         let client;
 
         if ( resultClient.data && !isEmpty( resultClient.data ) ) {
-            client = new ContactSummary(resultClient.data);
+            client = new ContactSummary(resultClient.data, label);
             dossier.idClient = resultClient.data.id;
         } else {
             // create a new client

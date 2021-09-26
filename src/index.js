@@ -27,8 +27,6 @@ ReactDOM.render(
         clientId={process.env.REACT_APP_AUTH_CLIENT_ID}
         audience={process.env.REACT_APP_AUTH_AUDIENCE} // taken from your API in Auth0
         redirectUri={process.env.REACT_APP_REDIRECT_URL}
-        screen_hint="signup"
-        ui_locales="fr-FR"
         useRefreshTokens={true}
     >
             <ThemeProvider theme={theme}>

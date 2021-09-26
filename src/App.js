@@ -134,7 +134,11 @@ class App extends Component {
         let labelDefault = label[ 'fr' ];
 
 
-        let route = (<Login/>);
+        let route = (
+            <Switch>
+                <Login {...this.props}/>
+            </Switch>
+        );
         //let route = null;
 
         if ( isAuthenticated ) {
