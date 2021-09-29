@@ -28,6 +28,8 @@ import { RegisterClientModal } from '../client/RegisterClientModal';
 import PrestationChrono from './PrestationChrono';
 import NotificationAlert from 'react-notification-alert';
 import ModalReportPrestation from '../../views/popup/reports/ModalReportPrestation';
+import { openMeeting } from '../../services/JitsiService';
+import ReactBSAlert from 'react-bootstrap-sweetalert';
 
 const map = require( 'lodash/map' );
 const isNil = require( 'lodash/isNil' );
@@ -36,6 +38,7 @@ class AdminNavbar extends React.Component {
     constructor( props ) {
         super( props );
         this.state = {
+            deleteAlert: null,
             vcKeys: [],
             togglePopupCreatePrest: false,
             togglePopupCreateCab: false,
@@ -43,6 +46,7 @@ class AdminNavbar extends React.Component {
             chronoVisible: false,
             collapseOpen: false,
             modalSearch: false,
+            meetingLink: '',
             color: 'navbar-transparent'
         };
     }
@@ -126,6 +130,22 @@ class AdminNavbar extends React.Component {
         this.setState( {
             modalSearch: !this.state.modalSearch
         } );
+    };
+    // this function is to open the Search modal
+    _openMeeting = async () => {
+        const { getAccessTokenSilently } = this.props.auth0;
+        const accessToken = await getAccessTokenSilently();
+        const resultLink = await openMeeting(accessToken);
+
+        if(!resultLink.error) {
+            window.open(
+                resultLink.data,
+                '_blank' // <- This is what makes it open in a new window.
+            );
+            //this.setState( {
+            //    meetingLink: resultLink.data
+            //} );
+        }
     };
     // this function is to open the Search modal
     toggleChrono = () => {
@@ -235,9 +255,14 @@ class AdminNavbar extends React.Component {
                         </button>
                         <Collapse navbar isOpen={this.state.collapseOpen}>
                             <Nav className="ml-auto" navbar>
+                                {/*<NavItem>*/}
+                                {/*    <NavLink className="btn btn-primary"*/}
+                                {/*             target="_blank"*/}
+                                {/*             href="/components/"><p className="color-white">open meeting</p></NavLink>*/}
+                                {/*</NavItem>*/}
                                 <InputGroup tag="li">
                                     <UncontrolledDropdown group>
-                                        <DropdownToggle caret color="danger" className="btn-round" id="headerLabelId1"
+                                        <DropdownToggle caret color="primary" className="btn-round" id="headerLabelId1"
                                                         data-toggle="dropdown">
                                             <i className="fa fa-plus color-white padding-right-7"/> {label.header.label1}
                                             {/*<i className="tim-icons icon-simple-add" /> Créer*/}
@@ -259,6 +284,39 @@ class AdminNavbar extends React.Component {
                                     </UncontrolledDropdown>
                                 </InputGroup>
                                 <InputGroup className="search-bar" tag="li">
+                                    <Button
+                                        id="Popover1"
+                                        color="link"
+                                        data-target="#showMeeting"
+                                        onClick={()=>{
+                                            this.setState({deleteAlert: (
+                                                    <ReactBSAlert
+                                                        info
+                                                        style={{ display: 'block', marginTop: '100px' }}
+                                                        title={label.header.label11}
+                                                        onConfirm={() => {
+                                                            this._openMeeting();
+                                                            this.setState( { deleteAlert: null } );
+                                                        }}
+                                                        onCancel={() => { this.setState( { deleteAlert: null } ) }}
+                                                        confirmBtnBsStyle="success"
+                                                        cancelBtnBsStyle="danger"
+                                                        confirmBtnText={label.common.label2}
+                                                        cancelBtnText={label.common.label3}
+                                                        showCancel
+                                                        btnSize=""
+                                                    >
+                                                    </ReactBSAlert>
+                                                )})
+
+                                        }}
+                                        className="border-outline-primary"
+                                    >
+                                        <i className="tim-icons icon-calendar-60"/>
+                                        <span className="d-lg-none d-md-block">Open meeting</span>
+                                    </Button>
+                                </InputGroup>
+                                <InputGroup tag="li">
                                     <Button
                                         id="Popover1"
                                         color="link"
@@ -391,6 +449,7 @@ class AdminNavbar extends React.Component {
                             history={this.props.history}
                         />
                     ) : null}
+                {this.state.deleteAlert}
             </>
         );
     }

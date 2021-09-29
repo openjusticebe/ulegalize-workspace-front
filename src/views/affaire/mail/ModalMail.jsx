@@ -450,6 +450,7 @@ export default function ModalMail( {
                                                                 } )}
                                                                 className="form-control"
                                                                 id="recipientName"
+                                                                disabled={parseInt( document.status ) >= 11}
                                                                 value={document.recipientName}
                                                                 name="recipientName"
                                                                 type="text"
@@ -469,6 +470,7 @@ export default function ModalMail( {
                                                                     ...document,
                                                                     streetAndNumber: e.target.value
                                                                 } )}
+                                                                disabled={parseInt( document.status ) >= 11}
                                                                 id="streetAndNumber"
                                                                 value={document.streetAndNumber}
                                                                 name="streetAndNumber"
@@ -490,6 +492,7 @@ export default function ModalMail( {
                                                                     ...document,
                                                                     postalCode: e.target.value
                                                                 } )}
+                                                                disabled={parseInt( document.status ) >= 11}
                                                                 name="postalCode"
                                                                 className="form-control"
                                                                 type="text"
@@ -510,6 +513,7 @@ export default function ModalMail( {
                                                                     ...document,
                                                                     city: e.target.value
                                                                 } )}
+                                                                disabled={parseInt( document.status ) >= 11}
                                                                 name="city"
                                                                 className="form-control"
                                                                 type="text"
@@ -528,6 +532,7 @@ export default function ModalMail( {
                                                                     countryCode: value.value,
                                                                     countryCodeItem: value
                                                                 } )}
+                                                                isDisabled={parseInt( document.status ) >= 11}
                                                                 value={document.countryCodeItem}
                                                                 name="country"
                                                                 options={countryList}
@@ -541,6 +546,7 @@ export default function ModalMail( {
                                                                 <Label check>
                                                                     <Input
                                                                         checked={choice === 'addAddressPage'}
+                                                                        disabled={parseInt( document.status ) >= 11}
                                                                         defaultValue="option1"
                                                                         id="addAddressPage1"
                                                                         name="addAddressPage1"
@@ -558,6 +564,7 @@ export default function ModalMail( {
                                                                 <Label check>
                                                                     <Input
                                                                         checked={choice === 'overWriteAddressField'}
+                                                                        disabled={parseInt( document.status ) >= 11}
                                                                         defaultValue="option2"
                                                                         id="overWriteAddressField2"
                                                                         name="overWriteAddressField2"

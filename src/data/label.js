@@ -242,6 +242,7 @@ const label =
                 'label8': 'Log out',
                 'label9': 'Change workspace',
                 'label10': 'Prestation',
+                'label11': 'Êtes-vous sûre de vouloir ouvrir un meeting?',
             },
             'dashboard': {
                 'label1': 'Emails recommandés',
@@ -1323,6 +1324,7 @@ const label =
                 'label8': 'Log out',
                 'label9': 'Switch workspace',
                 'label10': 'Benefit',
+                'label11': 'Are you sure you want to open a meeting?',
             },
             'prestation': {
                 'label1': 'Package',
@@ -2399,6 +2401,7 @@ const label =
                 'label8': 'uitloggen',
                 'label9': 'Switch workspace',
                 'label10': 'voordeel',
+                'label11': 'Weet u zeker dat u een vergadering wilt openen?',
             },
             'prestation': {
                 'label1': 'Pakket',
