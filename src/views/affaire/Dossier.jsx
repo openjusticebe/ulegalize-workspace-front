@@ -440,7 +440,7 @@ export default function Dossier( props ) {
                     </Col>
                     {/* ACTION BUTTON */}
                     <Col className="text-left margin-bottom-15" md={{ size: 6 }} sm={{ size: 12 }}>
-                        <UncontrolledDropdown block>
+                        <UncontrolledDropdown block={true}>
                             <DropdownToggle block color="primary" caret data-toggle="dropdown">
                                 {label.affaire.label10}
                             </DropdownToggle>
@@ -1343,6 +1343,7 @@ export default function Dossier( props ) {
                     ) : null}
                 {openDialogPrestation ? (
                     <ModalReportPrestation
+                        dossierId={affaireId}
                         showMessage={showMessagePopup}
                         label={label}
                         openDialog={openDialogPrestation}

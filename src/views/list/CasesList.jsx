@@ -298,8 +298,16 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
         const accessToken = await getAccessTokenSilently();
 
         let dossier = new DossierDTO();
+
+        if(isNil(casesModal.partieEmail)){
+            _showMessagePopup( label.ajout_client.error8, 'danger' );
+            setIsLoading( false );
+            return;
+        }
+        // this is the second in partieEmail because itt's a fresh case without affaire
+        const partie = casesModal.partieEmail[size(casesModal.partieEmail) -1] ;
         // client
-        const resultClient = await getClientByEmail( accessToken, casesModal.username.email );
+        const resultClient = await getClientByEmail( accessToken, partie.email );
         let client;
 
         if ( resultClient.data && !isEmpty( resultClient.data ) ) {
@@ -308,9 +316,9 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
         } else {
             // create a new client
             client = new ContactSummary( null, label );
-            client.firstname = casesModal.username.given_name;
-            client.lastname = casesModal.username.family_name ? casesModal.username.family_name : '';
-            client.email = casesModal.username.email ? casesModal.username.email : '';
+            client.firstname = partie.label;
+            client.lastname = '';
+            client.email = partie.email;
             client.userId = userId;
             client.vcKey = vckeySelected;
 
@@ -354,7 +362,7 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
         dossier.openDossier = getDate( moment() );
         dossier.id_matiere_rubrique = 61;
         dossier.idUserResponsible = responsableId;
-        dossier.idUserResponsible = responsableId;
+        dossier.type = 'DC';
 
         const resultDossier = await createDossier( accessToken, dossier );
 
@@ -363,7 +371,7 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
         } else {
             // attach the cas transparency with new affaire
             const newDossier = new DossierDTO( resultDossier.data );
-            const caseCreation = new CaseCreationDTO( newDossier, client );
+            const caseCreation = new CaseCreationDTO( newDossier, [client], client );
 
             //let result = await createDossierTransparency( accessToken, caseCreation );
 

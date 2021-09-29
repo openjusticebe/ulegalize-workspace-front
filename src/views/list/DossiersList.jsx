@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 // reactstrap components
 import {
+    Button,
     Card,
     CardBody,
     CardHeader,
@@ -23,6 +24,7 @@ import VisibilityIcon from '@material-ui/icons/Visibility';
 import NotificationAlert from 'react-notification-alert';
 import { getOptionNotification } from '../../utils/AlertUtils';
 import { getDate } from '../../utils/DateUtils';
+import ModalReportPrestation from '../popup/reports/ModalReportPrestation';
 
 const ceil = require( 'lodash/ceil' );
 const range = require( 'lodash/range' );
@@ -45,6 +47,7 @@ export default function DossiersList( props ) {
     const [filteredNumber, setFilteredNumber] = useState( null );
     const [filteredYear, setFilteredYear] = useState( null );
     const [filteredInitiale, setFilteredInitiale] = useState( '' );
+    const [openDialogPrestation, setOpenDialogPrestation] = useState( false );
     const notificationAlert = useRef( null );
     const loadRef = useRef( true );
 
@@ -205,6 +208,12 @@ export default function DossiersList( props ) {
         );
     }
 
+    const showMessagePopup = ( message, type ) => {
+        if ( message && type ) {
+            notificationAlert.current.notificationAlert( getOptionNotification( message, type ) );
+        }
+    };
+
     function InitialeColumnFilter( { column: { filterValue, setFilter, preFilteredRows, id } } ) {
         return (
             <Input
@@ -273,6 +282,11 @@ export default function DossiersList( props ) {
             />
         );
     }
+
+    const toggleModalLargePrestation = () => {
+
+        setOpenDialogPrestation( !openDialogPrestation );
+    };
 
     const defaultColumn = React.useMemo(
         () => ({
@@ -421,6 +435,17 @@ export default function DossiersList( props ) {
                                 <CardTitle>
                                     <h4>{label.affaire.label22}
                                     </h4>
+                                    <Button
+                                        onClick={toggleModalLargePrestation}
+                                        className="btn-icon float-right"
+                                        color="primary"
+                                        data-placement="bottom"
+                                        id="tooltip811118932"
+                                        type="button"
+                                        size="sm"
+                                    >
+                                        <i className="tim-icons icon-paper"/>
+                                    </Button>
                                 </CardTitle>
                                 <p className="card-category">
                                     {label.affaire.label23}
@@ -487,6 +512,14 @@ export default function DossiersList( props ) {
                         </Card>
                     </Col>
                 </Row>
+                {openDialogPrestation ? (
+                    <ModalReportPrestation
+                        dossierId={null}
+                        showMessage={showMessagePopup}
+                        label={label}
+                        openDialog={openDialogPrestation}
+                        toggle={toggleModalLargePrestation}/>
+                ) : null}
             </div>
         </>
     );

@@ -270,8 +270,8 @@ class AdminNavbar extends React.Component {
                                         <DropdownMenu>
                                             <DropdownItem tag={Link}
                                                           to="/admin/create/affaire">{label.header.label2}</DropdownItem>
-                                            <DropdownItem tag={Link}
-                                                          onClick={this.togglePopupCreatePrestation}>{label.header.label10}</DropdownItem>
+                                            {/*<DropdownItem tag={Link}*/}
+                                            {/*              onClick={this.togglePopupCreatePrestation}>{label.header.label10}</DropdownItem>*/}
                                             <DropdownItem tag={Link}
                                                           to="/admin/create/compta">{label.header.label3}</DropdownItem>
                                             <DropdownItem tag={Link}
@@ -425,11 +425,7 @@ class AdminNavbar extends React.Component {
                     ) : null}
                 {this.state.togglePopupCreatePrest ?
                     (
-                        <ModalReportPrestation
-                            showMessage={this._showMessage}
-                            label={label}
-                            openDialog={this.state.togglePopupCreateCab}
-                            toggle={this.togglePopupCreatePrestation}/>
+                       <></>
                     ) : null}
                 {this.state.togglePopupClient ?
                     (

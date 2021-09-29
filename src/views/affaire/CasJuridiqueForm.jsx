@@ -295,7 +295,7 @@ export default function CasJuridiqueForm( {
     return (
         <Row>
             <Col lg={12} md={12} sm={12} xs={12}>
-                <Form horizontal>
+                <Form horizontal={true}>
                     {/* PARTIE INFO*/}
                     {caseDossier.partieEmail ? map( caseDossier.partieEmail, partie => {
                         nb++;

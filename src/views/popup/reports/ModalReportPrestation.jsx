@@ -6,7 +6,7 @@ import {
     CardFooter,
     CardHeader,
     Col,
-    FormGroup,
+    FormGroup, Input, Label,
     Modal,
     ModalBody,
     ModalHeader,
@@ -16,15 +16,17 @@ import DatePicker from 'react-datepicker';
 import moment from 'moment';
 import { useAuth0 } from '@auth0/auth0-react';
 import { b64toBlob, downloadBlob } from '../../../utils/TableUtils';
-import { generateReportPrestation } from '../../../services/PresationService';
+import { generateReportPrestation, generateReportPrestationByDossier } from '../../../services/PresationService';
 import { Document, Page } from 'react-pdf';
 import ReactLoading from 'react-loading';
+const isNil = require( 'lodash/isNil' );
 
-export default function ModalReportPrestation( { openDialog, toggle, label, showMessage } ) {
+export default function ModalReportPrestation( { openDialog, toggle, label, showMessage, dossierId } ) {
     const tempStart = moment( moment().startOf( 'year' ).format( 'YYYY-MM-DD' ) ).toDate();
     const tempEnd = moment( moment().endOf( 'year' ).format( 'YYYY-MM-DD' ) ).toDate();
     const [start, setStart] = useState( tempStart );
     const [end, setEnd] = useState( tempEnd );
+    const [isShareDossier, setIsShareDossier] = useState( false );
     const { getAccessTokenSilently } = useAuth0();
     const [file, setFile] = useState( null );
     const [isLoading, setIsLoading] = useState( false );
@@ -35,15 +37,20 @@ export default function ModalReportPrestation( { openDialog, toggle, label, show
     const _generate = async () => {
         const accessToken = await getAccessTokenSilently();
         setIsLoading(true);
+        let result;
 
-        let result= await generateReportPrestation( accessToken, start, end );
+        if(!isNil(dossierId)) {
+           result = await generateReportPrestationByDossier( accessToken, start, end , dossierId);
+        } else {
+            result= await generateReportPrestation( accessToken, start, end , isShareDossier);
+        }
         if ( !result.error ) {
             let pdf = b64toBlob( result.data, '' );
             setPageNumber(1)
             setFile( pdf );
             setIsLoading(false);
         } else {
-            showMessage( label.invoice.alert103, 'danger' );
+            showMessage( label.prestation.alert1, 'danger' );
         }
     }
     const _download = ( ) => {
@@ -100,6 +107,28 @@ export default function ModalReportPrestation( { openDialog, toggle, label, show
                                 </FormGroup>
                             </Col>
                         </Row>
+                        {/* only show if it's not into dossier because share dosier option is for whole cab*/}
+                        {isNil(dossierId) ? (
+                            <Row>
+                                <Col md="6">
+                                    <FormGroup check>
+                                        <Label check>
+                                            <Input
+                                                defaultChecked={isShareDossier}
+                                                type="checkbox"
+                                                onChange={( e ) => {
+                                                    setIsShareDossier(!isShareDossier );
+                                                }}
+                                            />{' '}
+                                            <span className={`form-check-sign`}>
+                                    <span
+                                        className="check"> {label.prestation.label6}</span>
+                                </span>
+                                        </Label>
+                                    </FormGroup>
+                                </Col>
+                            </Row>
+                        ): null}
                         {file ? (<>
                             <Document
                                 orientation="landscape"

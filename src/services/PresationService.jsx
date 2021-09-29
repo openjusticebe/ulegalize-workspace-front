@@ -121,10 +121,31 @@ export async function deletePrestation( accessToken, prestationId ) {
     }
 }
 
-export async function generateReportPrestation( accessToken, start, end ) {
+export async function generateReportPrestation( accessToken, start, end, isShareVcKey ) {
     try {
         return axios.get( `${process.env.REACT_APP_REPORT_SERVER}prestation`, {
-            params:{ startDate : start, endDate: end},
+            params:{
+                isShareVcKey : isShareVcKey,
+                startDate : start,
+                endDate: end},
+            headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            }
+        )
+        .catch(()=>{
+            return {error:true}
+        });
+    } catch ( e ) {
+        return { error: true, data: {}};
+    }
+}
+export async function generateReportPrestationByDossier( accessToken, start, end, dossierId ) {
+    try {
+        return axios.get( `${process.env.REACT_APP_REPORT_SERVER}prestation/dossier/${dossierId}`, {
+            params:{
+                startDate : start,
+                endDate: end},
             headers: {
                     Authorization: `Bearer ${accessToken}`
                 }
