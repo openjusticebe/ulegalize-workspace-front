@@ -34,28 +34,15 @@ export async function getGrids( accessToken ) {
     }
 }
 
-export async function countComptaByDossierId( accessToken, dossierId , isDebours, isFraiCollaboration, honoraire, tiers) {
+export async function getComptaByDossierList( accessToken, offset, limit , searchCriteriaClient, searchCriteriaNumber, searchCriteriaYear, searchCriteriaPoste) {
     try {
-        return axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/compta/count`, {
-            params:{
-                dossierId: dossierId,
-                isDebours: isDebours ,
-                isFraiCollaboration:isFraiCollaboration,
-                honoraire:honoraire,
-                tiers:tiers
-            },
-            headers: {
-                Authorization: `Bearer ${accessToken}`
-            }
-        } )
-        .catch(()=>{
-            return {data:[]}
-        });
-    } catch ( e ) {
-        return { error: true, data:[] };
+        return await getComptaByDossierId(accessToken, null, offset, limit ,null, null, null,null, searchCriteriaClient, searchCriteriaYear, searchCriteriaNumber, searchCriteriaPoste);
+    } catch (e) {
+        return {error: true, data: []};
     }
 }
-export async function getComptaByDossierId( accessToken, dossierId, offset, limit , isDebours, isFraiCollaboration, honoraire, tiers) {
+
+export async function getComptaByDossierId( accessToken, dossierId, offset, limit , isDebours, isFraiCollaboration, honoraire, tiers, searchCriteriaClient, searchCriteriaYear, searchCriteriaNumber, searchCriteriaPoste) {
     try {
         return axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/compta/list`, {
             params:{
@@ -64,7 +51,11 @@ export async function getComptaByDossierId( accessToken, dossierId, offset, limi
                 isDebours: isDebours ,
                 isFraiCollaboration:isFraiCollaboration,
                 honoraire:honoraire,
-                tiers:tiers
+                tiers:tiers,
+                searchCriteriaClient : searchCriteriaClient,
+                searchCriteriaYear: searchCriteriaYear,
+                searchCriteriaNumber: searchCriteriaNumber,
+                searchCriteriaPoste: searchCriteriaPoste,
             },
             headers: {
                 Authorization: `Bearer ${accessToken}`
@@ -168,4 +159,28 @@ export async function getAllInfo( accessToken, debours, fraisCollaborative, hono
     .catch( exception => {
 
     } );
+}
+export async function generateReportCompta( accessToken, vckeySelected, searchCriteriaNumber, searchCriteriaYear, searchCriteriaClient, searchCriteriaInitiale, searchCriteriaBalance, searchArchived ) {
+    try {
+        return axios.get( `${process.env.REACT_APP_REPORT_SERVER}v1/compta`, {
+                params:{
+                    searchCriteriaClient : searchCriteriaClient,
+                    vcKey: vckeySelected,
+                    searchCriteriaYear: searchCriteriaYear,
+                    searchCriteriaNumber: searchCriteriaNumber,
+                    searchCriteriaBalance: searchCriteriaBalance,
+                    searchCriteriaInitiale: searchCriteriaInitiale,
+                    searchArchived: searchArchived,
+                },
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            }
+        )
+        .catch(()=>{
+            return {error:true}
+        });
+    } catch ( e ) {
+        return { error: true, data: {}};
+    }
 }

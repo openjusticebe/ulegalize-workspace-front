@@ -993,7 +993,7 @@ export const RegisterDossier = ( props ) => {
                                                                         notificationAlert.current.notificationAlert( getOptionNotification( label.unauthorized.label9, 'danger' ) );
                                                                         return;
                                                                     }
-                                                                    setClientModal( dossier.conseilAdverseClient );
+                                                                    setClientModal( dossier.conseilAdverseClient.value );
                                                                     setOpenclientConseilAdvModal( !openclientConseilAdvModal );
                                                                 }}
                                                             >

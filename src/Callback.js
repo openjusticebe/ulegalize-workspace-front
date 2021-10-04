@@ -25,12 +25,18 @@ export const Callback = ( props ) => {
                         if ( result.data && result.data === 'UNVERIFIED' ) {
                             props.history.push( '/auth/newsignup' );
                         } else {
+                            const accessToken = await getAccessTokenSilently( { ignoreCache: true } );
+
                             props.history.push( '/admin/dashboard' );
                         }
                     } else {
+                        const accessToken = await getAccessTokenSilently( { ignoreCache: true } );
+
                         props.history.push( '/admin/dashboard' );
                     }
                 } else {
+                    const accessToken = await getAccessTokenSilently( { ignoreCache: true } );
+
                     setNewUser(false);
 
                     props.history.push( '/' );

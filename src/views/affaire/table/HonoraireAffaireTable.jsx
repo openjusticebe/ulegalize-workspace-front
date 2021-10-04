@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Button, Pagination, PaginationItem, PaginationLink, Table } from 'reactstrap';
 import { usePagination, useTable } from 'react-table';
 import { useAuth0 } from '@auth0/auth0-react';
-import { countComptaByDossierId, deleteCompta, getComptaByDossierId } from '../../../services/ComptaServices';
+import { deleteCompta, getComptaByDossierId } from '../../../services/ComptaServices';
 import ComptaDTO from '../../../model/compta/ComptaDTO';
 import { Link } from 'react-router-dom';
 import ReactBSAlert from 'react-bootstrap-sweetalert';
@@ -112,32 +112,21 @@ export default function HonoraireAffaireTable( props ) {
         usePagination
     );
 
-
-    useEffect( () => {
-        (async () => {
-            const accessToken = await getAccessTokenSilently();
-
-            let resultCount = await countComptaByDossierId( accessToken, props.affaireid, null, null, true, null );
-            if ( !resultCount.error ) {
-                setCount( resultCount.data );
-            }
-        })();
-    }, [count] );
-
-
-
     useEffect( () => {
         (async () => {
             const accessToken = await getAccessTokenSilently();
 
             const offset = pageIndex * pageSize;
             let result = await getComptaByDossierId( accessToken, props.affaireid, offset, pageSize , null, null, true, null);
+
             if ( !result.error ) {
-                const dataList = map(result.data, prestation =>{
+                const dataList = map(result.data.content, prestation =>{
                     return new ComptaDTO(prestation);
                 })
+                setCount( result.data.totalElements );
                 setData( dataList );
             }
+
         })();
     }, [pageIndex, pageSize] );
 

@@ -81,7 +81,7 @@ export const Wizard = ( { user, label, history } ) => {
             const accessToken = await getAccessTokenSilently( { ignoreCache: true } );
 
             // must be different than the initial
-            if ( newVcName !== vckeySelected ) {
+            if ( newVcName !== originalVcKey.current ) {
 
                 // check if it exists
                 const resultLawfirm = await getLawfirmByName( accessToken, newVcName );

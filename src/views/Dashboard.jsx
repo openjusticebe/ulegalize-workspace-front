@@ -29,7 +29,6 @@ import { getDateDetails } from '../utils/DateUtils';
 import NotificationAlert from 'react-notification-alert';
 import Agenda from '../components/Calendar/Agenda';
 import { getAllRecent } from '../services/DashboardService';
-import ModalReportAffaire from './popup/reports/ModalReportAffaire';
 import ModalReportInvoice from './popup/reports/ModalReportInvoice';
 import { useAuth0 } from '@auth0/auth0-react';
 import ReactTableLocal from '../components/ReactTableLocal';
@@ -824,7 +823,6 @@ export const Dashboard = ( props ) => {
                 </Row>
             </div>
 
-            <ModalReportAffaire openDialog={openDialog} toggle={toggleModalLarge}/>
             <ModalReportInvoice openDialog={openDialogInvoice} toggle={toggleModalLargeInvoice}/>
 
             {checkTokenDrive ?

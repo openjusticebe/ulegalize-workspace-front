@@ -25,6 +25,7 @@ import NotificationAlert from 'react-notification-alert';
 import { getOptionNotification } from '../../utils/AlertUtils';
 import { getDate } from '../../utils/DateUtils';
 import ModalReportPrestation from '../popup/reports/ModalReportPrestation';
+import ModalReportDossier from '../popup/reports/ModalReportDossier';
 
 const ceil = require( 'lodash/ceil' );
 const range = require( 'lodash/range' );
@@ -48,6 +49,7 @@ export default function DossiersList( props ) {
     const [filteredYear, setFilteredYear] = useState( null );
     const [filteredInitiale, setFilteredInitiale] = useState( '' );
     const [openDialogPrestation, setOpenDialogPrestation] = useState( false );
+    const [openDialogDossier, setOpenDialogDossier] = useState( false );
     const notificationAlert = useRef( null );
     const loadRef = useRef( true );
 
@@ -97,7 +99,7 @@ export default function DossiersList( props ) {
                         return ((row.client ? row.client.label : '') + ' / ' + (row.adverseClient ? row.adverseClient.label : ''));
 
                     } else {
-                        return 'NA'
+                        return 'NA';
                     }
                 },
                 // Use our custom `fuzzyText` filter on this column
@@ -165,7 +167,7 @@ export default function DossiersList( props ) {
 
     function DossierColumnFilter( { column: { filterValue, setFilter, preFilteredRows, id } } ) {
         return (
-            <Row style={{width:'160px'}}>
+            <Row style={{ width: '160px' }}>
                 <Col style={{ padding: '0 4px 0 0' }}>
                     <Input
                         placeholder={label.affaire.filterYearDossier}
@@ -284,8 +286,10 @@ export default function DossiersList( props ) {
     }
 
     const toggleModalLargePrestation = () => {
-
         setOpenDialogPrestation( !openDialogPrestation );
+    };
+    const toggleModalDossier = () => {
+        setOpenDialogDossier( !openDialogDossier );
     };
 
     const defaultColumn = React.useMemo(
@@ -334,8 +338,6 @@ export default function DossiersList( props ) {
             autoResetRowState: !skipPageResetRef.current,
         },
         useFilters,
-        //useBlockLayout,
-        //useGlobalFilter, // useGlobalFilter!
         usePagination
     );
 
@@ -434,18 +436,29 @@ export default function DossiersList( props ) {
                             <CardHeader>
                                 <CardTitle>
                                     <h4>{label.affaire.label22}
+                                        <Button
+                                            onClick={toggleModalLargePrestation}
+                                            className="btn-icon float-right"
+                                            color="primary"
+                                            data-placement="bottom"
+                                            id="tooltip811118932"
+                                            type="button"
+                                            size="sm"
+                                        >
+                                            <i className="tim-icons icon-paper"/>
+                                        </Button>
+                                        <Button
+                                            onClick={toggleModalDossier}
+                                            className="btn-icon float-right"
+                                            color="info"
+                                            data-placement="bottom"
+                                            id="tooltip811118933"
+                                            type="button"
+                                            size="sm"
+                                        >
+                                            <i className="tim-icons icon-paper"/>
+                                        </Button>
                                     </h4>
-                                    <Button
-                                        onClick={toggleModalLargePrestation}
-                                        className="btn-icon float-right"
-                                        color="primary"
-                                        data-placement="bottom"
-                                        id="tooltip811118932"
-                                        type="button"
-                                        size="sm"
-                                    >
-                                        <i className="tim-icons icon-paper"/>
-                                    </Button>
                                 </CardTitle>
                                 <p className="card-category">
                                     {label.affaire.label23}
@@ -514,11 +527,21 @@ export default function DossiersList( props ) {
                 </Row>
                 {openDialogPrestation ? (
                     <ModalReportPrestation
+                        vckeySelected={vckeySelected}
                         dossierId={null}
                         showMessage={showMessagePopup}
                         label={label}
                         openDialog={openDialogPrestation}
                         toggle={toggleModalLargePrestation}/>
+                ) : null}
+                {openDialogDossier ? (
+                    <ModalReportDossier
+                        filtered={filtered}
+                        vckeySelected={vckeySelected}
+                        showMessage={showMessagePopup}
+                        label={label}
+                        openDialog={openDialogDossier}
+                        toggle={toggleModalDossier}/>
                 ) : null}
             </div>
         </>

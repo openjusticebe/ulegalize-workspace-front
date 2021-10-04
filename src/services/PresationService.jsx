@@ -121,13 +121,16 @@ export async function deletePrestation( accessToken, prestationId ) {
     }
 }
 
-export async function generateReportPrestation( accessToken, start, end, isShareVcKey ) {
+export async function generateReportPrestation( accessToken, start, end, isShareVcKey, clientId, responsableId ) {
     try {
         return axios.get( `${process.env.REACT_APP_REPORT_SERVER}prestation`, {
             params:{
+                responsableId : responsableId,
+                clientId : clientId,
                 isShareVcKey : isShareVcKey,
                 startDate : start,
-                endDate: end},
+                endDate: end
+            },
             headers: {
                     Authorization: `Bearer ${accessToken}`
                 }

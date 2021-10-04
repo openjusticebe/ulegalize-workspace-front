@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Button, ButtonGroup,
     Card,
@@ -19,21 +19,43 @@ import { b64toBlob, downloadBlob } from '../../../utils/TableUtils';
 import { generateReportPrestation, generateReportPrestationByDossier } from '../../../services/PresationService';
 import { Document, Page } from 'react-pdf';
 import ReactLoading from 'react-loading';
+import Select from 'react-select';
+import { getUserResponsableList } from '../../../services/SearchService';
+import ItemDTO from '../../../model/ItemDTO';
+import titleClient from '../../../model/affaire/TitleClient';
+import AsyncSelect from 'react-select/async/dist/react-select.esm';
+import { getClient } from '../../../services/ClientService';
 const isNil = require( 'lodash/isNil' );
+const map = require( 'lodash/map' );
 
-export default function ModalReportPrestation( { openDialog, toggle, label, showMessage, dossierId } ) {
+export default function ModalReportPrestation( { openDialog, toggle, label, showMessage, dossierId, vckeySelected } ) {
     const tempStart = moment( moment().startOf( 'year' ).format( 'YYYY-MM-DD' ) ).toDate();
     const tempEnd = moment( moment().endOf( 'year' ).format( 'YYYY-MM-DD' ) ).toDate();
     const [start, setStart] = useState( tempStart );
     const [end, setEnd] = useState( tempEnd );
     const [isShareDossier, setIsShareDossier] = useState( false );
+    const [client, setClient] = useState( null );
     const { getAccessTokenSilently } = useAuth0();
     const [file, setFile] = useState( null );
     const [isLoading, setIsLoading] = useState( false );
+    const [userResponsableList, setUserResponsableList] = useState( [] );
+    const [responsable, setResponsable] = useState( null );
 
     const [numPages, setNumPages] = useState( null );
     const [pageNumber, setPageNumber] = useState( 1 );
 
+    useEffect( () => {
+        (async () => {
+            const accessToken = await getAccessTokenSilently();
+
+            let resultUser = await getUserResponsableList( accessToken, vckeySelected );
+            let profiles = map( resultUser.data, data => {
+                return new ItemDTO( data );
+            } );
+            setUserResponsableList( profiles );
+
+        })();
+    }, [getAccessTokenSilently] );
     const _generate = async () => {
         const accessToken = await getAccessTokenSilently();
         setIsLoading(true);
@@ -42,7 +64,7 @@ export default function ModalReportPrestation( { openDialog, toggle, label, show
         if(!isNil(dossierId)) {
            result = await generateReportPrestationByDossier( accessToken, start, end , dossierId);
         } else {
-            result= await generateReportPrestation( accessToken, start, end , isShareDossier);
+            result= await generateReportPrestation( accessToken, start, end , isShareDossier, client.value, responsable.value);
         }
         if ( !result.error ) {
             let pdf = b64toBlob( result.data, '' );
@@ -68,11 +90,24 @@ export default function ModalReportPrestation( { openDialog, toggle, label, show
         const number = pageNumber === numPages ? numPages : pageNumber + 1;
         setPageNumber( number);
     };
+
+    const _handleClientChange = ( newValue ) => {
+        setClient( newValue );
+    };
+
+    const _loadClientOptions = async ( inputValue, callback ) => {
+        const accessToken = await getAccessTokenSilently();
+        let result = await getClient( accessToken, inputValue, vckeySelected );
+
+        callback( map( result.data, data => {
+            return new ItemDTO( { value: data.id, label: data.fullName, isDefault: data.email } );
+        } ) );
+    };
     return (
         <Modal isOpen={openDialog} toggle={toggle}
                size="lg" modalClassName="modal-black">
             <ModalHeader className="justify-content-center" toggle={toggle}>
-                {label.dashboard.label6}
+                {label.prestation.label8}
             </ModalHeader>
             <ModalBody>
                 <Card>
@@ -129,6 +164,42 @@ export default function ModalReportPrestation( { openDialog, toggle, label, show
                                 </Col>
                             </Row>
                         ): null}
+                        {/* only show if it's not into dossier because share dosier option is for whole cab*/}
+                        {isNil(dossierId) ? (
+                            <Row>
+                                <Col lg="6">
+                                    <FormGroup>
+                                        <AsyncSelect
+                                            value={client}
+                                            className="react-select info"
+                                            classNamePrefix="react-select"
+                                            cacheOptions
+                                            loadOptions={_loadClientOptions}
+                                            defaultOptions
+                                            isClearable={true}
+                                            onChange={_handleClientChange}
+                                            placeholder={label.compta.customer}
+                                        />
+                                    </FormGroup>
+                                </Col>
+                            </Row>
+                        ): null}
+                            <Row>
+                                <Col md="6">
+                                    <FormGroup>
+                                        <Select
+                                            value={responsable}
+                                            className="react-select info"
+                                            classNamePrefix="react-select"
+                                            isClearable={true}
+                                            placeholder={label.prestation.label7}
+                                            name="singleSelect-resp"
+                                            onChange={value => setResponsable( value )}
+                                            options={userResponsableList}
+                                        />
+                                    </FormGroup>
+                                </Col>
+                            </Row>
                         {file ? (<>
                             <Document
                                 orientation="landscape"

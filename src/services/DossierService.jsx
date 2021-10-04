@@ -240,3 +240,28 @@ export async function generateReportEtat( accessToken, affaireId ) {
         return { error: true, data: {}};
     }
 }
+
+export async function generateReportDossier( accessToken, vckeySelected, searchCriteriaNumber, searchCriteriaYear, searchCriteriaClient, searchCriteriaInitiale, searchCriteriaBalance, searchArchived ) {
+    try {
+        return axios.get( `${process.env.REACT_APP_REPORT_SERVER}dossier`, {
+                params:{
+                    searchCriteriaClient : searchCriteriaClient,
+                    vcKey: vckeySelected,
+                    searchCriteriaYear: searchCriteriaYear,
+                    searchCriteriaNumber: searchCriteriaNumber,
+                    searchCriteriaBalance: searchCriteriaBalance,
+                    searchCriteriaInitiale: searchCriteriaInitiale,
+                    searchArchived: searchArchived,
+                },
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            }
+        )
+        .catch(()=>{
+            return {error:true}
+        });
+    } catch ( e ) {
+        return { error: true, data: {}};
+    }
+}

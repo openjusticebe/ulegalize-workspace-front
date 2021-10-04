@@ -260,6 +260,8 @@ const label =
                 'label4': 'Temps',
                 'label5': 'Total',
                 'label6': 'Dossier partagé',
+                'label7': '-- Sélectionner le prestataire --',
+                'label8': 'Rapport de prestation',
                 'alert1': 'Erreur durant l\'impression de la prestation',
             },
             'invoice': {
@@ -825,6 +827,8 @@ const label =
                 "error17": 'Veuillez remplir le numéro du dossier ',
                 "error18": 'Email non valide',
                 "error19": "Veuillez remplir les informations des parties",
+                "error20": "Erreur durant le chargement du rapport",
+                "error21": "Erreur durant la création de la correspondence",
                 "success1": "Fichier attaché avec succes",
                 "success2": "Prestation supprimée avec succès",
                 "success3": "Frais admin supprimée avec succès",
@@ -976,6 +980,7 @@ const label =
                 'label1': 'Nouveau workspace',
             },
             'compta': {
+                'report': 'Rapport de comptabilité',
                 'generalAccounting': 'Comptabilité générale',
                 'journalEntry': 'Saisie journal',
                 'type': 'Type',
@@ -1336,6 +1341,8 @@ const label =
                 'label4': 'Time',
                 'label5': 'Total',
                 'label6': 'Share case',
+                'label7': '- Select the service provider -',
+                'label8': 'Service report',
                 'alert1': 'Error while printing the benefits',
             },
             'dashboard': {
@@ -1908,6 +1915,8 @@ const label =
                 "error17": 'Please fill in the file number',
                 "error18": 'Email not valid',
                 "error19": "Please fill in the parties information",
+                "error20": "Error while loading report",
+                "error21": "Error during the creation of the correspondence",
                 "success1": "File successfully attached",
                 "success2": "Benefits deleted successfully",
                 "success3": "Administrative expenses deleted successfully",
@@ -2058,6 +2067,7 @@ const label =
                 'label1': 'New workspace',
             },
             'compta': {
+                'report': 'Accounting report',
                 'generalAccounting': 'General Accounting',
                 'journalEntry': 'Journal entry',
                 'type': 'Type',
@@ -2416,6 +2426,8 @@ const label =
                 'label4': 'Tijd',
                 'label5': 'Totaal',
                 'label6': 'Gedeelde map',
+                'label7': '- Selecteer de serviceprovider -',
+                'label8': 'Servicerapport',
                 'alert1': 'Fout tijdens het afdrukken van de service',
             },
             'dashboard': {
@@ -2988,6 +3000,8 @@ const label =
                 "error17": 'Vul het bestandsnummer in',
                 "error18": 'Email niet valid',
                 "error19": "Vul partijsgegevens in",
+                "error20": "Fout bij laden van rapport",
+                "error21": "Fout tijdens het aanmaken van de correspondentie",
                 "success1": "Bestand succesvol bijgevoegd",
                 "success2": "Voordelen met success verwijderen",
                 "success3": "Administratieve kosten met success verwijderen",
@@ -3138,6 +3152,7 @@ const label =
                 'label1': 'Niew kantoor',
             },
             'compta': {
+                'report': 'Boekhoudingsrapport',
                 'generalAccounting': 'Algemene boekhouding',
                 'journalEntry': 'Journaalboeking',
                 'type': 'Type',

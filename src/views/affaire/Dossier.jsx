@@ -698,6 +698,9 @@ export default function Dossier( props ) {
                                                                                     return part.label;
                                                                                 } ).filter( element => !isNil( element ) ).join();
 
+                                                                                // reverse again to have original order
+                                                                                reverse( channel.parties );
+
                                                                                 const uniqueIdTooltip = `topTooltip-${channel.id}-`;
 
                                                                                 return (
@@ -1343,6 +1346,7 @@ export default function Dossier( props ) {
                     ) : null}
                 {openDialogPrestation ? (
                     <ModalReportPrestation
+                        vckeySelected={vckeySelected}
                         dossierId={affaireId}
                         showMessage={showMessagePopup}
                         label={label}

@@ -234,9 +234,18 @@ export const ConseilModal = ( {
             if ( isNil( result ) || !result.error ) {
                 if ( !partieName.litigant && !isNil( result ) ) {
                     partieName.vcKey = result.data;
-                }
-                await createConseilByDossier( accessToken, affaireId, partieName );
+                    partieName.type = 'litigant';
+                } else {
+                    partieName.type = 'other';
 
+                }
+                const resultCreation = await createConseilByDossier( accessToken, affaireId, partieName );
+
+                if(resultCreation.error) {
+                    showMessage( label.affaire.error21, 'danger' );
+                    setLoadingSave( false );
+                    return;
+                }
                 createPartie( partieName );
                 // save is digital for this affaire
 
