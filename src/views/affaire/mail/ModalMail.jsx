@@ -6,6 +6,7 @@ import {
     CardHeader,
     Col,
     FormGroup,
+    FormText,
     Input,
     Label,
     Modal,
@@ -33,6 +34,7 @@ import {
     payDocument,
     sendTemporaryDocument,
     updateAddress,
+    updateDossier,
     updateSendingOptions
 } from '../../../services/PostBirdServices';
 import DocumentDTO from '../../../model/postbird/DocumentDTO';
@@ -46,6 +48,9 @@ import PriceDifference from '../../../model/postbird/PriceDifference';
 import { getStatusBPostPostBird } from './StatusBPostPostBird';
 import MailPostBirdGenerator from './MailPostBirdGenerator';
 import classnames from 'classnames';
+import AsyncSelect from 'react-select/async/dist/react-select.esm';
+import { getAffairesByVcUserIdAndSearchCriteria, getDossierById } from '../../../services/DossierService';
+import DossierDTO from '../../../model/affaire/DossierDTO';
 
 const isNil = require( 'lodash/isNil' );
 const map = require( 'lodash/map' );
@@ -60,7 +65,8 @@ export default function ModalMail( {
                                        showMessage,
                                        updateList,
                                        documentId,
-                                       dossierId
+                                       dossierId,
+                                       vckeySelected
                                    } ) {
     const [document, setDocument] = useState( null );
     const [countryList, setCountryList] = useState( [] );
@@ -70,6 +76,8 @@ export default function ModalMail( {
     const [totalCost, setTotalCost] = useState( 0 );
     const [bpostStatus, setBpostStatus] = useState( 0 );
     const [horizontalTabs, setHorizontalTabs] = useState( 'document' );
+    const [dossierItem, setDossierItem] = useState( null );
+    const [updateDossierDisable, setUpdateDossierDisable] = useState( true );
     // use for timer
     const documentIdRef = useRef( documentId );
     const costColor = useRef( 0 );
@@ -78,7 +86,7 @@ export default function ModalMail( {
     const costTwoSide = useRef( 0 );
 
     const { getAccessTokenSilently } = useAuth0();
-// transparency
+
     useEffect( () => {
         (async () => {
             const accessToken = await getAccessTokenSilently();
@@ -108,7 +116,14 @@ export default function ModalMail( {
                             documentTmp.countryCodeItem = new ItemDTO( { value: country.name, label: country.label } );
                         }
                     } );
+                    if ( !isNil( documentTmp.dossierId ) ) {
+                        const resultDossier = await getDossierById( accessToken, documentTmp.dossierId, vckeySelected );
+                        if ( !resultDossier.error ) {
+                            const dossier = new DossierDTO( resultDossier.data );
+                            setDossierItem( new ItemDTO( { value: dossier.id, label: dossier.label } ) );
+                        }
 
+                    }
                     setDocument( documentTmp );
                 }
 
@@ -280,6 +295,28 @@ export default function ModalMail( {
 
     };
 
+    const _loadDossierOptions = async ( inputValue, callback ) => {
+        const accessToken = await getAccessTokenSilently();
+        let result = await getAffairesByVcUserIdAndSearchCriteria( accessToken, inputValue );
+
+        if ( !isNil( result ) ) {
+            if ( !isNil( result.data ) ) {
+
+                callback(
+                    map( result.data, dossier => {
+                        return new ItemDTO( dossier );
+                    } ) );
+
+            } else if ( result.error ) {
+                // no data
+            }
+        }
+    };
+
+    const _handleDossierChange = ( newValue ) => {
+        setDossierItem( newValue );
+
+    };
     return (
         <>
             <Modal size="lg" isOpen={modalPostMailDisplay} toggle={openPostMail}>
@@ -302,6 +339,80 @@ export default function ModalMail( {
                             {/* display once document is uploaded */}
                             {!isNil( document ) && document.status ? (
                                 <>
+                                    {isNil( dossierId ) ? (
+                                        <Row>
+                                            <Col md={12}>
+                                                {/*<!-- dossier -->*/}
+                                                <Label>
+                                                    {label.mail.dossier}
+                                                </Label>
+                                                <FormGroup row={true}>
+                                                    <Col lg={7} md={7} sm={7}>
+                                                        <AsyncSelect
+                                                            value={dossierItem}
+                                                            isClearable={true}
+                                                            className="react-select info"
+                                                            classNamePrefix="react-select"
+                                                            cacheOptions
+                                                            isDisabled={updateDossierDisable}
+                                                            loadOptions={_loadDossierOptions}
+                                                            defaultOptions
+                                                            onChange={_handleDossierChange}
+                                                            placeholder={label.mail.dossierPlaceholder}
+                                                        />
+                                                    </Col>
+                                                    <Col lg={4} md={4} sm={4}>
+                                                        <Button
+                                                            className={classnames( ' ', { 'btn-icon': updateDossierDisable } )}
+                                                            color="primary"
+                                                            type="button"
+                                                            size="sm"
+                                                            onClick={async () => {
+                                                                // if save clicked
+                                                                if ( !updateDossierDisable ) {
+                                                                    const accessToken = await getAccessTokenSilently();
+                                                                    const dossierId = !isNil( dossierItem ) ? dossierItem.value : null;
+
+                                                                    const result = await updateDossier( accessToken, documentIdRef.current, dossierId );
+                                                                    if ( result.data ) {
+                                                                        const documentTmp = new DocumentDTO( result.data );
+                                                                        setDocument( documentTmp );
+                                                                        showMessage( label.mail.success5, 'primary' );
+                                                                    }
+                                                                }
+                                                                setUpdateDossierDisable( !updateDossierDisable );
+                                                            }}
+                                                        >
+                                                            {updateDossierDisable ? (
+                                                                <i className="tim-icons icon-pencil"/>
+
+                                                            ) : (
+                                                                <>{label.common.save}</>
+                                                            )}
+                                                        </Button>
+                                                        {/*     cancel button */}
+                                                        {!updateDossierDisable ? (
+                                                            <Button
+                                                                className="margin-left-10"
+                                                                color="default"
+                                                                type="button"
+                                                                size="sm"
+                                                                onClick={async () => {
+                                                                    setUpdateDossierDisable( !updateDossierDisable );
+                                                                }}
+                                                            >
+                                                                <>{label.common.cancel}</>
+                                                            </Button>
+                                                        ) : null}
+                                                    </Col>
+                                                </FormGroup>
+                                                <FormText color="muted">
+                                                    {label.common.optional}
+                                                </FormText>
+                                            </Col>
+
+                                        </Row>
+                                    ) : null}
                                     <Row>
                                         <Col md={10}>
                                             <Nav className="nav-pills-info" pills>
@@ -437,8 +548,8 @@ export default function ModalMail( {
                                             {!isNil( document ) && (parseInt( document.status ) >= 6) ? (
                                                 <>
                                                     {/* recipientName */}
-                                                    <FormGroup row className={classnames(  {
-                                                        'has-danger': isEmpty(document.recipientName)
+                                                    <FormGroup row className={classnames( {
+                                                        'has-danger': isEmpty( document.recipientName )
                                                     } )}>
                                                         <Label for="recipientName"
                                                                sm={4}>{label.mail.label19}</Label>
@@ -459,8 +570,8 @@ export default function ModalMail( {
                                                         </Col>
                                                     </FormGroup>
                                                     {/* streetAndNumber */}
-                                                    <FormGroup row className={classnames(  {
-                                                        'has-danger': isEmpty(document.streetAndNumber)
+                                                    <FormGroup row className={classnames( {
+                                                        'has-danger': isEmpty( document.streetAndNumber )
                                                     } )}>
                                                         <Label for="streetAndNumber"
                                                                sm={4}>{label.mail.label3}</Label>
@@ -481,8 +592,8 @@ export default function ModalMail( {
                                                         </Col>
                                                     </FormGroup>
                                                     {/* postalCode */}
-                                                    <FormGroup row className={classnames(  {
-                                                        'has-danger': isEmpty(document.postalCode)
+                                                    <FormGroup row className={classnames( {
+                                                        'has-danger': isEmpty( document.postalCode )
                                                     } )}>
                                                         <Label for="codePostal" sm={4}>{label.mail.label4}</Label>
                                                         <Col sm={8} md={8} lg={8} xl={8}>
@@ -502,8 +613,8 @@ export default function ModalMail( {
                                                         </Col>
                                                     </FormGroup>
                                                     {/* city */}
-                                                    <FormGroup row className={classnames(  {
-                                                        'has-danger': isEmpty(document.city)
+                                                    <FormGroup row className={classnames( {
+                                                        'has-danger': isEmpty( document.city )
                                                     } )}>
                                                         <Label for="city" sm={4}>{label.mail.label5}</Label>
                                                         <Col sm={8} md={8} lg={8} xl={8}>
@@ -578,26 +689,6 @@ export default function ModalMail( {
 
                                                         </Col>
                                                     </Row>
-                                                    {/*{ ONLY FOR ADDRESS}*/}
-                                                    {!isNil( document )
-                                                    && (!isNil( document.status ) && parseInt( document.status ) < 11) ? (
-                                                        <Row className="margin-top-30">
-                                                            <Col>
-                                                                <Button color="default"
-                                                                        onClick={_updateAddress}
-                                                                        disabled={isNil( document ) || isLoading}
-                                                                >
-                                                                    {isLoading ? (
-                                                                        <Spinner
-                                                                            size="sm"
-                                                                            color="secondary"
-                                                                        />
-                                                                    ) : null}
-                                                                    {' '}{label.mail.update}
-                                                                </Button>
-                                                            </Col>
-                                                        </Row>
-                                                    ) : null}
                                                 </>
                                             ) : null}
                                         </TabPane>
@@ -778,25 +869,50 @@ export default function ModalMail( {
                 <ModalFooter>
                     <Button color="default"
                             onClick={openPostMail}>{label.common.close}</Button>
-                    {/*{ ONLY TO SEND }*/}
-                    {!isNil( document )
-                    && (!isNil( document.status ) && parseInt( document.status ) >= 8) ? (
-                        <Button color="primary" type="button"
-                            //9 = await , >= 11 payment ok
-                                disabled={(parseInt( document.status ) === 9
-                                    || parseInt( document.status ) >= 11)}
-                            //disabled={(isNil( document ) || parseInt( document.status ) > 12 || parseInt( document.status ) >= 8)
-                                onClick={_sendDocument}
-                        >
-                            {isLoading ? (
-                                <Spinner
-                                    size="sm"
-                                    color="secondary"
-                                />
-                            ) : null}
-                            {' '} {label.common.send}
-                        </Button>
-                    ) : null}
+                    <Col>
+                        {/*{ ONLY TO SEND }*/}
+                        {!isNil( document )
+                        && (!isNil( document.status ) && parseInt( document.status ) >= 8) ? (
+                            <Button color="primary" type="button" className="float-right margin-left-10"
+                                //9 = await , >= 11 payment ok
+                                    disabled={(parseInt( document.status ) === 9
+                                        || parseInt( document.status ) >= 11)}
+                                //disabled={(isNil( document ) || parseInt( document.status ) > 12 || parseInt( document.status ) >= 8)
+                                    onClick={_sendDocument}
+                            >
+                                {isLoading ? (
+                                    <Spinner
+                                        size="sm"
+                                        color="secondary"
+                                    />
+                                ) : null}
+                                {' '} {label.common.send}
+                            </Button>
+                        ) : null}
+
+                        {/* display once the document is send , address ok */}
+                        {/* confirm address { ONLY FOR ADDRESS}*/}
+                        {!isNil( document ) && (!isNil( document.status )
+                            && parseInt( document.status ) >= 6
+                            && parseInt( document.status ) < 11) ? (
+                            <Button color="default" type="button" className="float-right"
+                                    onClick={_updateAddress}
+                                    disabled={isNil( document ) || isLoading}
+                            >
+                                {isLoading ? (
+                                    <Spinner
+                                        size="sm"
+                                        color="secondary"
+                                    />
+                                ) : null}
+                                {' '}
+                                {/* > 8 address is ok so update and not confirm
+                                 if < 8 ? you can confirm address : update address*/}
+                                {parseInt( document.status ) < 8 ? label.mail.confirmAddress : label.mail.updateAddress}
+                            </Button>
+                        ) : null}
+
+                    </Col>
                 </ModalFooter>
             </Modal>
         </>

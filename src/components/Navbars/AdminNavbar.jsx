@@ -285,7 +285,7 @@ class AdminNavbar extends React.Component {
                                 </InputGroup>
                                 <InputGroup className="search-bar" tag="li">
                                     <Button
-                                        id="Popover1"
+                                        id="Popover2"
                                         color="link"
                                         data-target="#showMeeting"
                                         onClick={()=>{

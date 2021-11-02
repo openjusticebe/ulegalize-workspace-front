@@ -1,6 +1,7 @@
 export default class DocumentDTO {
 
     documentId;
+    dossierId;
     base64DocumentContent;
     documentName;
     status;
@@ -21,6 +22,7 @@ export default class DocumentDTO {
     constructor( data ) {
         if(data) {
             this.documentId = data.documentId;
+            this.dossierId = data.dossierId;
             this.base64DocumentContent = data.base64DocumentContent;
             this.documentName = data.documentName;
             this.status = data.status;

@@ -151,6 +151,7 @@ export default function Mail( {
 
             {modalPostMailDisplay ? (
                 <ModalMail
+                    vckeySelected={vckeySelected}
                     dossierId={dossierId}
                     label={label}
                     documentId={documentIdRef.current}
@@ -163,7 +164,7 @@ export default function Mail( {
             {modalEmailDisplay ? (
                 <ModalEMailSign
                     attachedFile={[]}
-                    affaireId={dossierId}
+                    dossierId={dossierId}
                     label={label}
                     userId={userId}
                     email={email}

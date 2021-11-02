@@ -33,7 +33,25 @@ export async function updateAddress( accessToken , documentId, document) {
         return { error: true };
     }
 
-}export async function updateSendingOptions( accessToken , documentId, document) {
+}
+export async function updateDossier( accessToken , documentId, dossierId) {
+    try {
+        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/postBird/${documentId}/dossier`,
+            dossierId ? dossierId +'' : null,
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'text/plain'
+                }
+            } ).catch( () => {
+            return { data: false, error: true };
+        } );
+    } catch ( e ) {
+        return { error: true };
+    }
+
+}
+export async function updateSendingOptions( accessToken , documentId, document) {
     try {
         return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/postBird/sendOption/${documentId}`,
             new DocumentDTO(document),

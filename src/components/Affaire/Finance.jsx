@@ -6,6 +6,7 @@ import NotificationAlert from 'react-notification-alert';
 import { getFinanceDossierById } from '../../services/DossierService';
 import { useAuth0 } from '@auth0/auth0-react';
 import FinanceDTO from '../../model/affaire/FinanceDTO';
+import classnames from 'classnames';
 
 // nodejs library that concatenates classes
 const isNil = require( 'lodash/isNil' );
@@ -36,7 +37,6 @@ export default function Finance( props ) {
         })();
     }, [getAccessTokenSilently] );
 
-    const classBalance = data.balance >= 0 ? 'green' : 'red';
     return (
         <>
             <div className="rna-container">
@@ -44,10 +44,6 @@ export default function Finance( props ) {
             </div>
             <Table responsive>
                 <tbody>
-                <tr>
-                    <td className="text-left">{label.finance.label1}</td>
-                    <td>{data.honoraires} {currency}</td>
-                </tr>
                 <tr>
                     <td className="text-left">{label.finance.label2}</td>
                     <td>{data.prestations} {currency}</td>
@@ -64,13 +60,20 @@ export default function Finance( props ) {
                     <td className="text-left">{label.finance.label5}</td>
                     <td>{data.collaboration} {currency}</td>
                 </tr>
+                {/* TOTAL HONORAIRE HTVA */}
                 <tr>
-                    <td className="text-left">{label.finance.label6}</td>
-                    <td><b className={classBalance}>{data.balance} {currency}</b></td>
+                    <td className="text-left">{label.finance.label8}</td>
+                    <td><b>{data.totalHonoraire} {currency}</b></td>
+                </tr>
+                {/* TOTAL FACTURES EMISES HTVA */}
+                <tr>
+                    <td className="text-left">{label.finance.label9}</td>
+                    <td><b>{data.totalInvoice} {currency}</b></td>
                 </tr>
                 <tr>
-                    <td className="text-left">{label.finance.label7}</td>
-                    <td>{data.tiersAccount} {currency}</td>
+                    <td className="text-left">{label.finance.label6}</td>
+                    <td><b className={classnames({'green': data.balance >= 0},
+                        {'red': data.balance < 0})}>{data.balance} {currency}</b></td>
                 </tr>
                 </tbody>
             </Table>

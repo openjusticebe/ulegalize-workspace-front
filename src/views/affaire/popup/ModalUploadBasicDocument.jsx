@@ -66,7 +66,7 @@ export default function ModalUploadBasicDocument( { attachFile, toggleModalDetai
         return (
             <Modal size="md"  isOpen={modalDisplay} toggle={toggle}>
                 <ModalHeader toggle={toggle}>
-                    <h4 className="modal-title">{label.etat.transparencyModalLabel}
+                    <h4 className="modal-title">{label.etat.sendSimple}
                     </h4>
                 </ModalHeader>
                 <ModalBody>

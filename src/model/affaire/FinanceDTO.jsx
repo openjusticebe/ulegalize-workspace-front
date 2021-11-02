@@ -9,6 +9,8 @@ export default class FinanceDTO {
     collaboration;
     tiersAccount;
     balance;
+    totalHonoraire;
+    totalInvoice;
 
     constructor( data ) {
         if(data) {
@@ -21,6 +23,8 @@ export default class FinanceDTO {
             this.collaboration =  data.collaboration ;
             this.tiersAccount =  data.tiersAccount ;
             this.balance =  data.balance ;
+            this.totalHonoraire =  data.totalHonoraire ;
+            this.totalInvoice =  data.totalInvoice ;
         }
     }
 }

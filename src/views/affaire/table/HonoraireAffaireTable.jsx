@@ -4,10 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { Button, Pagination, PaginationItem, PaginationLink, Table } from 'reactstrap';
 import { usePagination, useTable } from 'react-table';
 import { useAuth0 } from '@auth0/auth0-react';
-import { deleteCompta, getComptaByDossierId } from '../../../services/ComptaServices';
+import { deleteCompta, getComptaByDossierId, totalHonoraireByDossierId } from '../../../services/ComptaServices';
 import ComptaDTO from '../../../model/compta/ComptaDTO';
 import { Link } from 'react-router-dom';
 import ReactBSAlert from 'react-bootstrap-sweetalert';
+import InvoiceDTO from '../../../model/invoice/InvoiceDTO';
 
 const isNil = require( 'lodash/isNil' );
 const map = require( 'lodash/map' );
@@ -17,27 +18,47 @@ const size = require( 'lodash/size' );
 const PAGE_SIZE = 5;
 
 export default function HonoraireAffaireTable( props ) {
-    const { label } = props;
+    const { label, currency } = props;
     const [data, setData] = useState( [] );
     const [count, setCount] = useState(0);
     const [deleteAlert, setDeleteAlert] = useState( null );
+    const [totalPayment, setTotalPayment] = useState( 0 );
 
     const { getAccessTokenSilently } = useAuth0();
     // Data table prestation
     const columns = React.useMemo(
         () => [
             {
-                Header: 'Poste',
-                accessor: 'poste.label'
-            },
-            {
                 Header: 'Tiers',
                 accessor: 'tiersFullname'
             },
             {
-                Header: 'Montant',
+                Header: label.invoice.label102,
                 accessor: 'montant',
+                Cell: row => {
+                    return (
+                        <>{row.value} {currency}</>
+                    );
+                },
                 width: 50
+            },
+            {
+                Header: label.invoice.label100,
+                accessor: 'montantHt',
+                Cell: row => {
+                    return (
+                        <>{row.value} {currency}</>
+                    );
+                },
+            },
+            {
+                Header: label.invoice.label107,
+                accessor: 'idFactureItem',
+                Cell: row => {
+                    return (
+                        <>{row.value ? <Link to={`/admin/invoice/${row.value.value}`}>{row.value.label}</Link> : ''}</>
+                    );
+                },
             },
             {
                 Header: '#',
@@ -127,6 +148,13 @@ export default function HonoraireAffaireTable( props ) {
                 setData( dataList );
             }
 
+
+            const resultTotal = await totalHonoraireByDossierId( accessToken, props.affaireid );
+            if ( !resultTotal.error ) {
+                const invoice = new InvoiceDTO( resultTotal.data );
+                setTotalPayment( invoice.totalHonoraire );
+            }
+
         })();
     }, [pageIndex, pageSize] );
 
@@ -209,6 +237,14 @@ export default function HonoraireAffaireTable( props ) {
 
     return (
         <>
+            <Table size={`sm`} responsive>
+                <tbody>
+                <tr className={`border-bottom-table`}>
+                    <td className="text-left text-uppercase font-weight-bold">{props.label.invoice.label127}</td>
+                    <td>{totalPayment} {currency}</td>
+                </tr>
+                </tbody>
+            </Table>
             <Table responsive
                    className="-striped -highlight primary-pagination"
                    {...getTableProps()}>
@@ -237,14 +273,14 @@ export default function HonoraireAffaireTable( props ) {
             <Pagination>
                 <PaginationItem disabled={!canPreviousPage}>
                     <PaginationLink  onClick={() => previousPage()}>
-                        Previous
+                        {label.common.previous}
                     </PaginationLink>
                 </PaginationItem>
                 {pagination}
 
                 <PaginationItem disabled={!canNextPage}>
                     <PaginationLink onClick={() => nextPage()}  >
-                        Next
+                        {label.common.next}
                     </PaginationLink>
                 </PaginationItem>
             </Pagination>

@@ -93,7 +93,7 @@ export default function Dossier( props ) {
     const isValidClientEmail = useRef( false );
 
     const [verticalTabsIcons, setVerticalTabsIcons] = useState( 'cas' );
-    const [horizontalTabs, setHorizontalTabs] = useState( 'invoice' );
+    const [horizontalTabs, setHorizontalTabs] = useState( 'preview' );
     const [partiesCas, setPartiesCas] = useState( [] );
     const [horizontalPrestationTabs, setHorizontalPrestationTabs] = useState( 'prestation' );
     const [isLoadingSave, setisLoadingSave] = useState( false );
@@ -862,12 +862,29 @@ export default function Dossier( props ) {
                 </Row>
                 <Row>
                     {/* INVOICE, COMPTA */}
-                    <Col md="4" sm={6}>
+                    <Col md="6" sm={6}>
                         <Card>
                             <CardHeader>
                                 <Row>
                                     <Col md={10}>
                                         <Nav className="nav-pills-info" pills>
+                                            <NavItem>
+                                                <NavLink
+                                                    data-toggle="tab"
+                                                    href="#pablo"
+                                                    className={
+                                                        horizontalTabs === 'preview'
+                                                            ? 'active'
+                                                            : ''
+                                                    }
+                                                    onClick={e =>
+                                                        changeActiveTab( e, 'horizontalTabs', 'preview' )
+                                                    }
+                                                >
+                                                    {label.affaire.label43}
+
+                                                </NavLink>
+                                            </NavItem>
                                             <NavItem>
                                                 <NavLink
                                                     data-toggle="tab"
@@ -921,6 +938,19 @@ export default function Dossier( props ) {
                                         </Nav>
                                     </Col>
                                     <Col md={2}>
+                                        {horizontalTabs === 'preview' ? (
+                                            <Link
+                                                className="btn btn-primary btn-icon float-right"
+                                                to={{
+                                                    pathname: `/admin/create/invoice`,
+                                                    query: {
+                                                        affaireId: affaireId
+                                                    }
+                                                }}
+                                            >
+                                                <i className="tim-icons icon-simple-add"/>
+                                            </Link>
+                                        ) : null}
                                         {horizontalTabs === 'invoice' ? (
                                             <Link
                                                 className="btn btn-primary btn-icon float-right"
@@ -970,11 +1000,28 @@ export default function Dossier( props ) {
                                     className="tab-space"
                                     activeTab={horizontalTabs}
                                 >
+                                    {/* FINANCE */}
+                                    <TabPane tabId="preview">
+                                        {affaireId ? (
+                                            <Finance
+                                                label={label}
+                                                currency={currency}
+                                                vckeySelected={vckeySelected}
+                                                affaireid={affaireId}/>
+                                        ) : (
+                                            <CircularProgress size={50}/>
+                                        )}
+                                    </TabPane>
                                     <TabPane tabId="invoice">
-                                        <InvoiceAffaireTable
+                                        {horizontalTabs === 'invoice' ? (
+                                            <InvoiceAffaireTable
                                             vckeySelected={vckeySelected}
+                                            currency={currency}
                                             label={label}
                                             affaireid={affaireId}/>
+                                            ) :
+                                            <ReactLoading className="loading" height={'20%'} width={'20%'}/>
+                                        }
                                     </TabPane>
                                     <TabPane tabId="honoraires">
                                         {horizontalTabs === 'honoraires' ? (
@@ -1007,28 +1054,8 @@ export default function Dossier( props ) {
                         </Card>
                     </Col>
                     {/* PRESTATION, FRAIS ADMIN */}
-                    <Col md="5" sm={6}>
+                    <Col md="6" sm={6}>
                         <Card>
-                            <CardTitle>
-                                <Button
-                                    onClick={toggleModalLargePrestation}
-                                    className="btn-icon float-right"
-                                    color="primary"
-                                    data-placement="bottom"
-                                    id="tooltip811118932"
-                                    type="button"
-                                    size="sm"
-                                >
-                                    <i className="tim-icons icon-paper"/>
-                                </Button>
-                                <UncontrolledTooltip
-                                    delay={0}
-                                    placement="bottom"
-                                    target="tooltip811118932"
-                                >
-                                    {label.dashboard.label6}
-                                </UncontrolledTooltip>
-                            </CardTitle>
                             <CardHeader>
                                 <Row>
                                     <Col md={10}>
@@ -1100,44 +1127,58 @@ export default function Dossier( props ) {
                                         </Nav>
                                     </Col>
                                     <Col md={2}>
-                                        {horizontalPrestationTabs === 'debours' ? (
-                                            <Link
-                                                className="btn btn-primary btn-icon float-right"
-                                                to={{
-                                                    pathname: `/admin/create/compta`,
-                                                    query: {
-                                                        affaireId: affaireId,
-                                                        debours: true
-                                                    }
-                                                }}
-                                            >
-                                                <i className="tim-icons icon-simple-add"/>
-                                            </Link>
-                                        ) : null}
-                                        {horizontalPrestationTabs === 'fraisCollaboration' ? (
-                                            <Link
-                                                className="btn btn-primary btn-icon float-right"
-                                                to={{
-                                                    pathname: `/admin/create/compta`,
-                                                    query: {
-                                                        affaireId: affaireId,
-                                                        frais: true
-                                                    }
-                                                }}
-                                            >
-                                                <i className="tim-icons icon-simple-add"/>
-                                            </Link>
-                                        ) : null}
-                                        {horizontalPrestationTabs === 'frais' || horizontalPrestationTabs === 'prestation' ? (
+                                        <CardTitle>
                                             <Button
+                                                onClick={toggleModalLargePrestation}
                                                 className="btn-icon float-right"
                                                 color="primary"
+                                                data-placement="bottom"
+                                                id="tooltip811118932"
                                                 type="button"
-                                                onClick={_openModalFrais}
+                                                size="sm"
                                             >
-                                                <i className="tim-icons icon-simple-add"/>
+                                                <i className="tim-icons icon-paper"/>
                                             </Button>
-                                        ) : null}
+                                            {horizontalPrestationTabs === 'debours' ? (
+                                                <Link
+                                                    className="btn btn-primary btn-icon float-right"
+                                                    to={{
+                                                        pathname: `/admin/create/compta`,
+                                                        query: {
+                                                            affaireId: affaireId,
+                                                            debours: true
+                                                        }
+                                                    }}
+                                                >
+                                                    <i className="tim-icons icon-simple-add"/>
+                                                </Link>
+                                            ) : null}
+                                            {horizontalPrestationTabs === 'fraisCollaboration' ? (
+                                                <Link
+                                                    className="btn btn-primary btn-icon float-right"
+                                                    to={{
+                                                        pathname: `/admin/create/compta`,
+                                                        query: {
+                                                            affaireId: affaireId,
+                                                            frais: true
+                                                        }
+                                                    }}
+                                                >
+                                                    <i className="tim-icons icon-simple-add"/>
+                                                </Link>
+                                            ) : null}
+                                            {horizontalPrestationTabs === 'frais' || horizontalPrestationTabs === 'prestation' ? (
+                                                <Button
+                                                    className="btn-icon float-right"
+                                                    color="primary"
+                                                    type="button"
+                                                    onClick={_openModalFrais}
+                                                >
+                                                    <i className="tim-icons icon-simple-add"/>
+                                                </Button>
+                                            ) : null}
+                                        </CardTitle>
+
                                     </Col>
                                 </Row>
                             </CardHeader>
@@ -1198,25 +1239,6 @@ export default function Dossier( props ) {
                                         }
                                     </TabPane>
                                 </TabContent>
-                            </CardBody>
-                        </Card>
-                    </Col>
-                    {/* FINANCE */}
-                    <Col md={3} sm={6}>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle tag="h4">Financier</CardTitle>
-                            </CardHeader>
-                            <CardBody>
-                                {affaireId ? (
-                                    <Finance
-                                        label={label}
-                                        currency={currency}
-                                        vckeySelected={vckeySelected}
-                                        affaireid={affaireId}/>
-                                ) : (
-                                    <CircularProgress size={50}/>
-                                )}
                             </CardBody>
                         </Card>
                     </Col>

@@ -93,7 +93,7 @@ select.form-control {
 .col-form-label-lg {
   padding-top: calc(#{$input-padding-y-lg} + #{$input-border-width});
   padding-bottom: calc(#{$input-padding-y-lg} + #{$input-border-width});
-  font-size: $font-size-lg;
+  font-size: $font-size-lg !important;
   line-height: $input-line-height-lg;
 }
 

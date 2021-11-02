@@ -156,6 +156,18 @@
   }
 }
 
+.border-bottom-table {
+  border-bottom: $table-border-width solid $table-border-color;
+}
+
+.table-sm {
+  width: 40%;
+  th,
+  td {
+    padding: $table-cell-padding-sm;
+  }
+}
+
 .table-shopping {
   > thead > tr > th {
     text-transform: uppercase;
@@ -209,7 +221,7 @@
 }
 
 .table-responsive {
-  overflow: scroll;
+  overflow: auto;
   padding-bottom: 10px;
 }
 

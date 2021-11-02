@@ -315,7 +315,7 @@ export default function Drive(props) {
             {modalEmailDisplay ? (
                 <ModalEMailSign
                     attachedFile={documentFile}
-                    affaireId={null}
+                    dossierId={null}
                     label={label}
                     userId={userId}
                     email={email}

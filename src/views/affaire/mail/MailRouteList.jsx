@@ -12,7 +12,7 @@ import { checkPaymentActivated } from '../../../services/PaymentServices';
 const isNil = require( 'lodash/isNil' );
 
 export default function MailRouteList( {
-                                           label
+                                           label, vckeySelected
                                        } ) {
 
     const { getAccessTokenSilently } = useAuth0();
@@ -106,6 +106,7 @@ export default function MailRouteList( {
             </div>
             {modalPostMailDisplay ? (
                 <ModalMail
+                    vckeySelected={vckeySelected}
                     dossierId={null}
                     label={label}
                     documentId={documentIdRef.current}

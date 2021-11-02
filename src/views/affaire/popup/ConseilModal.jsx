@@ -28,6 +28,7 @@ import { getFullUserList, getFunctions } from '../../../services/SearchService';
 import ItemDTO from '../../../model/ItemDTO';
 import CreatableSelect from 'react-select/creatable';
 import { validateEmail } from '../../../utils/Utils';
+import Select from 'react-select';
 
 moment.locale( 'fr' );
 registerLocale( 'fr', fr );
@@ -352,7 +353,7 @@ export const ConseilModal = ( {
                         <Col md="12">
                             <Label>{label.affaire.label35}</Label>
                             <FormGroup>
-                                <CreatableSelect
+                                <Select
                                     isDisabled={partieName.functionItem ? partieName.functionItem.value === 12 : false }
                                     value={partieName.functionItem}
                                     className="react-select info"

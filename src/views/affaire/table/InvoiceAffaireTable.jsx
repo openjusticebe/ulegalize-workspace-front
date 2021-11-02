@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react';
 
 // reactstrap components
-import { Button, Pagination, PaginationItem, PaginationLink, Table } from 'reactstrap';
+import { Button, Col, FormGroup, Label, Pagination, PaginationItem, PaginationLink, Table } from 'reactstrap';
 import { usePagination, useTable } from 'react-table';
 import { useAuth0 } from '@auth0/auth0-react';
-import {
-    deleteInvoiceById,
-    getInvoicesByDossierId
-} from '../../../services/InvoiceService';
-import InvoiceSummary from '../../../model/invoice/InvoiceSummary';
+import { deleteInvoiceById, getInvoicesByDossierId, totalInvoiceByDossierId } from '../../../services/InvoiceService';
+import InvoiceDTO from '../../../model/invoice/InvoiceDTO';
 import { Link } from 'react-router-dom';
 import ReactBSAlert from 'react-bootstrap-sweetalert';
+import { getDate } from '../../../utils/DateUtils';
+import classnames from 'classnames';
 
 const ceil = require( 'lodash/ceil' );
 const isNil = require( 'lodash/isNil' );
@@ -20,7 +19,9 @@ const size = require( 'lodash/size' );
 const PAGE_SIZE = 5;
 
 export default function InvoiceAffaireTable( props ) {
-    const { label, vckeySelected } = props;
+    const { label, vckeySelected, currency } = props;
+    const [totalInvoice, setTotalInvoice] = useState( 0 );
+    const [totalPayment, setTotalPayment] = useState( 0 );
     const [data, setData] = useState( [] );
     const [count, setCount] = useState( 0 );
     const [deleteAlert, setDeleteAlert] = useState( null );
@@ -34,12 +35,31 @@ export default function InvoiceAffaireTable( props ) {
                 accessor: 'reference'
             },
             {
-                Header: 'Numéro',
-                accessor: 'numFacture'
+                Header: label.invoice.label112,
+                accessor: 'dateValue',
+                Cell: row => {
+                    return row ? (
+                        <>{getDate( row.value )}</>
+                    ) : '';
+                },
             },
             {
-                Header: 'Montant',
-                accessor: 'montant'
+                Header: label.invoice.label105,
+                accessor: 'montant',
+                Cell: row => {
+                    return (
+                        <>{row.value} {currency}</>
+                    );
+                }
+            },
+            {
+                Header: label.invoice.label125,
+                accessor: 'totalHonoraire',
+                Cell: row => {
+                    return (
+                        <>{row.value} {currency}</>
+                    );
+                }
             },
             {
                 Header: '#',
@@ -111,11 +131,10 @@ export default function InvoiceAffaireTable( props ) {
                 pageIndex: 0,
             },
             manualPagination: true,
-            pageCount: ceil(count / PAGE_SIZE),
+            pageCount: ceil( count / PAGE_SIZE ),
         },
         usePagination
     );
-
 
     useEffect( () => {
         (async () => {
@@ -124,14 +143,21 @@ export default function InvoiceAffaireTable( props ) {
             const offset = pageIndex * pageSize;
             let result;
 
-            result = await getInvoicesByDossierId( accessToken, vckeySelected, props.affaireid, offset, pageSize  );
+            result = await getInvoicesByDossierId( accessToken, vckeySelected, props.affaireid, offset, pageSize );
 
             if ( !result.error ) {
                 setCount( result.data.totalElements );
                 const dataList = map( result.data.content, invoice => {
-                    return new InvoiceSummary( invoice );
+                    return new InvoiceDTO( invoice );
                 } );
                 setData( dataList );
+            }
+
+            const resultTotal = await totalInvoiceByDossierId( accessToken, props.affaireid );
+            if ( !resultTotal.error ) {
+                const invoice = new InvoiceDTO( resultTotal.data );
+                setTotalInvoice( invoice.montant );
+                setTotalPayment( invoice.totalHonoraire );
             }
 
         })();
@@ -145,7 +171,7 @@ export default function InvoiceAffaireTable( props ) {
         // case 1 : less than 10
         // case 2 more than 10 , start page : current - 5 end page : current + 5 or max
         // total page < = 10
-        if ( size(nums) <= 10 ) {
+        if ( size( nums ) <= 10 ) {
 
             pagination = nums.map( num => {
                 return (
@@ -164,11 +190,11 @@ export default function InvoiceAffaireTable( props ) {
             // current
             if ( pageIndex <= 6 ) {
                 nums = range( endPage );
-            } else if ( pageIndex + 4 >= size(nums) ) {
+            } else if ( pageIndex + 4 >= size( nums ) ) {
 
-                startPage = size(nums) - 9;
+                startPage = size( nums ) - 9;
 
-                endPage = size(nums);
+                endPage = size( nums );
                 nums = range( startPage, endPage );
 
             } else {
@@ -213,6 +239,19 @@ export default function InvoiceAffaireTable( props ) {
     };
     return (
         <>
+            <Table size={`sm`} responsive>
+                <tbody>
+                <tr>
+                    <td className="text-left text-uppercase font-weight-bold">{props.label.invoice.label126}</td>
+                    <td>{totalInvoice} {currency}</td>
+                </tr>
+                <tr className={`border-bottom-table`}>
+                    <td className="text-left text-uppercase font-weight-bold">{props.label.invoice.label127}</td>
+                    <td>{totalPayment} {currency}</td>
+                </tr>
+                </tbody>
+            </Table>
+
             <Table responsive
                    className="-striped -highlight primary-pagination"
                    {...getTableProps()}>

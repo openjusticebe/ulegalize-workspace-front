@@ -193,7 +193,7 @@ export default function ModalUploadSignDocument( {
             <ModalHeader toggle={toggle}
                          className="justify-content-center"
                          tag={`h4`}>
-                {label.etat.transparencyModalLabel} {' '}
+                {label.etat.usignModalLabel} {' '}
                 <strong className="text-muted">{priceUsign}€</strong>
 
             </ModalHeader>

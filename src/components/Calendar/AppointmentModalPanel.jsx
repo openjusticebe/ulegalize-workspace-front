@@ -415,22 +415,18 @@ export default function AppointmentModalPanel( props ) {
                 </Row>
                 <Row>
                     <Col lg="12">
-                        <Label>{label.appointmentmodalpanel.label2}</Label>
+                        <Label>{label.appointmentmodalpanel.label11}</Label>
                         <FormGroup>
                             <AsyncSelect
-                                value={selectedEvent.contactItem}
+                                value={selectedEvent.dossierItem}
                                 className="react-select info"
                                 classNamePrefix="react-select"
                                 cacheOptions
-                                loadOptions={_loadClientOptions}
+                                loadOptions={_loadDossierOptions}
                                 defaultOptions
-                                onChange={handleSelectContact}
-                                components={{
-                                    Option: CustomSelectOption,
-                                    SingleValue: CustomSelectValue
-                                }}
-                                placeholder={`${label.appointmentmodalpanel.label2}...`}/>
-
+                                onChange={_handleDossierChange}
+                                placeholder={label.appointmentmodalpanel.label16}
+                            />
                         </FormGroup>
                     </Col>
                 </Row>

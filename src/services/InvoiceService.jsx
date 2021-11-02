@@ -1,5 +1,5 @@
 import axios from 'axios';
-import InvoiceSummary from '../model/invoice/InvoiceSummary';
+import InvoiceDTO from '../model/invoice/InvoiceDTO';
 
 export async function getInvoiceList( accessToken, offset, limit,vckeySelected, searchEcheance, searchDate, searchYearDossier, searchNumberDossier, searchClient ) {
     try {
@@ -71,6 +71,21 @@ export async function getInvoicesByDossierId( accessToken, vckeySelected, dossie
     }
 }
 
+export async function totalInvoiceByDossierId( accessToken, dossierId ) {
+    try {
+        return axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/invoices/dossier/${dossierId}/total`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`
+            }
+        } )
+        .catch( () => {
+            return { data: null };
+        } );
+    } catch ( e ) {
+        return { error: true, data: null };
+    }
+}
+
 export async function getInvoicesBySearchCriteria( accessToken, searchCriteria ) {
     try {
         return axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/invoices`, {
@@ -90,7 +105,7 @@ export async function createInvoice( accessToken, invoiceSummary ) {
     try {
         return axios.post(
             `${process.env.REACT_APP_LAWFIRM_SERVER}v2/invoices`,
-            new InvoiceSummary( invoiceSummary ),
+            new InvoiceDTO( invoiceSummary ),
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,

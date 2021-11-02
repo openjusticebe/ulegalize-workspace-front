@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
     Button,
     Col,
-    FormGroup,
+    FormGroup, FormText,
     Input,
     Label,
     Modal,
@@ -12,7 +12,7 @@ import {
     Row,
     Spinner
 } from 'reactstrap';
-import { getDossierById } from '../../../../services/DossierService';
+import { getAffairesByVcUserIdAndSearchCriteria, getDossierById } from '../../../../services/DossierService';
 
 import CircularProgress from '@material-ui/core/CircularProgress';
 import { useAuth0 } from '@auth0/auth0-react';
@@ -27,6 +27,7 @@ import ItemDTO from '../../../../model/ItemDTO';
 import Select from 'react-select';
 import { sendEmailRegistered } from '../../../../services/EmailRegisteredService';
 import { getClientById } from '../../../../services/ClientService';
+import AsyncSelect from 'react-select/async/dist/react-select.esm';
 
 const isNil = require( 'lodash/isNil' );
 const isEmpty = require( 'lodash/isEmpty' );
@@ -34,7 +35,7 @@ const map = require( 'lodash/map' );
 
 export default function ModalEMailSign( {
                                             showMessagePopup,
-                                            affaireId,
+                                            dossierId,
                                             toggleModalDetails,
                                             modalDisplay,
                                             vckeySelected,
@@ -53,6 +54,7 @@ export default function ModalEMailSign( {
     const [files, setFiles] = useState( [] );
     const [userResponsableList, setUserResponsableList] = useState( [] );
 
+    const [dossierItem, setDossierItem] = useState( null );
     const [subject, setSubject] = useState( '' );
     const [emailContent, setEmailContent] = useState( '' );
     const [priceUsign, setPriceUsign] = useState( 0 );
@@ -62,7 +64,7 @@ export default function ModalEMailSign( {
     useEffect( () => {
         (async () => {
             const accessToken = await getAccessTokenSilently();
-            const dossierId = !isNil( affaireId ) ? affaireId : null;
+            const dossierId = !isNil( dossierId ) ? dossierId : null;
             // if dossier does not exist get the user email
             if ( !isNil( dossierId ) ) {
                 const resultDossier = await getDossierById( accessToken, dossierId, vckeySelected );
@@ -113,10 +115,12 @@ export default function ModalEMailSign( {
 
         if ( isNil( client.email ) || isEmpty( client.email ) ) {
             showMessagePopup( label.etat.error5, 'danger' );
+            setbtnIsLoading( false );
             return;
         }
         if ( !validateEmail( client.email ) ) {
             showMessagePopup( label.affaire.error18, 'danger' );
+            setbtnIsLoading( false );
             return;
         }
 
@@ -126,7 +130,7 @@ export default function ModalEMailSign( {
             formData.append( 'files', value );
         } );
         const emailDto = new EmailDTO();
-        emailDto.dossierId = affaireId;
+        emailDto.dossierId = isNil(dossierId) && !isNil(dossierItem)? dossierItem.value : dossierId;
         emailDto.message_body = emailContent;
         emailDto.sender_email = mailFrom.label;
         emailDto.recipient_email = client.email;
@@ -158,6 +162,28 @@ export default function ModalEMailSign( {
         setFiles( [...files, file] );
     };
 
+    const _loadDossierOptions = async ( inputValue, callback ) => {
+        const accessToken = await getAccessTokenSilently();
+        let result = await getAffairesByVcUserIdAndSearchCriteria( accessToken, inputValue );
+
+        if ( !isNil( result ) ) {
+            if ( !isNil( result.data ) ) {
+
+                callback(
+                    map( result.data, dossier => {
+                        return new ItemDTO( dossier );
+                    } ) );
+
+            } else if ( result.error ) {
+                // no data
+            }
+        }
+    };
+
+    const _handleDossierChange = ( newValue ) => {
+        setDossierItem( newValue );
+
+    };
     return (
         <Modal size="lg" isOpen={modalDisplay} toggle={toggle}>
             <ModalHeader toggle={toggle}
@@ -210,6 +236,33 @@ export default function ModalEMailSign( {
                                 </FormGroup>
                             </Col>
                         </Row>
+                        {isNil( dossierId ) ? (
+                            <Row>
+                                {/*<!-- dossier -->*/}
+                                <Label md="3">
+                                    {label.mail.dossier}
+                                </Label>
+                                    <Col lg={9} md={9} sm={9}>
+                                <FormGroup>
+                                        <AsyncSelect
+                                            value={dossierItem}
+                                            isClearable={true}
+                                            className="react-select info"
+                                            classNamePrefix="react-select"
+                                            cacheOptions
+                                            loadOptions={_loadDossierOptions}
+                                            defaultOptions
+                                            onChange={_handleDossierChange}
+                                            placeholder={label.mail.dossierPlaceholder}
+                                        />
+                                    <FormText color="muted">
+                                        {label.common.optional}
+                                    </FormText>
+                                </FormGroup>
+                                    </Col>
+                            </Row>
+                        ) : null}
+
                         {!isNil( client.email ) && !isEmpty( client.email ) ? (
                                 <>
                                     <Row>

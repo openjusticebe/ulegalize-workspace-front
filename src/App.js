@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Link, Redirect, Route, Router, Switch } from 'react-router-dom';
+import { Redirect, Route, Router, Switch } from 'react-router-dom';
 import { withAuth0 } from '@auth0/auth0-react';
 
 import AuthLayout from 'layouts/Auth/Auth.jsx';
@@ -12,12 +12,9 @@ import { switchLawfirm } from './services/LawfirmsService';
 import Lock from './components/Lock';
 import {
     Collapse,
-    Container, DropdownItem,
-    DropdownMenu,
-    DropdownToggle,
+    Container,
     Nav, Navbar, NavItem,
     NavLink,
-    UncontrolledDropdown
 } from 'reactstrap';
 import NotFound from './views/NotFound';
 import label from './data/label';

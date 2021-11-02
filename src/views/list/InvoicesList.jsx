@@ -52,7 +52,7 @@ export default function InvoicesList( props ) {
     const [data, setData] = useState( [] );
     const [count, setCount] = useState( 0 );
     const notificationAlert = useRef( null );
-    const { label, location, driveType, vckeySelected } = props;
+    const { label, location, driveType, vckeySelected, currency } = props;
     const { getAccessTokenSilently } = useAuth0();
     const [showInvoice, setShowInvoice] = useState( false );
     const invoiceSelected = useRef( null );
@@ -143,6 +143,21 @@ export default function InvoicesList( props ) {
             {
                 Header: label.invoice.label105,
                 accessor: 'montant',
+                Cell: row => {
+                    return (
+                        <>{row.value} {currency}</>
+                    )
+                },
+                disableFilters: true
+            },
+            {
+                Header: label.invoice.label125,
+                accessor: 'totalHonoraire',
+                Cell: row => {
+                    return (
+                        <>{row.value} {currency}</>
+                    )
+                },
                 disableFilters: true
             },
             {

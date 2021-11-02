@@ -36,7 +36,9 @@ import NotificationAlert from 'react-notification-alert';
 import ReactLoading from 'react-loading';
 import { getClient } from '../services/ClientService';
 import DossierDTO from '../model/affaire/DossierDTO';
-import InvoiceSummary from '../model/invoice/InvoiceSummary';
+import InvoiceDTO from '../model/invoice/InvoiceDTO';
+import { Link } from 'react-router-dom';
+import VisibilityIcon from '@material-ui/icons/Visibility';
 
 const map = require( 'lodash/map' );
 const isNil = require( 'lodash/isNil' );
@@ -210,8 +212,6 @@ export const Compta = ( props ) => {
     };
 
     const _handleDossierChange = async ( newValue ) => {
-        //const inputValue = newValue.replace( /\W/g, '' );
-
         const accessToken = await getAccessTokenSilently();
         let resultDossier = await getDossierById( accessToken, newValue.value, vckeySelected );
 
@@ -224,7 +224,6 @@ export const Compta = ( props ) => {
                 idUserItem: isNil( data.idUserItem ) ? dossierDefault.client : data.idUserItem
             } );
         }
-        //return inputValue;
     };
 
     const _loadFactureOptions = async ( inputValue, callback ) => {
@@ -252,8 +251,9 @@ export const Compta = ( props ) => {
         const result = await getInvoiceById( accessToken, newValue.value, vckeySelected );
 
         if ( !isNil( result.data ) && !isEmpty( result.data ) ) {
-            const invoiceSummary = new InvoiceSummary( result.data );
-            setData( { ...data,
+            const invoiceSummary = new InvoiceDTO( result.data );
+            setData( {
+                ...data,
                 idFacture: newValue.value,
                 idFactureItem: newValue,
                 idDoss: isNil( data.idDoss ) && !isNil( invoiceSummary.dossierItem ) ? invoiceSummary.dossierItem.value : data.idDoss,
@@ -597,6 +597,7 @@ export const Compta = ( props ) => {
                                                     className="react-select info"
                                                     classNamePrefix="react-select"
                                                     cacheOptions
+                                                    isClearable={true}
                                                     loadOptions={_loadClientOptions}
                                                     defaultOptions
                                                     onChange={_handleClientChange}
@@ -606,25 +607,33 @@ export const Compta = ( props ) => {
                                         </Col>
                                     </Row>
                                     <Row>
-                                        <Col lg="5">
-                                            <Label>{props.label.compta.file}</Label>
+                                        <Col lg="4">
+                                            <Label>{data.idDossierItem ? (
+                                                    <Link
+                                                        to={`/admin/affaire/${data.idDossierItem.value}`}>{props.label.compta.file} {' '}
+                                                        <VisibilityIcon/></Link>
+                                                ) :
+                                                props.label.compta.file}</Label>
                                             <FormGroup>
-                                                <Col md="10">
-                                                    <AsyncSelect
-                                                        value={data.idDossierItem}
-                                                        className="react-select info"
-                                                        classNamePrefix="react-select"
-                                                        cacheOptions
-                                                        loadOptions={_loadDossierOptions}
-                                                        defaultOptions
-                                                        onChange={_handleDossierChange}
-                                                        placeholder="numero dossier ou annee"
-                                                    />
-                                                </Col>
+                                                <AsyncSelect
+                                                    value={data.idDossierItem}
+                                                    className="react-select info"
+                                                    classNamePrefix="react-select"
+                                                    cacheOptions
+                                                    loadOptions={_loadDossierOptions}
+                                                    defaultOptions
+                                                    onChange={_handleDossierChange}
+                                                    placeholder="numero dossier ou annee"
+                                                />
                                             </FormGroup>
                                         </Col>
                                         <Col lg="4">
-                                            <Label>{props.label.compta.bill}</Label>
+                                            <Label>{data.idFactureItem ? (
+                                                    <Link
+                                                        to={`/admin/invoice/${data.idFactureItem.value}`}>{props.label.compta.bill} {' '}
+                                                        <VisibilityIcon/></Link>
+                                                ) :
+                                                props.label.compta.bill}</Label>
                                             <FormGroup>
                                                 <AsyncSelect
                                                     value={data.idFactureItem}

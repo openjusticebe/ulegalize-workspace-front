@@ -859,6 +859,7 @@ export const Dashboard = ( props ) => {
             {/* POPUP CREATE MAIL BPOST */}
             {modalPostMailDisplay ? (
                 <ModalMail
+                    vckeySelected={vckeySelected}
                     dossierId={null}
                     label={label}
                     documentId={documentIdRef.current}
@@ -872,7 +873,7 @@ export const Dashboard = ( props ) => {
             {modalEmailDisplay ? (
                 <ModalEMailSign
                     attachedFile={[]}
-                    affaireId={null}
+                    dossierId={null}
                     label={label}
                     userId={userId}
                     email={email}

@@ -160,6 +160,22 @@ export async function getAllInfo( accessToken, debours, fraisCollaborative, hono
 
     } );
 }
+
+export async function totalHonoraireByDossierId( accessToken, dossierId ) {
+    try {
+        return axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/compta/dossier/${dossierId}/total`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`
+            }
+        } )
+        .catch( () => {
+            return { data: null };
+        } );
+    } catch ( e ) {
+        return { error: true, data: null };
+    }
+}
+
 export async function generateReportCompta( accessToken, start, end, vckeySelected, searchCriteriaNumber, searchCriteriaYear, searchCriteriaClient, searchCriteriaPoste ) {
     try {
         return axios.get( `${process.env.REACT_APP_REPORT_SERVER}v1/compta`, {

@@ -226,7 +226,6 @@ export default function PrestationChrono( props ) {
                 <Col md="12">
                     <Label>{props.label.compta.file}</Label>
                     <FormGroup>
-                        <Col md="12">
 
                             <AsyncSelect
                                 value={prestation.dossierItem}
@@ -236,9 +235,8 @@ export default function PrestationChrono( props ) {
                                 loadOptions={_loadDossierOptions}
                                 defaultOptions
                                 onChange={_handleDossierChange}
-                                placeholder="numero dossier ou annee"
+                                placeholder={label.mail.dossierPlaceholder}
                             />
-                        </Col>
                     </FormGroup>
                 </Col>
             </Row>

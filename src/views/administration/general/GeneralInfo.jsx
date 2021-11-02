@@ -192,6 +192,8 @@ export default function GeneralInfo( props ) {
         updatedCab.objetsocial = virtualCab.objetsocial;
         updatedCab.numentreprise = virtualCab.numentreprise;
         updatedCab.email = virtualCab.email;
+        updatedCab.currency = virtualCab.currency;
+        updatedCab.currencyItem = virtualCab.currencyItem;
 
         let resultUpdate = await updateVirtualcab( accessToken, updatedCab );
         if ( !resultUpdate.error ) {

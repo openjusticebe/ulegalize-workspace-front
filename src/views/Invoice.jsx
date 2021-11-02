@@ -31,10 +31,11 @@ import ReactTableLocal from '../components/ReactTableLocal';
 import { getAffairesByVcUserIdAndSearchCriteria, getDossierById } from '../services/DossierService';
 import ItemDTO from '../model/ItemDTO';
 import { useAuth0 } from '@auth0/auth0-react';
-import InvoiceSummary from '../model/invoice/InvoiceSummary';
+import InvoiceDTO from '../model/invoice/InvoiceDTO';
 import {
     createInvoice,
-    deleteInvoiceById, generateInvoiceValid,
+    deleteInvoiceById,
+    generateInvoiceValid,
     getDefaultInvoice,
     getInvoiceById,
     getPrestationByDossierId,
@@ -57,6 +58,8 @@ import ModalCheckSessionDrive from './popup/drive/ModalCheckSessionDrive';
 import ModalEMailSign from './affaire/mail/recommande/ModalEMailSign';
 import { checkPaymentActivated } from '../services/PaymentServices';
 import ModalNoActivePayment from './affaire/popup/ModalNoActivePayment';
+import { Link } from 'react-router-dom';
+import VisibilityIcon from '@material-ui/icons/Visibility';
 
 const maxBy = require( 'lodash/maxBy' );
 const forEach = require( 'lodash/forEach' );
@@ -74,16 +77,18 @@ export default function Invoice( props ) {
     const notificationAlert = useRef( null );
 
     const [loadingSave, setLoadingSave] = useState( false );
-    const { match: { params },
+    const {
+        match: { params },
         location: { query },
-        label, currency, location, enumRights,  userId, history,email,
+        label, currency, location, enumRights, userId, history, email,
         fullName,
         language,
-        vckeySelected, driveType } = props;
+        vckeySelected, driveType
+    } = props;
     const [deleteAlert, setDeleteAlert] = useState( null );
     const [prestations, setPrestations] = useState( [] );
     const [showInvoice, setShowInvoice] = useState( false );
-    const [data, setData] = useState( new InvoiceSummary() );
+    const [data, setData] = useState( new InvoiceDTO() );
     const { getAccessTokenSilently } = useAuth0();
     const [openclientModal, setOpenclientModal] = useState( false );
     const [clientModal, setClientModal] = useState( null );
@@ -99,7 +104,7 @@ export default function Invoice( props ) {
     const isCreated = useRef( !isNil( params.invoiceid ) ? false : true );
     const affaireid = useRef( !isNil( query ) && !isNil( query.affaireId ) ? query.affaireId : null );
     let totalAmount = useRef( 0 );
-    let invoiceIdRef = useRef( !isNil( params.invoiceid )? params.invoiceid : 0 );
+    let invoiceIdRef = useRef( !isNil( params.invoiceid ) ? params.invoiceid : 0 );
 
     useEffect( () => {
         (async () => {
@@ -117,7 +122,7 @@ export default function Invoice( props ) {
 
                 if ( !isNil( result ) ) {
                     if ( !isNil( result.data ) && !isEmpty( result.data ) ) {
-                        invoiceSummary = new InvoiceSummary( result.data );
+                        invoiceSummary = new InvoiceDTO( result.data );
                         if ( invoiceSummary.invoiceDetailsDTOList[ 0 ] != null ) {
                             invoiceSummary.invoiceDetailsDTOList[ 0 ].index = size( invoiceSummary.invoiceDetailsDTOList );
                         }
@@ -168,6 +173,9 @@ export default function Invoice( props ) {
                     if ( !resultDossier.error && !isNil( resultDossier.data ) && !isEmpty( resultDossier.data ) ) {
                         const dossierDefault = new DossierDTO( resultDossier.data );
 
+                        invoiceSummary.clientId = dossierDefault.idClient;
+                        invoiceSummary.clientItem = dossierDefault.client;
+
                         invoiceSummary.dossierId = dossierDefault.id;
                         invoiceSummary.dossierItem = new ItemDTO( {
                             value: dossierDefault.id,
@@ -197,7 +205,7 @@ export default function Invoice( props ) {
             const accessToken = await getAccessTokenSilently();
 // get prestation for invoice
             if ( !isNil( data.dossierId ) ) {
-                let resultPrestation = await getPrestationByDossierId( accessToken, invoiceIdRef.current , data.dossierId );
+                let resultPrestation = await getPrestationByDossierId( accessToken, invoiceIdRef.current, data.dossierId );
 
                 if ( !resultPrestation.error ) {
                     let prestList = map( resultPrestation.data, prest => {
@@ -212,7 +220,7 @@ export default function Invoice( props ) {
 
     const _togglePopupCheckSession = ( message, type ) => {
         if ( !isNil( message ) && !isNil( type ) ) {
-            notificationAlert.current.notificationAlert( getOptionNotification( message, type ));
+            notificationAlert.current.notificationAlert( getOptionNotification( message, type ) );
         }
         setCheckTokenDrive( !checkTokenDrive );
     };
@@ -282,13 +290,13 @@ export default function Invoice( props ) {
 
     const _saveInvoice = async () => {
         // write calendar
-        const right = [0, 27]
+        const right = [0, 27];
 
-        let rightsFound ;
-        if(enumRights) {
-            rightsFound = enumRights.filter(element => right.includes(element));
+        let rightsFound;
+        if ( enumRights ) {
+            rightsFound = enumRights.filter( element => right.includes( element ) );
         }
-        if(!isNil(rightsFound) && isEmpty(rightsFound)) {
+        if ( !isNil( rightsFound ) && isEmpty( rightsFound ) ) {
             notificationAlert.current.notificationAlert( getOptionNotification( label.unauthorized.label9, 'danger' ) );
             return;
         }
@@ -309,9 +317,9 @@ export default function Invoice( props ) {
 
         data.montant = totalAmount.current;
 
-        data.prestationIdList = filter(map( prestations, prestation => {
+        data.prestationIdList = filter( map( prestations, prestation => {
             return prestation.invoiceChecked === true ? prestation.id : null;
-        } ), prest => { return !isNil(prest)});
+        } ), prest => { return !isNil( prest );} );
 
         let result = await createInvoice( accessToken, data );
 
@@ -331,13 +339,13 @@ export default function Invoice( props ) {
 
     const _updateInvoice = async () => {
         // update invoice
-        const right = [0, 27]
+        const right = [0, 27];
 
-        let rightsFound ;
-        if(enumRights) {
-            rightsFound = enumRights.filter(element => right.includes(element));
+        let rightsFound;
+        if ( enumRights ) {
+            rightsFound = enumRights.filter( element => right.includes( element ) );
         }
-        if(!isNil(rightsFound) && isEmpty(rightsFound)) {
+        if ( !isNil( rightsFound ) && isEmpty( rightsFound ) ) {
             notificationAlert.current.notificationAlert( getOptionNotification( label.unauthorized.label9, 'danger' ) );
             return;
         }
@@ -357,9 +365,9 @@ export default function Invoice( props ) {
 
         data.montant = totalAmount.current;
 
-        data.prestationIdList = filter(map( prestations, prestation => {
+        data.prestationIdList = filter( map( prestations, prestation => {
             return prestation.invoiceChecked === true ? prestation.id : null;
-        } ), prest => { return !isNil(prest)});
+        } ), prest => { return !isNil( prest );} );
 
         let result = await updateInvoice( accessToken, data );
         if ( !result.error ) {
@@ -372,22 +380,22 @@ export default function Invoice( props ) {
         const accessToken = await getAccessTokenSilently();
 
         let resultPayment = await checkPaymentActivated( accessToken );
-        if ( !isNil( resultPayment ) &&  resultPayment.data === true ) {
+        if ( !isNil( resultPayment ) && resultPayment.data === true ) {
             _toggleRegisteredEmail();
             // get pdf file
-            const result= await generateInvoiceValid( accessToken, invoiceIdRef.current );
+            const result = await generateInvoiceValid( accessToken, invoiceIdRef.current );
             if ( !result.error ) {
-                let pdf = new File([result.data.binary], data.reference, {
+                let pdf = new File( [result.data.binary], data.reference, {
                     type: result.data.contentType,
-                });
-                setInvoicePdf(pdf)
+                } );
+                setInvoicePdf( pdf );
             } else {
                 showMessage( label.invoice.alert103, 'danger' );
             }
         } else {
             _toggleUnPaid();
         }
-    }
+    };
     const _toggleUnPaid = () => {
         setModalNotPaidSignDocument( !modalNotPaidSignDocument );
     };
@@ -396,13 +404,13 @@ export default function Invoice( props ) {
     };
     const _validateInvoice = async () => {
         // validate invoice
-        const right = [0, 28]
+        const right = [0, 28];
 
-        let rightsFound ;
-        if(enumRights) {
-            rightsFound = enumRights.filter(element => right.includes(element));
+        let rightsFound;
+        if ( enumRights ) {
+            rightsFound = enumRights.filter( element => right.includes( element ) );
         }
-        if(!isNil(rightsFound) && isEmpty(rightsFound)) {
+        if ( !isNil( rightsFound ) && isEmpty( rightsFound ) ) {
             notificationAlert.current.notificationAlert( getOptionNotification( label.unauthorized.label9, 'danger' ) );
             return;
         }
@@ -439,8 +447,7 @@ export default function Invoice( props ) {
 
     };
 
-
-    const _clientUpdated = async ( ) => {
+    const _clientUpdated = async () => {
         const accessToken = await getAccessTokenSilently();
 
         if ( !isNil( data.clientId ) || !isEmpty( data.clientId ) ) {
@@ -454,7 +461,7 @@ export default function Invoice( props ) {
                 } );
         }
 
-        setData( {...data} );
+        setData( { ...data } );
         setClientModal( null );
         setOpenclientModal( false );
         notificationAlert.current.notificationAlert( getOptionNotification( label.ajout_client.toastrSuccessPUpdate, 'primary' ) );
@@ -471,7 +478,7 @@ export default function Invoice( props ) {
                 label: clientResult.data.fullName,
                 isDefault: clientResult.data.email
             } );
-        setData( {...data} );
+        setData( { ...data } );
         setClientModal( null );
         setOpenclientModal( false );
         notificationAlert.current.notificationAlert( getOptionNotification( label.ajout_client.toastrSuccessPUpdate, 'primary' ) );
@@ -498,8 +505,20 @@ export default function Invoice( props ) {
         }
     };
 
-    const _handleDossierChange = ( newValue ) => {
-        setData( { ...data, dossierId: newValue.value, dossierItem: newValue } );
+    const _handleDossierChange = async ( newValue ) => {
+        const accessToken = await getAccessTokenSilently();
+        let resultDossier = await getDossierById( accessToken, newValue.value, vckeySelected );
+
+        if ( !resultDossier.error && !isNil( resultDossier.data ) && !isEmpty( resultDossier.data ) ) {
+            const dossierDefault = new DossierDTO( resultDossier.data );
+            setData( {
+                ...data,
+                dossierId: newValue.value,
+                dossierItem: newValue,
+                clientId: isNil( data.clientId ) ? dossierDefault.idClient : data.clientId,
+                clientItem: isNil( data.clientItem ) ? dossierDefault.client : data.clientItem
+            } );
+        }
     };
 
     const showInvoiceFun = () => {
@@ -807,7 +826,7 @@ export default function Invoice( props ) {
     };
 
     /* not NC */
-    const notVisible =  data.typeId !== 2;
+    const notVisible = data.typeId !== 2;
 
     return (
         <>
@@ -855,13 +874,13 @@ export default function Invoice( props ) {
                                         </Button>
                                     ) : null)}
                                     {(isCreated.current === false && data.valid === false ? (
-                                        <Button color="danger" type="button" onClick={()=>{
+                                        <Button color="danger" type="button" onClick={() => {
                                             setDeleteAlert( <ReactBSAlert
                                                 warning
                                                 style={{ display: 'block', marginTop: '100px' }}
                                                 title={label.ajout_client.label1}
                                                 onConfirm={() => {
-                                                    handleDeleteInvoice( );
+                                                    handleDeleteInvoice();
                                                     setDeleteAlert( null );
                                                 }}
                                                 onCancel={() => { setDeleteAlert( null ); }}
@@ -873,7 +892,7 @@ export default function Invoice( props ) {
                                                 btnSize=""
                                             >
                                                 {label.ajout_client.label3}
-                                            </ReactBSAlert> )
+                                            </ReactBSAlert> );
 
                                         }}>
                                             {label.common.delete}
@@ -951,7 +970,12 @@ export default function Invoice( props ) {
                                                             </FormGroup>
                                                         </Col>
                                                         <Col md="3">
-                                                            <label>{label.invoice.label110}</label>
+                                                            <Label>{data.dossierItem ? (
+                                                                    <Link
+                                                                        to={`/admin/affaire/${data.dossierItem.value}`}>{label.invoice.label110} {' '}
+                                                                        <VisibilityIcon/></Link>
+                                                                ) :
+                                                                label.invoice.label110}</Label>
                                                             <FormGroup>
                                                                 <AsyncSelect
                                                                     isDisabled={data.valid}
@@ -993,7 +1017,7 @@ export default function Invoice( props ) {
                                                                                     }
                                                                                     setData( {
                                                                                         ...data,
-                                                                                        dateEcheance: moment(data.dateValue).add(echeance, 'days'),
+                                                                                        dateEcheance: moment( data.dateValue ).add( echeance, 'days' ),
                                                                                         echeanceId: value.value,
                                                                                         echeanceItem: value
                                                                                     } );
@@ -1004,7 +1028,7 @@ export default function Invoice( props ) {
                                                                         />
                                                                     </FormGroup>
                                                                 </>
-                                                            ): null}
+                                                            ) : null}
                                                         </Col>
                                                     </Row>
                                                     <Row>
@@ -1035,31 +1059,31 @@ export default function Invoice( props ) {
                                                         </Col>
                                                         <Col md="3">
                                                             {notVisible === true ? (
-                                                                    <>
-                                                                        <label>{label.invoice.label113}</label>
-                                                                        <FormGroup>
-                                                                            <DatePicker
-                                                                                disabled={data.valid}
-                                                                                selected={data.dateEcheance ? moment( data.dateEcheance ).toDate() : null}
-                                                                                onChange={date => {
-                                                                                    // new value e.target.value
-                                                                                    setData( {
-                                                                                        ...data,
-                                                                                        dateEcheance: date
-                                                                                    } );
-                                                                                }
-                                                                                }
-                                                                                locale="fr"
-                                                                                timeCaption="date"
-                                                                                dateFormat="yyyy-MM-dd"
-                                                                                placeholderText="yyyy-mm-dd"
-                                                                                className="form-control color-primary"
-                                                                                name="date_echeance"
-                                                                                id="dateEcheance"
-                                                                            />
-                                                                        </FormGroup>
-                                                                    </>
-                                                                ):null}
+                                                                <>
+                                                                    <label>{label.invoice.label113}</label>
+                                                                    <FormGroup>
+                                                                        <DatePicker
+                                                                            disabled={data.valid}
+                                                                            selected={data.dateEcheance ? moment( data.dateEcheance ).toDate() : null}
+                                                                            onChange={date => {
+                                                                                // new value e.target.value
+                                                                                setData( {
+                                                                                    ...data,
+                                                                                    dateEcheance: date
+                                                                                } );
+                                                                            }
+                                                                            }
+                                                                            locale="fr"
+                                                                            timeCaption="date"
+                                                                            dateFormat="yyyy-MM-dd"
+                                                                            placeholderText="yyyy-mm-dd"
+                                                                            className="form-control color-primary"
+                                                                            name="date_echeance"
+                                                                            id="dateEcheance"
+                                                                        />
+                                                                    </FormGroup>
+                                                                </>
+                                                            ) : null}
                                                         </Col>
                                                         <Col md="3">
                                                             <label>{label.invoice.label114}</label>
@@ -1078,59 +1102,59 @@ export default function Invoice( props ) {
 
                                                                 </Col>
                                                                 <Col md="2">
-                                                            {data.clientId ? (
-                                                                <Button
-                                                                    disabled={data.valid}
-                                                                    className="btn-icon float-right"
-                                                                    color="primary"
-                                                                    type="button"
-                                                                    size="sm"
-                                                                    onClick={() => {
-                                                                        // write client
-                                                                        const right = [0, 22];
+                                                                    {data.clientId ? (
+                                                                        <Button
+                                                                            disabled={data.valid}
+                                                                            className="btn-icon float-right"
+                                                                            color="primary"
+                                                                            type="button"
+                                                                            size="sm"
+                                                                            onClick={() => {
+                                                                                // write client
+                                                                                const right = [0, 22];
 
-                                                                        let rightsFound;
-                                                                        if ( enumRights ) {
-                                                                            rightsFound = enumRights.filter( element => right.includes( element ) );
-                                                                        }
-                                                                        if ( !isNil( rightsFound ) && isEmpty( rightsFound ) ) {
-                                                                            notificationAlert.current.notificationAlert( getOptionNotification( label.unauthorized.label9, 'danger' ) );
-                                                                            return;
-                                                                        }
-                                                                        setClientModal( data.clientId );
-                                                                        setOpenclientModal( !openclientModal );
-                                                                    }}
-                                                                >
-                                                                    <i className="tim-icons icon-pencil"/>
-                                                                </Button>
-                                                            ) : (
-                                                                <Button
-                                                                    disabled={data.valid}
-                                                                    className="btn-icon float-right"
-                                                                    color="primary"
-                                                                    type="button"
-                                                                    size="sm"
-                                                                    onClick={() => {
-                                                                        // write client
-                                                                        const right = [0, 22];
+                                                                                let rightsFound;
+                                                                                if ( enumRights ) {
+                                                                                    rightsFound = enumRights.filter( element => right.includes( element ) );
+                                                                                }
+                                                                                if ( !isNil( rightsFound ) && isEmpty( rightsFound ) ) {
+                                                                                    notificationAlert.current.notificationAlert( getOptionNotification( label.unauthorized.label9, 'danger' ) );
+                                                                                    return;
+                                                                                }
+                                                                                setClientModal( data.clientId );
+                                                                                setOpenclientModal( !openclientModal );
+                                                                            }}
+                                                                        >
+                                                                            <i className="tim-icons icon-pencil"/>
+                                                                        </Button>
+                                                                    ) : (
+                                                                        <Button
+                                                                            disabled={data.valid}
+                                                                            className="btn-icon float-right"
+                                                                            color="primary"
+                                                                            type="button"
+                                                                            size="sm"
+                                                                            onClick={() => {
+                                                                                // write client
+                                                                                const right = [0, 22];
 
-                                                                        let rightsFound;
-                                                                        if ( enumRights ) {
-                                                                            rightsFound = enumRights.filter( element => right.includes( element ) );
-                                                                        }
-                                                                        if ( !isNil( rightsFound ) && isEmpty( rightsFound ) ) {
-                                                                            notificationAlert.current.notificationAlert( getOptionNotification( label.unauthorized.label9, 'danger' ) );
-                                                                            return;
-                                                                        }
+                                                                                let rightsFound;
+                                                                                if ( enumRights ) {
+                                                                                    rightsFound = enumRights.filter( element => right.includes( element ) );
+                                                                                }
+                                                                                if ( !isNil( rightsFound ) && isEmpty( rightsFound ) ) {
+                                                                                    notificationAlert.current.notificationAlert( getOptionNotification( label.unauthorized.label9, 'danger' ) );
+                                                                                    return;
+                                                                                }
 
-                                                                        setClientModal( data.clientId );
-                                                                        setOpenclientModal( !openclientModal );
-                                                                    }}
-                                                                >
-                                                                    <i className="tim-icons icon-simple-add"/>
-                                                                </Button>
-                                                            )}
-                                                        </Col>
+                                                                                setClientModal( data.clientId );
+                                                                                setOpenclientModal( !openclientModal );
+                                                                            }}
+                                                                        >
+                                                                            <i className="tim-icons icon-simple-add"/>
+                                                                        </Button>
+                                                                    )}
+                                                                </Col>
                                                             </FormGroup>
                                                         </Col>
                                                     </Row>
@@ -1253,14 +1277,14 @@ export default function Invoice( props ) {
             {modalEmailDisplay ? (
                 <ModalEMailSign
                     attachedFile={invoicePdf}
-                    affaireId={data.dossierId}
+                    dossierId={data.dossierId}
                     label={label}
                     userId={userId}
                     vckeySelected={vckeySelected}
                     email={email}
                     clientId={data.clientId}
                     showMessage={showMessage}
-                    updateList={()=>{}}
+                    updateList={() => {}}
                     showMessagePopup={showMessage}
                     toggleModalDetails={_toggleRegisteredEmail}
                     modalDisplay={modalEmailDisplay}/>
