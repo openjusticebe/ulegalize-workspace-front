@@ -314,14 +314,36 @@ export default function Agenda( {
         }
     };
 
-    function EventAgenda( { event } ) {
+    function EventOtherAgenda( { event } ) {
+        return EventAgenda(
+            event, event.color
+        );
+    }
+    function EventDayAgenda( { event } ) {
+        return EventAgenda(
+           event, 'white'
+        );
+    }
+    function EventMonthAgenda( { event } ) {
         return (
             <div onClick={() => selectedEvent( event )}>
-                <em className={event.color}>{event.eventTypeItem.label}</em>
+            <em className={'white'}>{event.eventTypeItem.label}</em>
+                <p>{moment( event.start ).locale( language ).format( 'LT' )} {event.title && event.title !== '' ? event.title : event.note}</p>
+        </div>
+        )
+    }
+    function EventAgenda( event, color ) {
+        return (
+            <div onClick={() => selectedEvent( event )}>
+                <em className={color}>{event.eventTypeItem.label}</em>
                 {event.eventType === 'RDV' ? (
                     <p>{event.title && event.title !== '' ? event.title : event.note}</p>
                 ) : (
-                    <p>{event.note}</p>
+                    <>
+                        {event.note ? (<p>{event.note}</p>) : null}
+                        {event.dossier ? (<p>{label.appointmentmodalpanel.label11} : {event.dossier.label}</p>) : null}
+                        {event.location ? (<p>{label.appointmentmodalpanel.label9} : {event.location}</p>) : ''}
+                    </>
                 )}
             </div>
         );
@@ -333,19 +355,6 @@ export default function Agenda( {
             <span>
               <p>{moment( event.start ).locale( language ).format( 'LT' )} {end}</p>
             </span>
-        );
-    }
-
-    function EventWeekAgenda( { event } ) {
-        return (
-            <div onClick={() => selectedEvent( event )}>
-                <em className={`white`}>{event.eventTypeItem.label}</em>
-                {event.eventType === 'RDV' ? (
-                    <p>{event.title && event.title !== '' ? event.title : event.note}</p>
-                ) : (
-                    <p>{event.note}</p>
-                )}
-            </div>
         );
     }
 
@@ -448,10 +457,17 @@ export default function Agenda( {
                                     components={{
                                         agenda: {
                                             time: TimeAgenda,
-                                            event: EventAgenda,
+                                            event: EventOtherAgenda,
+                                        },
+                                        day: {
+                                            time: TimeAgenda,
+                                            event: EventDayAgenda,
                                         },
                                         week: {
-                                            event: EventWeekAgenda,
+                                            event: EventDayAgenda,
+                                        },
+                                        month: {
+                                            event: EventMonthAgenda,
                                         },
                                     }}
                                 />

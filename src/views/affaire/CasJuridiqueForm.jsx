@@ -39,10 +39,9 @@ export default function CasJuridiqueForm( {
                                               partie,
                                               updatePartie,
                                               dossierType,
-                                              clientId,
                                               affaireId, attachEsignDocument, updateCaseRef,
-                                              downloadFile, lg, md, label, language, emailPayUser, enumRights,
-                                              userId, vckeySelected, fullName,
+                                              downloadFile, lg, md, label,
+                                              vckeySelected,
                                               attachFileCase, cas, isLoadingSave,
                                               showMessagePopup
                                           } ) {

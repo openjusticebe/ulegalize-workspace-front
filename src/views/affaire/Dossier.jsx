@@ -160,26 +160,8 @@ export default function Dossier( props ) {
                 );
                 return;
             }
-            let clientData = [];
-            if ( doss.type !== 'MD' ) {
-                let clientResult = await getClientById( accessToken, doss.idClient );
-                if ( !clientResult.error ) {
-                    clientData.push( new ContactSummary( clientResult.data, label ) );
-                }
-            } else {
-                const clientIds = map( doss.clientList, clientTmp => clientTmp.value );
-                const clientResult = await getClientListByIds( accessToken, clientIds );
-                if ( !clientResult.error ) {
-                    clientData = map( clientResult.data, data => {
-                        return new ContactSummary( data, label );
-                    } );
-                }
-            }
 
-            // stop after true
-            isValidClientEmail.current = some( clientData, client => { return !isEmpty( client.email ) && validateEmail( client.email ); } );
-
-            setClientList( clientData );
+            const clientData = await refreshClientNonCase(doss);
 
             let partieResult = await getPartiesByDossierId( accessToken, doss.id );
             if ( !partieResult.error && !isEmpty( partieResult.data ) ) {
@@ -208,6 +190,31 @@ export default function Dossier( props ) {
         })();
     }, [getAccessTokenSilently, updateCase.current] );
 
+    const refreshClientNonCase = async(doss) =>{
+        const accessToken = await getAccessTokenSilently();
+        let clientData = [];
+        if ( doss.type !== 'MD' ) {
+            let clientResult = await getClientById( accessToken, doss.idClient );
+            if ( !clientResult.error ) {
+                clientData.push( new ContactSummary( clientResult.data, label ) );
+            }
+        } else {
+            const clientIds = map( doss.clientList, clientTmp => clientTmp.value );
+            const clientResult = await getClientListByIds( accessToken, clientIds );
+            if ( !clientResult.error ) {
+                clientData = map( clientResult.data, data => {
+                    return new ContactSummary( data, label );
+                } );
+            }
+        }
+
+        // stop after true
+        isValidClientEmail.current = some( clientData, client => { return !isEmpty( client.email ) && validateEmail( client.email ); } );
+
+        setClientList( clientData );
+
+        return clientData;
+    }
     const changeActiveTab = async ( e, tabState, tadName ) => {
         e.preventDefault();
 
@@ -288,6 +295,7 @@ export default function Dossier( props ) {
                     isDefault: clientResult.data.email
                 } );
         }
+        await refreshClientNonCase(dossier);
 
         setDossier( dossier );
         setClientModal( null );

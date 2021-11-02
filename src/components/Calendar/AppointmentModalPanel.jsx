@@ -12,8 +12,7 @@ import {
     ModalBody,
     ModalFooter,
     Row,
-    Spinner,
-    UncontrolledTooltip
+    Spinner
 } from 'reactstrap';
 
 import moment from 'moment';
@@ -22,7 +21,7 @@ import 'moment/locale/fr';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import fr from 'date-fns/locale/fr';
 import en from 'date-fns/locale/en-GB';
-import Select, { components } from 'react-select';
+import Select from 'react-select';
 import {
     approvedEvent,
     createEvent,
@@ -33,7 +32,6 @@ import {
 import ItemDTO from '../../model/ItemDTO';
 import { useAuth0 } from '@auth0/auth0-react';
 import AsyncSelect from 'react-select/async/dist/react-select.esm';
-import { getClient } from '../../services/ClientService';
 import { getAffairesByVcUserIdAndSearchCriteria } from '../../services/DossierService';
 import ReactBSAlert from 'react-bootstrap-sweetalert';
 import AsyncCreatableSelect from 'react-select/async-creatable/dist/react-select.esm';
@@ -41,7 +39,6 @@ import { getFullUserList } from '../../services/SearchService';
 
 const map = require( 'lodash/map' );
 const isNil = require( 'lodash/isNil' );
-const isEmpty = require( 'lodash/isEmpty' );
 moment.locale( 'fr' );
 registerLocale( 'fr', fr );
 registerLocale( 'en', en );
@@ -161,8 +158,22 @@ export default function AppointmentModalPanel( props ) {
     };
 
     const handleDatePickerChange = ( date ) => {
-        setSelectedEvent( { ...selectedEvent, start: date } );
+        // if the end date is before start date => add 30 min to end date
+        if ( moment( date ).isAfter( selectedEvent.end )
+            ||  moment( date ).isSame( selectedEvent.end ) ) {
+            const end = moment( date ).add( 30, 'minutes' );
+            setSelectedEvent( { ...selectedEvent, start: date, end: end } );
+        } else {
+            setSelectedEvent( { ...selectedEvent, start: date } );
+
+        }
+
     };
+
+    const handleEndDatePickerChange = ( date ) => {
+        setSelectedEvent( { ...selectedEvent, end: date } );
+    };
+
     const handleEventTypeChange = ( event ) => {
         let selectedUser;
         if ( event.value === 'TASK' ) {
@@ -183,54 +194,7 @@ export default function AppointmentModalPanel( props ) {
 
         setOptionsUsers( userResponsableRef.current );
     };
-    const _loadClientOptions = async ( inputValue, callback ) => {
-        const accessToken = await getAccessTokenSilently();
-        let result = await getClient( accessToken, inputValue, vckeySelected );
 
-        callback( map( result.data, data => {
-            return new ItemDTO( { value: data.id, label: data.fullName, isDefault: data.email } );
-        } ) );
-    };
-
-    const { Option, SingleValue } = components;
-
-    const CustomSelectOption = props => (
-        <Option {...props}>
-            {props.data.label} {' '}
-            {isNil( props.data.isDefault ) || isEmpty( props.data.isDefault ) ? (
-                <>
-                    <i data-placement="right"
-                       id={'Tooltip-' + props.data.value}
-                       className={`fa fa-exclamation-triangle yellow`}/>
-                    <UncontrolledTooltip
-                        delay={0}
-                        placement="bottom"
-                        target={'Tooltip-' + props.data.value}
-                    >
-                        No email
-                    </UncontrolledTooltip>
-                </>
-            ) : null}
-        </Option>
-    );
-    const CustomSelectValue = props => (
-        <SingleValue {...props}>
-            {props.data.label} {' '}
-            {isNil( props.data.isDefault ) || isEmpty( props.data.isDefault ) ? (
-                <>
-                    <i data-placement="right"
-                       id="tooltip811118934"
-                       className={`fa fa-exclamation-triangle yellow`}/>
-                    <UncontrolledTooltip
-                        delay={0}
-                        placement="bottom"
-                        target="tooltip811118934"
-                    >
-                        No email
-                    </UncontrolledTooltip>
-                </>) : null}
-        </SingleValue>
-    );
     const handleEventLocationChange = ( event ) => {
         setSelectedEvent( { ...selectedEvent, location: event.target.value } );
     };
@@ -238,17 +202,13 @@ export default function AppointmentModalPanel( props ) {
         setSelectedEvent( { ...selectedEvent, title: event.target.value } );
     };
 
-    const handleSelectContact = ( event ) => {
-        setSelectedEvent( { ...selectedEvent, contact_id: event.value, contactItem: event } );
-    };
-
     const handleParticipants = ( users ) => {
         setSelectedEvent( {
             ...selectedEvent,
             participantsEmailItem: users,
-            participantsEmail: map(users , val=>{
-            return val.label;
-        })
+            participantsEmail: map( users, val => {
+                return val.label;
+            } )
         } );
     };
 
@@ -298,11 +258,6 @@ export default function AppointmentModalPanel( props ) {
 
     const handleEventNoteChange = ( event ) => {
         setSelectedEvent( { ...selectedEvent, note: event.target.value } );
-    };
-
-
-    const handleEndDatePickerChange = ( date ) => {
-        setSelectedEvent( { ...selectedEvent, end: date } );
     };
 
     const _loadDossierOptions = async ( inputValue, callback ) => {
@@ -413,6 +368,7 @@ export default function AppointmentModalPanel( props ) {
                         </FormGroup>
                     </Col>
                 </Row>
+                {/* dossier */}
                 <Row>
                     <Col lg="12">
                         <Label>{label.appointmentmodalpanel.label11}</Label>
@@ -427,6 +383,19 @@ export default function AppointmentModalPanel( props ) {
                                 onChange={_handleDossierChange}
                                 placeholder={label.appointmentmodalpanel.label16}
                             />
+                        </FormGroup>
+                    </Col>
+                </Row>
+                {/* REMARKS */}
+                <Row>
+                    <Col lg="12">
+                        <Label>{label.appointmentmodalpanel.label1}</Label>
+                        <FormGroup>
+                            <Input type="textarea" rows="5"
+                                   value={selectedEvent.note} onChange={handleEventNoteChange}
+                                   placeholder={`${label.appointmentmodalpanel.label1}...`}/>
+                            <FormText>{label.appointmentmodalpanel.label14}</FormText>
+
                         </FormGroup>
                     </Col>
                 </Row>
@@ -466,6 +435,53 @@ export default function AppointmentModalPanel( props ) {
     const panelOnduty = () => {
         return (
             <div>
+                <Row>
+                    <Col lg="12">
+                        <Label>{label.appointmentmodalpanel.label11}</Label>
+                        <FormGroup>
+                            <AsyncSelect
+                                value={selectedEvent.dossierItem}
+                                className="react-select info"
+                                classNamePrefix="react-select"
+                                cacheOptions
+                                loadOptions={_loadDossierOptions}
+                                defaultOptions
+                                onChange={_handleDossierChange}
+                                placeholder={label.appointmentmodalpanel.label16}
+                            />
+                        </FormGroup>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col lg="12">
+                        <Label>{label.appointmentmodalpanel.label1}</Label>
+                        <FormGroup>
+                            <Input type="textarea" rows="5"
+                                   value={selectedEvent.note} onChange={handleEventNoteChange}
+                                   placeholder={`${label.appointmentmodalpanel.label1}...`}/>
+                            <FormText>{label.appointmentmodalpanel.label14}</FormText>
+
+                        </FormGroup>
+                    </Col>
+                </Row>
+            </div>
+        );
+    };
+
+    const panelTask = () => {
+        return (
+            <div>
+                {/* title with note */}
+                <Row>
+                    <Col lg="12">
+                        <Label>{label.appointmentmodalpanel.label3}</Label>
+                        <FormGroup>
+                            <Input type="text"
+                                   value={selectedEvent.title} onChange={handleEventTitleChange}
+                                   placeholder={`${label.appointmentmodalpanel.label3}...`}/>
+                        </FormGroup>
+                    </Col>
+                </Row>
                 <Row>
                     <Col lg="12">
                         <Label>{label.appointmentmodalpanel.label11}</Label>
@@ -557,6 +573,7 @@ export default function AppointmentModalPanel( props ) {
                                 <FormGroup>
                                     <DatePicker
                                         selected={new Date( selectedEvent.end )}
+                                        minDate={selectedEvent.start}
                                         onChange={handleEndDatePickerChange}
                                         showTimeSelect
                                         locale="fr"
@@ -574,7 +591,7 @@ export default function AppointmentModalPanel( props ) {
                     {selectedEvent.eventType === 'PERM' ? panelOnduty() : ''}
                     {selectedEvent.eventType === 'RDV' ? panelRendezVous() : ''}
                     {selectedEvent.eventType === 'OTH' ? panelOther() : ''}
-                    {selectedEvent.eventType === 'TASK' ? panelOnduty() : ''}
+                    {selectedEvent.eventType === 'TASK' ? panelTask() : ''}
                     <Row>
                         <Col xs={{ size: 11, offset: 1 }}>
                             <hr/>
