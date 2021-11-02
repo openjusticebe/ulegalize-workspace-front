@@ -6,7 +6,7 @@ import {
     CardBody,
     CardFooter,
     CardHeader,
-    Col,
+    Col, FormGroup,
     Modal,
     ModalBody,
     ModalHeader,
@@ -17,28 +17,25 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { b64toBlob, downloadBlob } from '../../../utils/TableUtils';
 import { Document, Page } from 'react-pdf';
 import ReactLoading from 'react-loading';
-import { generateReportDossier } from '../../../services/DossierService';
 import { generateReportCompta } from '../../../services/ComptaServices';
+import DatePicker from 'react-datepicker';
 
 export default function ModalReportCompta( { openDialog, toggle, label, showMessage, filtered, vckeySelected } ) {
+    const tempStart = moment( moment().startOf( 'year' ).format( 'YYYY-MM-DD' ) ).toDate();
+    const tempEnd = moment( moment().endOf( 'year' ).format( 'YYYY-MM-DD' ) ).toDate();
     const { getAccessTokenSilently } = useAuth0();
     const [file, setFile] = useState( null );
     const [isLoading, setIsLoading] = useState( false );
+    const [start, setStart] = useState( tempStart );
+    const [end, setEnd] = useState( tempEnd );
 
     const [numPages, setNumPages] = useState( null );
     const [pageNumber, setPageNumber] = useState( 1 );
 
-    useEffect( () => {
-        (async () => {
-            _generate();
-
-        })();
-    }, [getAccessTokenSilently] );
-
     const _generate = async () => {
         const accessToken = await getAccessTokenSilently();
         setIsLoading( true );
-        let result = await generateReportCompta( accessToken, vckeySelected, filtered.number, filtered.year, filtered.client, filtered.initiales, filtered.balance, filtered.archived );
+        let result = await generateReportCompta( accessToken,  start, end , vckeySelected, filtered.number, filtered.year, filtered.client, filtered.poste );
         if ( !result.error ) {
             let pdf = b64toBlob( result.data, '' );
             setPageNumber( 1 );
@@ -77,6 +74,34 @@ export default function ModalReportCompta( { openDialog, toggle, label, showMess
                     <CardHeader>
                     </CardHeader>
                     <CardBody>
+                        <Row>
+                            <Col md="6">
+                                <FormGroup>
+                                    <DatePicker
+                                        selected={start}
+                                        onChange={date => setStart( date )}
+                                        locale="fr"
+                                        timeCaption="date"
+                                        dateFormat="yyyy-MM-dd"
+                                        placeholderText="yyyy-mm-dd"
+                                        className="form-control color-primary"
+                                    />
+                                </FormGroup>
+                            </Col>
+                            <Col md="6">
+                                <FormGroup>
+                                    <DatePicker
+                                        selected={end}
+                                        onChange={date => setEnd( date )}
+                                        locale="fr"
+                                        timeCaption="date"
+                                        dateFormat="yyyy-MM-dd"
+                                        placeholderText="yyyy-mm-dd"
+                                        className="form-control color-primary"
+                                    />
+                                </FormGroup>
+                            </Col>
+                        </Row>
                         {file ? (<>
                             <Document
                                 orientation="landscape"

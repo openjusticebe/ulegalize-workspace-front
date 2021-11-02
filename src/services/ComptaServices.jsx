@@ -160,17 +160,17 @@ export async function getAllInfo( accessToken, debours, fraisCollaborative, hono
 
     } );
 }
-export async function generateReportCompta( accessToken, vckeySelected, searchCriteriaNumber, searchCriteriaYear, searchCriteriaClient, searchCriteriaInitiale, searchCriteriaBalance, searchArchived ) {
+export async function generateReportCompta( accessToken, start, end, vckeySelected, searchCriteriaNumber, searchCriteriaYear, searchCriteriaClient, searchCriteriaPoste ) {
     try {
         return axios.get( `${process.env.REACT_APP_REPORT_SERVER}v1/compta`, {
                 params:{
-                    searchCriteriaClient : searchCriteriaClient,
+                    startDate : start,
+                    endDate: end,
                     vcKey: vckeySelected,
+                    searchCriteriaClient : searchCriteriaClient,
                     searchCriteriaYear: searchCriteriaYear,
                     searchCriteriaNumber: searchCriteriaNumber,
-                    searchCriteriaBalance: searchCriteriaBalance,
-                    searchCriteriaInitiale: searchCriteriaInitiale,
-                    searchArchived: searchArchived,
+                    searchCriteriaPoste:  searchCriteriaPoste
                 },
                 headers: {
                     Authorization: `Bearer ${accessToken}`

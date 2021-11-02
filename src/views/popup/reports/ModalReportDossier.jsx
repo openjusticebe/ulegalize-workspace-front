@@ -69,7 +69,7 @@ export default function ModalReportDossier( { openDialog, toggle, label, showMes
         <Modal isOpen={openDialog} toggle={toggle}
                size="lg" modalClassName="modal-black">
             <ModalHeader className="justify-content-center" toggle={toggle}>
-                {label.prestation.label8}
+                {label.affaire.titleReport}
             </ModalHeader>
             <ModalBody>
                 <Card>

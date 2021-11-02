@@ -725,6 +725,7 @@ const label =
 
             },
             'affaire': {
+                'titleReport': 'Rapport de dossiers',
                 'label1': 'Créer un dossier',
                 'label2': 'Modifier un dossier',
                 "dossier_ref": "Dossier n° ",
@@ -1813,6 +1814,7 @@ const label =
                 'label7': 'Type',
             },
             'affaire': {
+                'titleReport': 'Folder report',
                 'label1': 'Create a dossier',
                 'label2': 'Update a dossier',
                 "dossier_ref": "File no. ",
@@ -2898,6 +2900,7 @@ const label =
                 'label7': 'Type',
             },
             'affaire': {
+                'titleReport': 'Maprapport',
                 'label1': 'een bedrijf creëren',
                 'label2': 'een bedrijf aanpassen',
                 "dossier_ref": "File no. ",
