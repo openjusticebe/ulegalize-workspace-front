@@ -8,6 +8,7 @@ export default class EmailDTO {
     sender_real_name;
     recipient_email;
     recipient_language;
+    pathFolder;
     creDate;
     statusCode;
     constructor( data ) {
@@ -21,6 +22,7 @@ export default class EmailDTO {
             this.sender_real_name = data.sender_real_name;
             this.recipient_email = data.recipient_email;
             this.recipient_language = data.recipient_language;
+            this.pathFolder = data.pathFolder;
             this.creDate = data.creDate;
             this.statusCode = data.statusCode;
         }

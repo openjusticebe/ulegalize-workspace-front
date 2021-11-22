@@ -22,7 +22,11 @@ export default class PrestationSummary {
     vatItem;
     forfait = false;
     forfaitHt;
+    // invoice
     invoiceChecked;
+    alreadyInvoiced;
+    factExtId;
+    factExtRef;
 
     constructor( data ) {
         if ( data ) {
@@ -48,6 +52,9 @@ export default class PrestationSummary {
             this.forfait = data.forfait;
             this.forfaitHt = data.forfaitHt;
             this.invoiceChecked = data.invoiceChecked;
+            this.alreadyInvoiced = data.alreadyInvoiced;
+            this.factExtId = data.factExtId;
+            this.factExtRef = data.factExtRef;
         }
     }
 }

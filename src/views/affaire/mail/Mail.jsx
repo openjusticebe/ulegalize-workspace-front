@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Card, CardBody, Col, Row, } from 'reactstrap';
+import { Card, CardBody, Col, Row, } from 'reactstrap';
 import { useAuth0 } from '@auth0/auth0-react';
 import { checkPaymentActivated } from '../../../services/PaymentServices';
 import ModalNoActivePayment from '../popup/ModalNoActivePayment';
@@ -7,10 +7,10 @@ import MailList from './MailList';
 import ModalMail from './ModalMail';
 import ReactBSAlert from 'react-bootstrap-sweetalert';
 import { deleteDocumentById } from '../../../services/PostBirdServices';
-import ModalEMailSign from './recommande/ModalEMailSign';
-import MailRegisteredList from './recommande/MailRegisteredList';
+import EmailsList from '../../list/EmailsList';
 
 const isNil = require( 'lodash/isNil' );
+const MAX_HEIGHT_CARD = 700;
 
 export default function Mail( {
                                   dossierId,
@@ -21,7 +21,6 @@ export default function Mail( {
                                   vckeySelected
                               } ) {
     const [modalPostMailDisplay, setModalPostMailDisplay] = useState( false );
-    const [modalEmailDisplay, setModalEmailDisplay] = useState( false );
     const [modalNotPaidSignDocument, setModalNotPaidSignDocument] = useState( false );
     const [updateList, setUpdateList] = useState( false );
     const [updateEmailList, setUpdateEmailList] = useState( false );
@@ -59,14 +58,6 @@ export default function Mail( {
         }
     };
 
-    const _openEmail = () => {
-        if ( payment.current === true ) {
-            setModalEmailDisplay( !modalEmailDisplay );
-        } else {
-            setModalNotPaidSignDocument( !modalNotPaidSignDocument );
-        }
-    };
-
     const _toggleUnPaid = () => {
         setModalNotPaidSignDocument( !modalNotPaidSignDocument );
     };
@@ -91,61 +82,53 @@ export default function Mail( {
 
     return (
         <>
-            <Card>
-                <CardBody>
-                    <>
-                        <Row>
-                            <Col lg={6} md={6} sm={12} xs={12}>
-                                <Button size={`lg`}
-                                        className="very-big-btn"
-                                        onClick={() => _openPostMail()}
-                                        block>{label.mail.label1}</Button>
-                            </Col>
-                            <Col lg={6} md={6} sm={12} xs={12}>
-                                <Button size={`lg`}
-                                        className="very-big-btn"
-                                        onClick={() => _openEmail()}
-                                        block>{label.mail.label2}</Button>
-                            </Col>
-                        </Row>
-                    </>
-                </CardBody>
-            </Card>
-            {deleteAlert}
-
             <Row>
                 <Col md={6} sm={12}>
-                    <MailList
-                        dossierId={dossierId}
-                        updateList={updateList}
-                        openPostMail={_openPostMail}
-                        deletePostMail={( documentId ) => {
-                            setDeleteAlert( <ReactBSAlert
-                                warning
-                                style={{ display: 'block', marginTop: '30px' }}
-                                title={label.common.label10}
-                                onConfirm={() => {
-                                    _deletePostMail( documentId );
+                    <Card style={{ minHeight: MAX_HEIGHT_CARD }}>
+                        <CardBody>
+                            <MailList
+                                vckeySelected={vckeySelected}
+                                dossierId={dossierId}
+                                updateList={_updateList}
+                                openPostMail={_openPostMail}
+                                deletePostMail={( documentId ) => {
+                                    setDeleteAlert( <ReactBSAlert
+                                        warning
+                                        style={{ display: 'block', marginTop: '30px' }}
+                                        title={label.common.label10}
+                                        onConfirm={() => {
+                                            _deletePostMail( documentId );
+                                        }}
+                                        onCancel={() => { setDeleteAlert( null ); }}
+                                        confirmBtnBsStyle="success"
+                                        cancelBtnBsStyle="danger"
+                                        confirmBtnText={label.common.label11}
+                                        cancelBtnText={label.common.cancel}
+                                        showCancel
+                                        btnSize=""
+                                    >
+                                        {label.common.label12}
+                                    </ReactBSAlert> );
                                 }}
-                                onCancel={() => { setDeleteAlert( null ); }}
-                                confirmBtnBsStyle="success"
-                                cancelBtnBsStyle="danger"
-                                confirmBtnText={label.common.label11}
-                                cancelBtnText={label.common.cancel}
-                                showCancel
-                                btnSize=""
-                            >
-                                {label.common.label12}
-                            </ReactBSAlert> );
-                        }}
-                        label={label}/>
+                                label={label}/>
+                        </CardBody>
+                    </Card>
+
                 </Col>
                 <Col md={6} sm={12}>
-                    <MailRegisteredList
+                    <Card style={{ minHeight: MAX_HEIGHT_CARD }}>
+                        <CardBody>
+                    <EmailsList
+                        email={email}
+                        userId={userId}
+                        vckeySelected={vckeySelected}
                         showMessage={showMessage}
                         dossierId={dossierId}
-                        updateList={updateEmailList}
+                        showDossier={false}
+                        updateList={_updateEmailList}
                         label={label}/>
+                        </CardBody>
+                    </Card>
                 </Col>
             </Row>
 
@@ -160,20 +143,6 @@ export default function Mail( {
                     showMessage={showMessage}
                     updateList={_updateList}
                 />
-            ) : null}
-            {modalEmailDisplay ? (
-                <ModalEMailSign
-                    attachedFile={[]}
-                    dossierId={dossierId}
-                    label={label}
-                    userId={userId}
-                    email={email}
-                    vckeySelected={vckeySelected}
-                    showMessage={showMessage}
-                    updateList={_updateEmailList}
-                    showMessagePopup={showMessage}
-                    toggleModalDetails={_openEmail}
-                    modalDisplay={modalEmailDisplay}/>
             ) : null}
             {modalNotPaidSignDocument ? (
                 <ModalNoActivePayment

@@ -22,7 +22,7 @@ import CreateIcon from '@material-ui/icons/Create';
 import GetApp from '@material-ui/icons/GetApp';
 import HelpIcon from '@material-ui/icons/Help';
 import { useAuth0 } from '@auth0/auth0-react';
-import { getCasByDossierIdAndPartie, updateCase } from '../../services/transparency/CaseService';
+import { getCasByDossierIdAndPartie, getCaseById, updateCase } from '../../services/transparency/CaseService';
 import ModalUploadBasicDocument from './popup/ModalUploadBasicDocument';
 import { getDateDetails } from '../../utils/DateUtils';
 import CasDTO from '../../model/affaire/CasDTO';
@@ -33,16 +33,17 @@ const map = require( 'lodash/map' );
 const isEmpty = require( 'lodash/isEmpty' );
 const isNil = require( 'lodash/isNil' );
 
-
 export default function CasJuridiqueForm( {
                                               showSaveButton,
                                               partie,
+                                              caseId,
                                               updatePartie,
                                               dossierType,
                                               affaireId, attachEsignDocument, updateCaseRef,
                                               downloadFile, lg, md, label,
                                               vckeySelected,
-                                              attachFileCase, cas, isLoadingSave,
+                                              attachFileCase,
+                                              isLoadingSave,
                                               showMessagePopup
                                           } ) {
 
@@ -69,7 +70,11 @@ export default function CasJuridiqueForm( {
                     setCaseDossier( null );
                 }
             } else {
-                setCaseDossier( cas );
+                const result = await getCaseById( accessToken, caseId );
+
+                if ( !result.error ) {
+                    setCaseDossier( result.data );
+                }
             }
 
         })();
@@ -276,13 +281,13 @@ export default function CasJuridiqueForm( {
                         </Col>
                         {file.status === 'WAITING' ? (<FormText>
                             {label.casJuridiqueForm.waiting}
-                        </FormText>): null}
+                        </FormText>) : null}
                     </Row>
                 </li>
             );
         } ) : null;
 
-    const _toggleCreateConseil = async (e, partie) => {
+    const _toggleCreateConseil = async ( e, partie ) => {
         if ( isNil( partie ) ) {
             setOpenModalConseil( null );
         } else {
@@ -319,7 +324,7 @@ export default function CasJuridiqueForm( {
                                         color="primary"
                                         type="button"
                                         size="sm"
-                                        onClick={(e) => _toggleCreateConseil(e, partie )}
+                                        onClick={( e ) => _toggleCreateConseil( e, partie )}
                                     >
                                         <i className="tim-icons icon-pencil"/>
                                     </Button>
@@ -408,7 +413,7 @@ export default function CasJuridiqueForm( {
                                 </Button>
                             </Col>
                         </Row>
-                    ): null}
+                    ) : null}
 
                 </Form>
 

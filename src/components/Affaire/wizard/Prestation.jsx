@@ -29,6 +29,8 @@ import {
 } from '../../../services/PresationService';
 import moment from 'moment';
 import 'moment/locale/fr';
+import AsyncSelect from 'react-select/async/dist/react-select.esm';
+import { getAffairesByVcUserIdAndSearchCriteria } from '../../../services/DossierService';
 
 const map = require( 'lodash/map' );
 const isNil = require( 'lodash/isNil' );
@@ -87,6 +89,7 @@ export const Prestation = ( props ) => {
                 return new ItemDTO( data );
             } );
             setUserResponsableList( profiles );
+            data.dossierId = affaireId;
 
             setPrestation( data );
 
@@ -119,7 +122,6 @@ export const Prestation = ( props ) => {
                 return;
             }
         }
-        prestation.dossierId = affaireId;
 
         let result;
         if ( isCreated ) {
@@ -139,9 +141,57 @@ export const Prestation = ( props ) => {
         }
     };
 
+
+    const _handleDossierChange = ( newValue ) => {
+        setPrestation( {
+            ...prestation,
+            dossierId: newValue.value,
+            dossierItem: new ItemDTO( newValue )
+        } );
+    };
+
+    const _loadDossierOptions = async ( inputValue, callback ) => {
+        const accessToken = await getAccessTokenSilently();
+        let result = await getAffairesByVcUserIdAndSearchCriteria( accessToken, inputValue );
+
+        if ( !isNil( result ) ) {
+            if ( !isNil( result.data ) ) {
+
+                callback(
+                    map( result.data, dossier => {
+                        return new ItemDTO( dossier );
+                    } ) );
+
+            } else if ( result.error ) {
+                // no data
+            }
+        }
+    };
+
     const date = prestation.dateAction ? moment( prestation.dateAction ).toDate() : null;
     return (
         <>
+            {isNil(affaireId) ? (
+                <Row>
+                    <Col lg="12">
+                        <Label>{label.wizardFrais.label25}</Label>
+                        <FormGroup>
+                            <AsyncSelect
+                                value={prestation.dossierItem}
+
+                                className="react-select info"
+                                classNamePrefix="react-select"
+                                cacheOptions
+                                loadOptions={_loadDossierOptions}
+                                defaultOptions
+                                onChange={_handleDossierChange}
+                                placeholder={label.appointmentmodalpanel.label16}
+                            />
+                        </FormGroup>
+                    </Col>
+                </Row>
+            ): null}
+
             <Row>
                 <Col md="10">
                     <Label>{label.wizardFrais.label7}</Label>

@@ -81,6 +81,7 @@ export default function MailRouteList( {
 
                 <MailList
                     dossierId={null}
+                    vckeySelected={vckeySelected}
                     updateList={updateList}
                     openPostMail={_openPostMail}
                     deletePostMail={( documentId ) => {

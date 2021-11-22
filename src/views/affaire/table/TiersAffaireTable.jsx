@@ -236,14 +236,16 @@ export default function TiersAffaireTable( props ) {
             <Pagination>
                 <PaginationItem disabled={!canPreviousPage}>
                     <PaginationLink  onClick={() => previousPage()}>
-                        Previous
+                        {label.common.preview}
+
                     </PaginationLink>
                 </PaginationItem>
                 {pagination}
 
                 <PaginationItem disabled={!canNextPage}>
                     <PaginationLink onClick={() => nextPage()}  >
-                        Next
+                        {label.common.next}
+
                     </PaginationLink>
                 </PaginationItem>
             </Pagination>

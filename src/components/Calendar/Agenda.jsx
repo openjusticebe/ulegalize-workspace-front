@@ -54,6 +54,7 @@ export default function Agenda( {
                                     userId,
                                     language,
                                     onlyDossier,
+                                    dossierItem,
                                     dossierId,
                                     enumRights,
                                 } ) {
@@ -107,7 +108,7 @@ export default function Agenda( {
             profiles.push( new ItemDTO( { value: 0, label: vckeySelected } ) );
             setUserResponsableList( profiles );
 
-            let resultType = await getCalendarEventType( accessToken, onlyDossier );
+            let resultType = await getCalendarEventType( accessToken );
             if ( resultType.data ) {
                 const calendarTypeListTemp = map( resultType.data, type => {
                     // select all calendar type
@@ -122,7 +123,7 @@ export default function Agenda( {
                 filter.dossierId = dossierId;
             }
 
-            const resultApproved = await countUnapprovedAgenda( accessToken, filter , vckeySelected);
+            const resultApproved = await countUnapprovedAgenda( accessToken, filter, vckeySelected );
             if ( !resultApproved.error ) {
                 setEventsUnapprovedCount( resultApproved.data.totalElements );
                 setEventsUnapproved( resultApproved.data.content );
@@ -228,6 +229,11 @@ export default function Agenda( {
         event.eventType = calendarTypeList[ 0 ].value;
 
         event.userItem = userResponsableList.find( user => user.value === event.user_id );
+        if ( !isNil( dossierItem ) ) {
+            event.dossier_id = dossierItem.value;
+            event.dossierItem = dossierItem;
+        }
+
         selectedEventState.current = event;
         isCreatedEvent.current = true;
         setModalAppointment( true );
@@ -309,7 +315,7 @@ export default function Agenda( {
 
     const showMessageFromPopup = ( message, type, savedEvent ) => {
         notificationAlert.current.notificationAlert( getOptionNotification( message, type ) );
-        if(savedEvent) {
+        if ( savedEvent ) {
             savedEventRef.current = !savedEventRef.current;
         }
     };
@@ -319,19 +325,22 @@ export default function Agenda( {
             event, event.color
         );
     }
+
     function EventDayAgenda( { event } ) {
         return EventAgenda(
-           event, 'white'
+            event, 'white'
         );
     }
+
     function EventMonthAgenda( { event } ) {
         return (
             <div onClick={() => selectedEvent( event )}>
-            <em className={'white'}>{event.eventTypeItem.label}</em>
+                <em className={'white'}>{event.eventTypeItem.label}</em>
                 <p>{moment( event.start ).locale( language ).format( 'LT' )} {event.title && event.title !== '' ? event.title : event.note}</p>
-        </div>
-        )
+            </div>
+        );
     }
+
     function EventAgenda( event, color ) {
         return (
             <div onClick={() => selectedEvent( event )}>
@@ -368,6 +377,7 @@ export default function Agenda( {
                                        auth0={auth0}
                                        label={label}
                                        userId={userId}
+                                       dossierId={dossierId}
                                        language={language}
                                        vckeySelected={vckeySelected}
                                        approved={approvedRef.current}
@@ -440,44 +450,44 @@ export default function Agenda( {
                 </CardHeader>
                 <CardBody>
                     <Row>
-                            <Col lg={onlyDossier ? 12 : 9} sm={12}>
-                                <Calendar
-                                    messages={{ noEventsInRange: label.agenda.label2 }}
-                                    selectable
-                                    localizer={localizer.current}
-                                    events={events}
-                                    defaultView="agenda"
-                                    culture={language}
-                                    scrollToTime={new Date( 2010, 1, 1, 7 )}
-                                    onRangeChange={event => _onRangeChange( event )}
-                                    onSelectEvent={event => selectedEvent( event )}
-                                    onSelectSlot={slotInfo => addNewEventAlert( slotInfo )}
-                                    eventPropGetter={eventColors}
-                                    style={{ height: 500 }}
-                                    components={{
-                                        agenda: {
-                                            time: TimeAgenda,
-                                            event: EventOtherAgenda,
-                                        },
-                                        day: {
-                                            time: TimeAgenda,
-                                            event: EventDayAgenda,
-                                        },
-                                        week: {
-                                            event: EventDayAgenda,
-                                        },
-                                        month: {
-                                            event: EventMonthAgenda,
-                                        },
-                                    }}
-                                />
-                            </Col>
+                        <Col lg={9} sm={12}>
+                            <Calendar
+                                messages={{ noEventsInRange: label.agenda.label2 }}
+                                selectable
+                                localizer={localizer.current}
+                                events={events}
+                                defaultView="agenda"
+                                culture={language}
+                                scrollToTime={new Date( 2010, 1, 1, 7 )}
+                                onRangeChange={event => _onRangeChange( event )}
+                                onSelectEvent={event => selectedEvent( event )}
+                                onSelectSlot={slotInfo => addNewEventAlert( slotInfo )}
+                                eventPropGetter={eventColors}
+                                style={{ height: 500 }}
+                                components={{
+                                    agenda: {
+                                        time: TimeAgenda,
+                                        event: EventOtherAgenda,
+                                    },
+                                    day: {
+                                        time: TimeAgenda,
+                                        event: EventDayAgenda,
+                                    },
+                                    week: {
+                                        event: EventDayAgenda,
+                                    },
+                                    month: {
+                                        event: EventMonthAgenda,
+                                    },
+                                }}
+                            />
+                        </Col>
                         {/* agenda content */}
                         {loading ? (
                             <CircularProgress color="primary" size={35}/>
                         ) : null}
                         {/* agenda filter */}
-                        <Col lg={onlyDossier ? 5 : 3} sm={12}>
+                        <Col lg={3} sm={12}>
                             <Row>
                                 <Col md="12">
                                     <FormGroup>
@@ -494,7 +504,7 @@ export default function Agenda( {
                                     </FormGroup>
                                 </Col>
                             </Row>
-                            {!onlyDossier ? map( calendarTypeList, type => {
+                            {map( calendarTypeList, type => {
                                 return (
                                     <Row>
                                         <Col md="12">
@@ -513,7 +523,7 @@ export default function Agenda( {
                                         </Col>
                                     </Row>
                                 );
-                            } ) : null}
+                            } )}
                         </Col>
 
                     </Row>

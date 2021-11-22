@@ -37,11 +37,9 @@ import * as classnames from 'classnames';
 import { getDossierType, getMatieres, getUserResponsableList } from '../../../services/SearchService';
 import NotificationAlert from 'react-notification-alert';
 import { getOptionNotification } from '../../../utils/AlertUtils';
-import CaseCreationDTO from '../../../model/affaire/CaseCreationDTO';
 import ContactSummary from '../../../model/client/ContactSummary';
 import { RegisterClientModal } from '../../../components/client/RegisterClientModal';
 import ReactLoading from 'react-loading';
-import { createDossierTransparency } from '../../../services/transparency/CaseService';
 import ModalCheckSessionDrive from '../../popup/drive/ModalCheckSessionDrive';
 
 let moment = require( 'moment-timezone' );
@@ -50,6 +48,7 @@ moment.tz.setDefault( 'Europe/Brussels' );
 const isNil = require( 'lodash/isNil' );
 const map = require( 'lodash/map' );
 const isEmpty = require( 'lodash/isEmpty' );
+const forEach = require( 'lodash/forEach' );
 
 export const RegisterDossier = ( props ) => {
     const {
@@ -150,7 +149,7 @@ export const RegisterDossier = ( props ) => {
 
     const _loadClientOptions = async ( inputValue, callback ) => {
         const accessToken = await getAccessTokenSilently();
-        let result = await getClient( accessToken, inputValue, vckeySelected );
+        let result = await getClient( accessToken, inputValue );
 
         callback( map( result.data, data => {
             return new ItemDTO( { value: data.id, label: data.fullName, isDefault: data.email } );
@@ -213,7 +212,7 @@ export const RegisterDossier = ( props ) => {
         let result = await createDossier( accessToken, dossier );
 
         if ( !result.error ) {
-            let clientList = [];
+            // change this to have the switch with topic
             // create transparency only if client has an email
             let isTransparency = false;
             if ( dossier.type !== 'MD' ) {
@@ -223,7 +222,6 @@ export const RegisterDossier = ( props ) => {
                     const client = new ContactSummary( clientResult.data, label );
 
                     isTransparency = !isNil( client.email ) && client.email !== '';
-                    clientList.push( client );
                 } else {
                     props.history.push( { pathname: `/admin/affaire/${result.data.id}`, state: { isCreate: true } } );
                 }
@@ -232,35 +230,25 @@ export const RegisterDossier = ( props ) => {
                 const clientResult = await getClientListByIds( accessToken, clientIds );
 
                 if ( !clientResult.error ) {
-                    clientList = map( clientResult.data, data => {
+                    forEach( clientResult.data, data => {
                         // if one of them is valid
-                        isTransparency = !isNil( data.email ) && data.email !== '';
-                        return new ContactSummary( data, label );
+                        if ( !isTransparency ) {
+                            isTransparency = !isNil( data.email ) && data.email !== '';
+                        }
                     } );
 
                 } else {
                     props.history.push( { pathname: `/admin/affaire/${result.data.id}`, state: { isCreate: true } } );
                 }
             }
-            // create transparency only if client has an email
+
             if ( isTransparency ) {
                 const newDossier = new DossierDTO( result.data );
-                const caseCreation = new CaseCreationDTO( newDossier, clientList );
-                let resultTransparency = await createDossierTransparency( accessToken, caseCreation );
-
-                // no error
-                if ( !resultTransparency.error ) {
-                    switchDossierDigital( accessToken, newDossier.id );
-                    props.history.push( {
-                        pathname: `/admin/affaire/${result.data.id}`,
-                        state: { isCreate: true }
-                    } );
-                } else {
-                    props.history.push( {
-                        pathname: `/admin/affaire/${result.data.id}`,
-                        state: { isCreate: true }
-                    } );
-                }
+                switchDossierDigital( accessToken, newDossier.id );
+                props.history.push( {
+                    pathname: `/admin/affaire/${result.data.id}`,
+                    state: { isCreate: true }
+                } );
             } else {
                 props.history.push( { pathname: `/admin/affaire/${result.data.id}`, state: { isCreate: true } } );
             }
@@ -340,6 +328,15 @@ export const RegisterDossier = ( props ) => {
                     } );
             }
         } else if ( isDossierTypeMediation ) {
+            if(!isNil(tempClientMediation)){
+                let clientResult = await getClientById( accessToken, tempClientMediation.value );
+                setTempClientMediation(new ItemDTO(
+                    {
+                        value: clientResult.data.id,
+                        label: clientResult.data.fullName,
+                        isDefault: clientResult.data.email
+                    } ));
+            }
             for ( let i = 0; i < dossier.clientList.length; i++ ) {
                 let client = dossier.clientList[ i ];
                 if ( client.value === clientId ) {
@@ -468,7 +465,7 @@ export const RegisterDossier = ( props ) => {
             <Col md="4">
                 <Label>{label.affaire.txtcc.title}</Label>
                 <FormGroup row>
-                    <Col md="10">
+                    <Col md="9">
                         <AsyncSelect
                             value={dossier.client}
                             className="react-select info"
@@ -485,7 +482,7 @@ export const RegisterDossier = ( props ) => {
 
                         />
                     </Col>
-                    <Col md="2">
+                    <Col md="3">
                         {dossier.idClient ? (
                             <Button
                                 className="btn-icon float-right"
@@ -512,7 +509,7 @@ export const RegisterDossier = ( props ) => {
                             </Button>
                         ) : (
                             <Button
-                                className="btn-icon float-right"
+                                className="float-right"
                                 color="primary"
                                 type="button"
                                 size="sm"
@@ -532,7 +529,7 @@ export const RegisterDossier = ( props ) => {
                                     setOpenclientModal( !openclientModal );
                                 }}
                             >
-                                <i className="tim-icons icon-simple-add"/>
+                                <i className="tim-icons  icon-simple-add padding-icon-text"/> {label.common.create}
                             </Button>
                         )}
 
@@ -542,7 +539,7 @@ export const RegisterDossier = ( props ) => {
             <Col md="4">
                 <Label>{label.affaire.txtca.title}</Label>
                 <FormGroup row>
-                    <Col md="10">
+                    <Col md="9">
                         <AsyncSelect
                             value={dossier.adverseClient}
                             className="react-select info"
@@ -554,7 +551,7 @@ export const RegisterDossier = ( props ) => {
                             onChange={_handleClientAdvChange}
                         />
                     </Col>
-                    <Col md="2">
+                    <Col md="3">
                         {dossier.adverseClient ? (
                             <Button
                                 className="btn-icon float-right"
@@ -581,7 +578,7 @@ export const RegisterDossier = ( props ) => {
                             </Button>
                         ) : (
                             <Button
-                                className="btn-icon float-right"
+                                className="float-right"
                                 color="primary"
                                 type="button"
                                 size="sm"
@@ -601,7 +598,7 @@ export const RegisterDossier = ( props ) => {
                                     setOpenclientAdvModal( !openclientAdvModal );
                                 }}
                             >
-                                <i className="tim-icons icon-simple-add"/>
+                                <i className="tim-icons  icon-simple-add padding-icon-text"/> {label.common.create}
                             </Button>
                         )}
                     </Col>
@@ -614,10 +611,10 @@ export const RegisterDossier = ( props ) => {
     if ( isDossierTypeMediation ) {
         parties = (
             <>
-                <Col md="4">
+                <Col md="5">
                     <Label>{label.affaire.party.add}</Label>
                     <FormGroup row>
-                        <Col md="10">
+                        <Col md="8">
                             <AsyncSelect
                                 value={tempClientMediation}
                                 className="react-select info"
@@ -637,25 +634,85 @@ export const RegisterDossier = ( props ) => {
 
                             />
                         </Col>
-                        <Col md="2">
-                            <Button
-                                className="btn-icon float-right"
-                                color="primary"
-                                type="button"
-                                size="sm"
-                                disabled={isNil( tempClientMediation )}
-                                onClick={() => {
-                                    setDossier( {
-                                        ...dossier,
-                                        clientList: [...dossier.clientList, tempClientMediation]
-                                    } );
-                                    setTempClientMediation( null );
-                                }}
-                            >
-                                <i className="tim-icons icon-simple-add"/>
-                            </Button>
-                        </Col>
+                        {!isNil( tempClientMediation ) ? (
+                            <Col md="1">
+                                <Button
+                                    className="btn-icon float-right"
+                                    color="primary"
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => {
+                                        // write client
+                                        const right = [0, 22];
+
+                                        let rightsFound;
+                                        if ( enumRights ) {
+                                            rightsFound = enumRights.filter( element => right.includes( element ) );
+                                        }
+                                        if ( !isNil( rightsFound ) && isEmpty( rightsFound ) ) {
+                                            notificationAlert.current.notificationAlert( getOptionNotification( label.unauthorized.label9, 'danger' ) );
+                                            return;
+                                        }
+
+                                        setClientModal( tempClientMediation.value );
+                                        setOpenclientModal( !openclientModal );
+                                    }}
+                                >
+                                    <i className="tim-icons icon-pencil"/>
+                                </Button>
+                            </Col>
+                        ) : (
+                            <Col md="3">
+                                <Button
+                                    className="float-right"
+                                    color="primary"
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => {
+                                        // write client
+                                        const right = [0, 22];
+
+                                        let rightsFound;
+                                        if ( enumRights ) {
+                                            rightsFound = enumRights.filter( element => right.includes( element ) );
+                                        }
+                                        if ( !isNil( rightsFound ) && isEmpty( rightsFound ) ) {
+                                            notificationAlert.current.notificationAlert( getOptionNotification( label.unauthorized.label9, 'danger' ) );
+                                            return;
+                                        }
+                                        setClientModal( null );
+                                        setOpenclientModal( !openclientModal );
+                                    }}
+                                >
+                                    <i className="tim-icons  icon-simple-add padding-icon-text"/> {label.common.create}
+                                </Button>
+                            </Col>
+                        )}
+
+                        {!isNil( tempClientMediation ) ? (
+                            <Col md="3">
+                                <Button
+                                    className="float-right"
+                                    color="primary"
+                                    type="button"
+                                    size="sm"
+                                    disabled={isNil( tempClientMediation )}
+                                    onClick={() => {
+                                        setDossier( {
+                                            ...dossier,
+                                            clientList: [...dossier.clientList, tempClientMediation]
+                                        } );
+                                        setTempClientMediation( null );
+                                    }}
+                                >
+                                    <i className="tim-icons  icon-simple-add padding-icon-text"/> {label.common.add}
+                                </Button>
+                            </Col>
+                        ) : null}
+
                     </FormGroup>
+                </Col>
+                <Col md="3">
                 </Col>
             </>
         );
@@ -962,7 +1019,7 @@ export const RegisterDossier = ( props ) => {
                                             <Col md="5">
                                                 <Label>{label.affaire.lbladverseAdvice}</Label>
                                                 <FormGroup row>
-                                                    <Col md="10">
+                                                    <Col md="9">
                                                         <AsyncSelect
                                                             value={dossier.conseilAdverseClient}
                                                             placeholder={label.common.label14}
@@ -974,7 +1031,7 @@ export const RegisterDossier = ( props ) => {
                                                             onChange={_handleClientConseilAdvChange}
                                                         />
                                                     </Col>
-                                                    <Col md="2">
+                                                    <Col md="3">
                                                         {dossier.conseilIdAdverseClient ? (
                                                             <Button
                                                                 className="btn-icon float-right"
@@ -1001,7 +1058,7 @@ export const RegisterDossier = ( props ) => {
                                                             </Button>
                                                         ) : (
                                                             <Button
-                                                                className="btn-icon float-right"
+                                                                className="float-right"
                                                                 color="primary"
                                                                 type="button"
                                                                 size="sm"
@@ -1021,7 +1078,7 @@ export const RegisterDossier = ( props ) => {
                                                                     setOpenclientConseilAdvModal( !openclientConseilAdvModal );
                                                                 }}
                                                             >
-                                                                <i className="tim-icons icon-simple-add"/>
+                                                                <i className="tim-icons  icon-simple-add padding-icon-text"/> {label.common.create}
                                                             </Button>
                                                         )}
                                                     </Col>

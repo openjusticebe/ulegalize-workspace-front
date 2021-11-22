@@ -25,9 +25,13 @@ import { getOptionNotification } from '../../../utils/AlertUtils';
 import NotificationAlert from 'react-notification-alert';
 import { getStatusPostBird } from './StatusPostBird';
 import { getDateDetails } from '../../../utils/DateUtils';
+import { checkPaymentActivated } from '../../../services/PaymentServices';
+import ModalMail from './ModalMail';
+import ModalNoActivePayment from '../popup/ModalNoActivePayment';
 
 const ceil = require( 'lodash/ceil' );
 const range = require( 'lodash/range' );
+const isNil = require( 'lodash/isNil' );
 const PAGE_SIZE = 5;
 
 export default function MailList( {
@@ -35,7 +39,8 @@ export default function MailList( {
                                       label,
                                       updateList,
                                       openPostMail,
-                                      deletePostMail
+                                      deletePostMail,
+                                      vckeySelected
                                   } ) {
 
     const [data, setData] = useState( [] );
@@ -46,6 +51,10 @@ export default function MailList( {
     const mailSelected = useRef( null );
     const [showMail, setShowMail] = useState( false );
     const notificationAlert = useRef( null );
+    const documentIdRef = useRef( true );
+    const payment = useRef( false );
+    const [modalPostMailDisplay, setModalPostMailDisplay] = useState( false );
+    const [modalNotPaidSignDocument, setModalNotPaidSignDocument] = useState( false );
 
     const showMailFun = () => {
         setShowMail( !showMail );
@@ -191,6 +200,24 @@ export default function MailList( {
         }
     };
 
+    const _openPostMail = async ( documentId ) => {
+        documentIdRef.current = documentId;
+        const accessToken = await getAccessTokenSilently();
+
+        let resultPayment = await checkPaymentActivated( accessToken );
+        if ( !isNil( resultPayment ) ) {
+            payment.current = resultPayment.data;
+            if ( payment.current === true ) {
+                setModalPostMailDisplay( !modalPostMailDisplay );
+            } else {
+                setModalNotPaidSignDocument( !modalNotPaidSignDocument );
+            }
+        }
+    };
+
+    const _toggleUnPaid = () => {
+        setModalNotPaidSignDocument( !modalNotPaidSignDocument );
+    };
     return (
         <>
             <div className="content">
@@ -201,10 +228,27 @@ export default function MailList( {
                     <Col lg="12" sm={12}>
                         <Card>
                             <CardHeader>
-                                <CardTitle>
-                                    <h4>{label.mail.label9}
-                                    </h4>
-                                </CardTitle>
+                                <Row>
+                                    <Col md={10}>
+                                        <CardTitle>
+                                            <h4>{label.mail.label9}
+                                            </h4>
+                                        </CardTitle>
+                                    </Col>
+                                    <Col md={2}>
+                                        <Button
+                                            onClick={() => _openPostMail()}
+                                            className="float-right"
+                                            color="primary"
+                                            data-placement="bottom"
+                                            type="button"
+                                            size="sm"
+                                        >
+                                            <i className="tim-icons icon-send padding-icon-text"/> {' '}
+                                            {label.common.send}
+                                        </Button>
+                                    </Col>
+                                </Row>
                             </CardHeader>
                             <CardBody>
                                 {loadRef.current === false ? (
@@ -287,6 +331,27 @@ export default function MailList( {
                         </Button>
                     </ModalFooter>
                 </Modal>) : null}
+
+            {/* POPUP CREATE MAIL BPOST */}
+            {modalPostMailDisplay ? (
+                <ModalMail
+                    vckeySelected={vckeySelected}
+                    dossierId={dossierId}
+                    label={label}
+                    documentId={documentIdRef.current}
+                    modalPostMailDisplay={modalPostMailDisplay}
+                    openPostMail={_openPostMail}
+                    showMessage={showMessage}
+                    updateList={updateList}
+                />
+            ) : null}
+            {/* POPUP PAYMENT NOT REGISTERED */}
+            {modalNotPaidSignDocument ? (
+                <ModalNoActivePayment
+                    label={label}
+                    toggleModalDetails={_toggleUnPaid}
+                    modalDisplay={modalNotPaidSignDocument}/>
+            ) : null}
         </>
     );
 }

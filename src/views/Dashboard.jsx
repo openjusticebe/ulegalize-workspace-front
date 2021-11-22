@@ -20,12 +20,11 @@ import {
     TabContent,
     TabPane,
     UncontrolledPopover,
-    UncontrolledTooltip,
 } from 'reactstrap';
 import ReactLoading from 'react-loading';
 // nodejs library that concatenates classes
 import { Link } from 'react-router-dom';
-import { getDateDetails } from '../utils/DateUtils';
+import { getDate, getDateDetails } from '../utils/DateUtils';
 import NotificationAlert from 'react-notification-alert';
 import Agenda from '../components/Calendar/Agenda';
 import { getAllRecent } from '../services/DashboardService';
@@ -48,16 +47,22 @@ import ModalEMailSign from './affaire/mail/recommande/ModalEMailSign';
 import { getEMailRegisteredList } from '../services/EmailRegisteredService';
 import SignatureDTO from '../model/usign/SignatureDTO';
 import ModalUploadSignDocument from './affaire/popup/ModalUploadSignDocument';
-import { downloadFileAttachedUsign } from '../services/transparency/CaseService';
+import { attachFileCase, downloadFileAttached, downloadFileAttachedUsign } from '../services/transparency/CaseService';
 import { attachEsignDocumentByVcKey, getUsignByVcKey } from '../services/transparency/UsignService';
 import ErrorOutlineOutlinedIcon from '@material-ui/icons/ErrorOutlineOutlined';
 import { CustomPopover } from './affaire/StatusQuestionPopup';
 import CreateIcon from '@material-ui/icons/Create';
 import GetApp from '@material-ui/icons/GetApp';
 import { downloadWithName } from '../utils/TableUtils';
+import ModalUpdateCase from './popup/cases/ModalUpdateCase';
+import ModalEMailRegistered from './affaire/mail/recommande/ModalEMailRegistered';
+import ChannelDTO from '../model/affaire/ChannelDTO';
+import ModalEMailRegisteredStatus from './affaire/mail/recommande/ModalEMailRegisteredStatus';
 
 const isNil = require( 'lodash/isNil' );
 const isEmpty = require( 'lodash/isEmpty' );
+const map = require( 'lodash/map' );
+const join = require( 'lodash/join' );
 
 export const Dashboard = ( props ) => {
     const {
@@ -66,20 +71,25 @@ export const Dashboard = ( props ) => {
     } = props;
     const notificationAlert = useRef( null );
 
-    const [openDialog, setOpenDialog] = useState( false );
+    const [isLoading, setIsLoading] = useState( false );
+    const [modalDetails, setModalDetails] = useState( false );
+    const [casesModal, setCasesModal] = useState( [] );
     const [openDialogInvoice, setOpenDialogInvoice] = useState( false );
     const [checkTokenDrive, setCheckTokenDrive] = useState( false );
     const [dataDossiers, setDataDossiers] = useState( null );
     const [dataEmailRegistered, setDataEmailRegistered] = useState( null );
     const [dataMail, setDataMail] = useState( null );
     const [dataUsign, setDataUsign] = useState( null );
+    const [dataCorresp, setDatacorresp] = useState( null );
     const [dataSharedAffaires, setDataSharedAffaires] = useState( null );
     const [horizontalTabs, setHorizontalTabs] = useState( 'affaire' );
-    const [horizontalEmailTabs, setHorizontalEmailTabs] = useState( 'emailRegistered' );
     const { getAccessTokenSilently } = useAuth0();
     const [deleteAlert, setDeleteAlert] = useState( null );
     const mailSelected = useRef( null );
     const [showMail, setShowMail] = useState( false );
+    const [showEMail, setShowEMail] = useState( false );
+    const [showEMailStatus, setShowEMailStatus] = useState( false );
+    const emailRef = useRef( true );
     const documentIdRef = useRef( true );
     const payment = useRef( false );
     const [modalEmailDisplay, setModalEmailDisplay] = useState( false );
@@ -87,12 +97,47 @@ export const Dashboard = ( props ) => {
     const [modalUsignlDisplay, setModalUsignlDisplay] = useState( false );
     const [modalNotPaidSignDocument, setModalNotPaidSignDocument] = useState( false );
 
-    const toggleModalLarge = () => {
-        setOpenDialog( !openDialog );
-    };
-
     const toggleModalLargeInvoice = () => {
         setOpenDialogInvoice( !setOpenDialogInvoice );
+    };
+
+    const _showMessagePopup = ( message, type ) => {
+        notificationAlert.current.notificationAlert(
+            getOptionNotification( message, type )
+        );
+    };
+    const _downloadFile = async ( caseId, file ) => {
+        const accessToken = await getAccessTokenSilently();
+
+        const result = await downloadFileAttached( accessToken, caseId, file.value );
+        //const name = fileContent.name;
+        //const arrn = name.split( '/' );
+        if ( result.error ) {
+            notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.error1, 'danger' ) );
+        } else {
+            downloadWithName( result.data, file.value );
+        }
+
+    };
+    const _attachFileCase = async ( file ) => {
+        setIsLoading( true );
+        const accessToken = await getAccessTokenSilently();
+
+        if ( isNil( file ) ) {
+            notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.error2, 'danger' ) );
+
+            return;
+        }
+        const result = await attachFileCase( accessToken, file );
+        if ( result.error ) {
+            notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.error2, 'danger' ) );
+        } else {
+            notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.success1, 'success' ) );
+        }
+
+        // only if its different than null
+        setIsLoading( false );
+
     };
 
     const _togglePopupCheckSession = ( message, type ) => {
@@ -112,6 +157,11 @@ export const Dashboard = ( props ) => {
         } else {
             downloadWithName( result.data, filename );
         }
+    };
+
+    const toggleUpdateCase = ( caseId ) => {
+        setCasesModal( caseId );
+        setModalDetails( !modalDetails );
     };
 
     useEffect( () => {
@@ -158,6 +208,13 @@ export const Dashboard = ( props ) => {
                     } ) : [];
 
                     setDataUsign( dataMailTmp );
+
+                }, ( corresp ) => {
+                    const dataCorrTmp = corresp ? corresp.map( ( sign ) => {
+                        return new ChannelDTO( sign );
+                    } ) : [];
+
+                    setDatacorresp( dataCorrTmp );
 
                 } );
                 if ( !isNil( driveType ) && driveType === 'dropbox' ) {
@@ -207,6 +264,14 @@ export const Dashboard = ( props ) => {
                 accessor: 'id',
                 Cell: row => {
                     return <div>
+                        <Button
+                            className="btn-icon btn-link margin-left-10"
+                            onClick={() => {
+                                openEMailRegistered( row.value );
+                            }}
+                            color="primary" size="sm">
+                            <i className="fa fa-eye "/>
+                        </Button>
                         {/* delivered ok => cannot be deleted */}
                         {parseInt( row.row.original.status ) <= 60 ? (
                             <Button
@@ -250,7 +315,18 @@ export const Dashboard = ( props ) => {
                 Header: label.mail.label11,
                 accessor: 'statusCode',
                 Cell: row => {
-                    return getStatusEmailRegistered( row.value, label );
+                    return (
+                        <Button
+                            style={{whiteSpace:'break-spaces', width:'160px', textAlign:'left'}}
+                            className="btn-link"
+                            size="sm"
+                            onClick={() => {
+                                openEMailRegisteredStatus( row.row.original.id );
+                            }}
+                            color="primary" >
+                            {getStatusEmailRegistered( row.value, label )}
+                        </Button>
+                    )
                 }
             },
             {
@@ -268,7 +344,7 @@ export const Dashboard = ( props ) => {
                 Header: '#',
                 accessor: 'documentId',
                 Cell: row => {
-                    return <div>
+                    return <div style={{ display: 'flex' }}>
                         <Button
                             className="btn-icon btn-link margin-left-10"
                             onClick={() => {
@@ -307,6 +383,73 @@ export const Dashboard = ( props ) => {
                 Cell: row => {
                     return getDateDetails( row.value );
                 }
+            }
+        ],
+
+        [] );
+
+    const columnsCorresp = React.useMemo(
+        () => [
+            {
+                accessor: 'caseId',
+                Header: '#',
+                width: 150,
+                Cell: row => {
+                    return (<div>
+                        <Button
+                            className="btn-icon btn-link margin-left-10"
+                            onClick={() => toggleUpdateCase( row.value )}
+                            color="primary" size="sm">
+                            <i className="fa fa-eye "/>
+                        </Button>
+                    </div>);
+                }
+            },
+            {
+                accessor: '_id',
+                Header: label.affaire.label22,
+                width: 140,
+                resizable: true,
+                Cell: row => {
+                    return isNil( row.row.original.affaireItem ) ? null : (
+                        <Link
+                            to={`/admin/affaire/${row.row.original.affaireItem.value}`}>{row.row.original.affaireItem.label}</Link>
+                    );
+                }
+            },
+            {
+                accessor: 'parties',
+                Header: label.affaire.label44,
+                Cell: row => {
+
+                    return map( row.value, part => {
+                        return (<p>
+                                {part.email}
+                            </p>
+                        );
+                    } );
+                }
+            },
+            {
+                accessor: 'lastComments',
+                Header: label.affaire.label28,
+                Cell: row => {
+
+                    return (
+                        <p>{row.value}</p>
+                    );
+                }
+            },
+            {
+                accessor: 'createDate',
+                Header: label.affaire.label30,
+                Cell: row => {
+                    return (
+                        <>{getDate( row.value )}</>
+                    );
+                },
+                width: 120
+
             }
         ],
 
@@ -499,6 +642,17 @@ export const Dashboard = ( props ) => {
     const showMailFun = () => {
         setShowMail( !showMail );
     };
+
+    const openEMailRegistered = ( id ) => {
+        emailRef.current = id;
+        setShowEMail( !showEMail );
+    };
+
+    const openEMailRegisteredStatus = (id) => {
+        emailRef.current = id;
+        setShowEMailStatus( !showEMailStatus );
+    };
+
     const deleteEMailRegistered = ( ticketToken ) => {
         setDeleteAlert( <ReactBSAlert
             warning
@@ -518,6 +672,7 @@ export const Dashboard = ( props ) => {
             {label.common.label12}
         </ReactBSAlert> );
     };
+
     const _deleteEMailRegistered = async ( ticketTokens ) => {
         notificationAlert.current.notificationAlert( getOptionNotification( label.common.success2, 'primary' ) );
 
@@ -527,9 +682,6 @@ export const Dashboard = ( props ) => {
 
         if ( tabState === 'horizontalTabs' ) {
             setHorizontalTabs( tadName );
-        }
-        if ( tabState === 'horizontalEmailTabs' ) {
-            setHorizontalEmailTabs( tadName );
         }
 
     };
@@ -578,7 +730,7 @@ export const Dashboard = ( props ) => {
                 <Row>
                     {/* RECENT AFFAIRE */}
                     <Col lg="4" sm={6}>
-                        <Card>
+                        <Card style={{ height: '400px' }}>
                             <CardHeader>
                                 <Row>
                                     <Col md={10}>
@@ -620,9 +772,10 @@ export const Dashboard = ( props ) => {
                                     </Col>
                                     <Col md={2}>
                                         <h4>
-                                            <Link className="btn btn-icon btn-primary float-right btn-sm"
-                                                          to="/admin/create/affaire">
-                                                <i className="tim-icons icon-simple-add"/>
+                                            <Link className="btn btn-primary float-right btn-sm"
+                                                  to="/admin/create/affaire">
+                                                <i className="tim-icons icon-simple-add padding-icon-text"/>
+                                                {label.common.create}
                                             </Link>
                                         </h4>
                                     </Col>
@@ -658,30 +811,130 @@ export const Dashboard = ( props ) => {
                         </Card>
                     </Col>
 
+                    {/* RECENT mail bpost */}
+                    <Col lg="4" sm={6}>
+                        <Card style={{ height: '400px', overflow: 'auto' }}>
+                            <CardHeader>
+                                <Row>
+                                    <Col md={10}>
+                                        <CardTitle>
+                                            <h4>{label.dashboard.label2}
+                                            </h4>
+                                        </CardTitle>
+                                    </Col>
+                                    <Col md={2}>
+                                        <Button
+                                            onClick={() => _openPostMail()}
+                                            className="float-right"
+                                            color="primary"
+                                            data-placement="bottom"
+                                            type="button"
+                                            size="sm"
+                                        >
+                                            <i className="tim-icons icon-send padding-icon-text"/> {' '}
+                                            {label.common.send}
+                                        </Button>
+                                    </Col>
+                                </Row>
+                                <p className="card-category">
+                                    {label.dashboard.label4}
+                                </p>
+                            </CardHeader>
+                            <CardBody>
+                                {dataMail && !isNil( dataMail ) ? (
+                                    <ReactTableLocal columns={columnsMail} data={dataMail}/>
+                                ) : (
+                                    <ReactLoading className="loading" height={'20%'} width={'20%'}/>
+                                )}
+                            </CardBody>
+                        </Card>
+                    </Col>
                     {/* RECENT usign */}
                     <Col lg="4" sm={6}>
-                        <Card>
+                        <Card style={{ height: '400px', overflow: 'auto' }}>
                             <CardHeader>
-                                <CardTitle>
-                                    <h4>{label.dashboard.label7}
+                                <Row>
+                                    <Col md={10}>
+                                        <CardTitle>
+                                            <h4>{label.dashboard.label7}
+                                            </h4>
+                                        </CardTitle>
+                                    </Col>
+                                    <Col md={2}>
                                         <Button
                                             onClick={() => _openUsign()}
-                                            className="btn-icon float-right"
+                                            className="float-right"
+                                            color="primary"
+                                            data-placement="bottom"
+                                            type="button"
+                                            size="sm"
+                                        >
+                                            <i className="tim-icons icon-send padding-icon-text"/> {' '}
+                                            {label.common.send}
+                                        </Button>
+                                    </Col>
+                                </Row>
+                                <p className="card-category">
+                                    {label.dashboard.label4}
+                                </p>
+                            </CardHeader>
+
+                            <CardBody>
+                                {dataUsign && !isNil( dataUsign ) ? (
+                                    <ReactTableLocal columns={columnsUsign} data={dataUsign}/>
+                                ) : (
+                                    <ReactLoading className="loading" height={'20%'} width={'20%'}/>
+                                )}
+                            </CardBody>
+                        </Card>
+                    </Col>
+                    {/* RECENT  email registered */}
+                    <Col lg="4" sm={6}>
+                        <Card style={{ height: '450px', overflow: 'auto' }}>
+                            <CardHeader>
+                                <Row>
+                                    <Col md={10}>
+                                        <CardTitle>
+                                            <h4>{label.dashboard.label1}
+                                            </h4>
+                                        </CardTitle>
+                                    </Col>
+                                    <Col md={2}>
+                                        <Button
+                                            onClick={() => _openEmail()}
+                                            className="float-right"
                                             color="primary"
                                             data-placement="bottom"
                                             id="tooltip811118932"
                                             type="button"
                                             size="sm"
                                         >
-                                            <i className="tim-icons icon-simple-add"/>
-                                        </Button>
-                                        <UncontrolledTooltip
-                                            delay={0}
-                                            placement="bottom"
-                                            target="tooltip811118932"
-                                        >
-                                            {label.dashboard.label7}
-                                        </UncontrolledTooltip>
+                                            <i className="tim-icons icon-send padding-icon-text"/> {' '}
+                                            {label.common.send}                                        </Button>
+                                    </Col>
+                                </Row>
+                                <p className="card-category">
+                                    {label.dashboard.label4}
+                                </p>
+                            </CardHeader>
+
+                            <CardBody>
+                                {dataEmailRegistered && !isNil( dataEmailRegistered ) ? (
+                                    <ReactTableLocal columns={columnsEmailRegistered} data={dataEmailRegistered}/>
+                                ) : (
+                                    <ReactLoading className="loading" height={'20%'} width={'20%'}/>
+                                )}
+
+                            </CardBody>
+                        </Card>
+                    </Col>
+
+                    {/* RECENT correspondence */}
+                    <Col lg="8" sm={6}>
+                        <Card style={{ height: '450px', overflow: 'auto' }}>
+                            <CardHeader>
+                                <CardTitle>
+                                    <h4>{label.dashboard.label8}
                                     </h4>
                                 </CardTitle>
                                 <p className="card-category">
@@ -689,10 +942,10 @@ export const Dashboard = ( props ) => {
                                 </p>
                             </CardHeader>
                             <CardBody>
-                                {dataUsign && !isNil( dataUsign ) ? (
+                                {dataCorresp && !isNil( dataCorresp ) ? (
                                     <Row>
                                         <Col md="12">
-                                            <ReactTableLocal columns={columnsUsign} data={dataUsign}/>
+                                            <ReactTableLocal columns={columnsCorresp} data={dataCorresp}/>
 
                                         </Col>
                                     </Row>
@@ -702,112 +955,6 @@ export const Dashboard = ( props ) => {
                             </CardBody>
                         </Card>
                     </Col>
-
-                    {/* RECENT email registered, mail */}
-                    {/* RECENT mail bpost */}
-                    <Col lg="4" sm={6}>
-                        <Card>
-                            <CardHeader>
-                                <Row>
-                                    <Col md={10}>
-                                        <Nav className="nav-pills-info" pills>
-                                            <NavItem>
-                                                <NavLink
-                                                    data-toggle="tab"
-                                                    href="#pablo"
-                                                    className={
-                                                        horizontalEmailTabs === 'emailRegistered'
-                                                            ? 'active'
-                                                            : ''
-                                                    }
-                                                    onClick={e =>
-                                                        changeActiveTab( e, 'horizontalEmailTabs', 'emailRegistered' )
-                                                    }
-                                                >
-                                                    {label.dashboard.label1}
-                                                </NavLink>
-                                            </NavItem>
-                                            <NavItem>
-                                                <NavLink
-                                                    data-toggle="tab"
-                                                    href="#"
-                                                    className={
-                                                        horizontalEmailTabs === 'mailPost'
-                                                            ? 'active'
-                                                            : ''
-                                                    }
-                                                    onClick={e =>
-                                                        changeActiveTab( e, 'horizontalEmailTabs', 'mailPost' )
-                                                    }
-                                                >
-                                                    {label.dashboard.label2}
-                                                </NavLink>
-                                            </NavItem>
-                                        </Nav>
-                                    </Col>
-                                    <Col md={2}>
-                                        {horizontalEmailTabs === 'emailRegistered' ? (
-                                            <Button
-                                                onClick={() => _openEmail()}
-                                                className="btn-icon float-right"
-                                                color="primary"
-                                                data-placement="bottom"
-                                                type="button"
-                                                size="sm"
-                                            >
-                                                <i className="tim-icons icon-simple-add"/>
-                                            </Button>
-                                        ): null}
-                                        {horizontalEmailTabs === 'mailPost' ? (
-                                            <Button
-                                                onClick={() => _openPostMail()}
-                                                className="btn-icon float-right"
-                                                color="primary"
-                                                data-placement="bottom"
-                                                type="button"
-                                                size="sm"
-                                            >
-                                                <i className="tim-icons icon-simple-add"/>
-                                            </Button>
-                                        ): null}
-                                    </Col>
-                                </Row>
-                                <p className="card-category" style={{ marginBottom: 0 }}>
-                                    {label.dashboard.label4}
-                                </p>
-                            </CardHeader>
-
-                            <CardBody>
-                                <TabContent
-                                    className="tab-space no-padding"
-                                    activeTab={horizontalEmailTabs}
-                                >
-                                    {dataEmailRegistered && !isNil( dataEmailRegistered ) ? (
-                                            <TabPane tabId="emailRegistered">
-                                                <ReactTableLocal columns={columnsEmailRegistered} data={dataEmailRegistered}/>
-                                            </TabPane>
-                                    ) : (
-                                        <ReactLoading className="loading" height={'20%'} width={'20%'}/>
-                                    )}
-                                    <TabPane tabId="mailPost">
-                                        {dataMail && !isNil( dataMail ) ? (
-                                            <Row>
-                                                <Col md="12">
-                                                    <ReactTableLocal columns={columnsMail} data={dataMail}/>
-
-                                                </Col>
-                                            </Row>
-                                        ) : (
-                                            <ReactLoading className="loading" height={'20%'} width={'20%'}/>
-                                        )}
-                                    </TabPane>
-                                </TabContent>
-
-
-                            </CardBody>
-                        </Card>
-                    </Col>
-
                     <Col className="ml-auto mr-auto margin-bottom-15" md="12" sm={12}>
                         <Agenda
                             onlyDossier={false}
@@ -856,6 +1003,26 @@ export const Dashboard = ( props ) => {
                         </Button>
                     </ModalFooter>
                 </Modal>) : null}
+            {showEMail ? (
+                <ModalEMailRegistered
+                    id={emailRef.current}
+                    showMessage={_showMessage}
+                    label={label}
+                    isOpen={showEMail}
+                    toggle={openEMailRegistered}
+                />
+            ) : null}
+
+            {showEMailStatus ? (
+                <ModalEMailRegisteredStatus
+                    id={emailRef.current}
+                    showMessage={_showMessage}
+                    label={label}
+                    isOpen={showEMailStatus}
+                    toggle={openEMailRegisteredStatus}
+                />
+            ) : null}
+
             {/* POPUP CREATE MAIL BPOST */}
             {modalPostMailDisplay ? (
                 <ModalMail
@@ -903,6 +1070,24 @@ export const Dashboard = ( props ) => {
                     label={label}
                     toggleModalDetails={_toggleUnPaid}
                     modalDisplay={modalNotPaidSignDocument}/>
+            ) : null}
+            {modalDetails ? (
+                <ModalUpdateCase caseId={casesModal}
+                                 email={email}
+                                 enumRights={enumRights}
+                                 label={label}
+                                 lg={12} md={12}
+                                 showMessagePopup={_showMessagePopup}
+                                 isLoading={isLoading}
+                                 history={history}
+                                 downloadFile={_downloadFile}
+                                 attachFileCase={_attachFileCase}
+                                 attachEsignDocument={_attachEsignDocument}
+                                 modalDetails={modalDetails}
+                                 toggleModalDetails={toggleUpdateCase}
+                                 vckeySelected={vckeySelected}
+                                 userId={userId}
+                />
             ) : null}
         </>
     );

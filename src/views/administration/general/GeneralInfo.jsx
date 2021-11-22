@@ -96,7 +96,7 @@ export default function GeneralInfo( props ) {
         (async () => {
 
             const accessToken = await getAccessTokenSilently();
-            let virtualCabtResult = await getVirtualcabById( accessToken, vc_key );
+            let virtualCabtResult = await getVirtualcabById( accessToken );
             let virtualCabConfigResult = await getVirtualcabCaseFolders( accessToken, vc_key );
             let resultCountry = await getAlpha2CountryList( accessToken );
 
@@ -184,7 +184,7 @@ export default function GeneralInfo( props ) {
 
         //setVirtualCab(virtualCab);
         let accessToken = await getAccessTokenSilently();
-        let result = await getVirtualcabById( accessToken, vc_key );
+        let result = await getVirtualcabById( accessToken );
         let updatedCab = result.data;
 
         updatedCab.vckey = virtualCab.vckey;
@@ -206,7 +206,7 @@ export default function GeneralInfo( props ) {
 
         //setVirtualCab(virtualCab);
         let accessToken = await getAccessTokenSilently();
-        let result = await getVirtualcabById( accessToken, vc_key );
+        let result = await getVirtualcabById( accessToken );
         let updatedCab = result.data;
 
         updatedCab.street = virtualCab.street;
@@ -226,7 +226,7 @@ export default function GeneralInfo( props ) {
 
         //setVirtualCab(virtualCab);
         let accessToken = await getAccessTokenSilently();
-        let result = await getVirtualcabById( accessToken, vc_key );
+        let result = await getVirtualcabById( accessToken );
         let updatedCab = result.data;
 
         updatedCab.phoneNumber = virtualCab.phoneNumber;
@@ -245,7 +245,7 @@ export default function GeneralInfo( props ) {
 
         //setVirtualCab(virtualCab);
         let accessToken = await getAccessTokenSilently();
-        let result = await getVirtualcabById( accessToken, vc_key );
+        let result = await getVirtualcabById( accessToken );
         let updatedCab = result.data;
 
         updatedCab.couthoraire = virtualCab.couthoraire;
@@ -263,7 +263,7 @@ export default function GeneralInfo( props ) {
         setIsLoading( true );
 
         let accessToken = await getAccessTokenSilently();
-        let result = await getVirtualcabById( accessToken, vc_key );
+        let result = await getVirtualcabById( accessToken );
         let updatedCab = result.data;
 
         updatedCab.isNotification = virtualCab.isNotification;
@@ -298,7 +298,7 @@ export default function GeneralInfo( props ) {
 
         //setVirtualCab(virtualCab);
         let accessToken = await getAccessTokenSilently();
-        let result = await getVirtualcabById( accessToken, vc_key );
+        let result = await getVirtualcabById( accessToken );
         let updatedCab = result.data;
 
         updatedCab.driveType = virtualCab.driveType;

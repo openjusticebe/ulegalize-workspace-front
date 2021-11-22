@@ -19,11 +19,11 @@ export async function getCaseList( accessToken, offset, limit ) {
     }
 }
 
-export async function countCaseList( accessToken ) {
+export async function getChannelList( accessToken, offset, limit ) {
     try {
 
-        return axios.get( `${process.env.REACT_APP_TRANSPARENCY_SERVER}v2/cases/count`, {
-
+        return axios.get( `${process.env.REACT_APP_TRANSPARENCY_SERVER}v2/channels`, {
+            params: { offset: offset, limit: limit },
             headers: {
                 Authorization: `Bearer ${accessToken}`
             }
@@ -162,6 +162,23 @@ export async function saveLawyer(accessToken, cas ) {
 
         return axios.put( `${process.env.REACT_APP_TRANSPARENCY_SERVER}v2/cases/owner`,
             new CasDTO(cas),
+            {
+            headers: {
+                //'Content-Type': 'application/json',
+                Authorization: `Bearer ${accessToken}`
+            }
+        } )
+        .catch( () => {
+            return { error: true };
+        } );
+    } catch ( e ) {
+        return { error: true, data: {} };
+    }
+}
+export async function getCaseById(accessToken, casId ) {
+    try {
+
+        return axios.get( `${process.env.REACT_APP_TRANSPARENCY_SERVER}v2/cases/${casId}`,
             {
             headers: {
                 //'Content-Type': 'application/json',
@@ -371,10 +388,10 @@ export async function checkPartiesInvolvedIntoChannel( accessToken, dossierId , 
     }
 }
 
-export async function attachDossier( accessToken, dossier, caseId ) {
+export async function attachDossier( accessToken, caseCreationDTO, caseId ) {
     try {
         return axios.post( `${process.env.REACT_APP_TRANSPARENCY_SERVER}v2/affaires/case/${caseId}`,
-            dossier,
+            caseCreationDTO,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,

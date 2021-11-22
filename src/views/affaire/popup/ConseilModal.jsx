@@ -24,7 +24,7 @@ import {
     updatePartieByDossier
 } from '../../../services/transparency/CaseService';
 import ItemPartie from '../../../model/affaire/ItemPartie';
-import { getFullUserList, getFunctions } from '../../../services/SearchService';
+import { getContact, getFullUserList, getFunctions } from '../../../services/SearchService';
 import ItemDTO from '../../../model/ItemDTO';
 import CreatableSelect from 'react-select/creatable';
 import { validateEmail } from '../../../utils/Utils';
@@ -67,12 +67,6 @@ export const ConseilModal = ( {
                     partieTemp.emailItem = new ItemDTO( { value: partieTemp.email, label: partieTemp.email } );
                 }
 
-                if ( partieTemp && !isNil( partieTemp.function ) ) {
-                    partieTemp.functionItem = new ItemDTO( {
-                        value: partieTemp.functionId,
-                        label: partieTemp.function
-                    } );
-                }
                 setPartieName( partieTemp );
             }
         })();
@@ -83,7 +77,7 @@ export const ConseilModal = ( {
             try {
 
                 const accessToken = await getAccessTokenSilently();
-                let result = await getFullUserList( accessToken, '' );
+                let result = await getContact( accessToken, '' );
                 const usersTemp = map( result.data, data => {
                     return new ItemDTO( data );
                 } );
@@ -283,6 +277,7 @@ export const ConseilModal = ( {
                         <Label>{label.affaire.label33}</Label>
                         <FormGroup>
                             <Input
+                                disabled={partieName.type === 'creator'}
                                 name="label"
                                 componentClass="text"
                                 onChange={( e ) => setPartieName( { ...partieName, label: e.target.value } )}
@@ -305,11 +300,11 @@ export const ConseilModal = ( {
                                 classNamePrefix="react-select"
                                 name="singleSelect"
                                 onChange={( value ) => {
-                                    if ( validateEmail( value.label ) ) {
+                                    if ( validateEmail( value.value ) ) {
                                         setPartieName( {
                                             ...partieName,
                                             emailItem: value,
-                                            email: value.label
+                                            email: value.value
                                         } );
                                     } else {
                                         showMessage( label.affaire.error18, 'danger' );

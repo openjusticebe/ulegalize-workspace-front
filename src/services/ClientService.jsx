@@ -1,11 +1,10 @@
 import axios from 'axios';
 const forEach = require( 'lodash/forEach' );
 
-export async function getClient(accessToken, search, vckeySelected) {
+export async function getClient(accessToken, search) {
     try {
         return await axios.get(`${process.env.REACT_APP_LAWFIRM_SERVER}v2/clients`, {
             params: {
-                vcKey: vckeySelected,
                 searchCriteria: search
             },
             headers: {

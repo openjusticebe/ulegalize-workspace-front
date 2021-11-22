@@ -136,6 +136,7 @@ const Step2 = forwardRef( ( { label, originalVcKey, vckeySelected, countryCodePr
                             <FormGroup>
                                 <Label>{label.generalInfo.socialObject}</Label>
                                 <Input
+                                    maxLength={40}
                                     value={virtualCab.objetsocial}
                                     onChange={e => setVirtualCab( {
                                         ...virtualCab,
@@ -151,6 +152,7 @@ const Step2 = forwardRef( ( { label, originalVcKey, vckeySelected, countryCodePr
                             <FormGroup>
                                 <Label>{label.generalInfo.numEntreprise}</Label>
                                 <Input
+                                    maxLength={30}
                                     value={virtualCab.numentreprise}
                                     onChange={e => setVirtualCab( {
                                         ...virtualCab,
@@ -165,6 +167,7 @@ const Step2 = forwardRef( ( { label, originalVcKey, vckeySelected, countryCodePr
                             <FormGroup>
                                 <Label>{label.generalInfo.email} *</Label>
                                 <Input
+                                    maxLength={50}
                                     value={virtualCab.email}
                                     type="email"
                                     onChange={e => setVirtualCab( {

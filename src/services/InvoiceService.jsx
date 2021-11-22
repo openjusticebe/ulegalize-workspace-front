@@ -1,5 +1,10 @@
 import axios from 'axios';
 import InvoiceDTO from '../model/invoice/InvoiceDTO';
+import { getDossierList, getSharedDossierList } from './DossierService';
+import { getEMailRegisteredList } from './EmailRegisteredService';
+import { getDocumentsMail } from './PostBirdServices';
+import { getUsignByVcKey } from './transparency/UsignService';
+import { getChannelList } from './transparency/CaseService';
 
 export async function getInvoiceList( accessToken, offset, limit,vckeySelected, searchEcheance, searchDate, searchYearDossier, searchNumberDossier, searchClient ) {
     try {
@@ -209,9 +214,79 @@ export async function generateInvoiceValid( accessToken, invoiceId ) {
         return { error: true, data: {}};
     }
 }
+export async function getAllFrais( accessToken, invoiceId, dossierId, callbackPrestation, callbackFraisAdm, callbackDebours, callbackFraisColl) {
+    try {
+
+    return await axios.all( [
+        getPrestationByDossierId( accessToken, invoiceId, dossierId),
+        getFraisAdminByDossierId( accessToken, invoiceId, dossierId),
+        getDeboursByDossierId( accessToken, invoiceId, dossierId),
+        getFraisCollabByDossierId( accessToken, invoiceId, dossierId),
+
+    ] )
+    .then(
+        axios.spread( ( prestation, fraisAdmin, debours, fraisColla ) => {
+            callbackPrestation( prestation.data );
+            callbackFraisAdm( fraisAdmin.data );
+            callbackDebours( debours.data );
+            callbackFraisColl( fraisColla.data );
+        } ) )
+    .catch( exception => {
+        return {error:true}
+    } );
+    } catch ( e ) {
+        return { error: true};
+    }
+}
+
 export async function getPrestationByDossierId( accessToken, invoiceId, dossierId ) {
     try {
         return axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/invoices/${invoiceId}/prestations/${dossierId}`, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            }
+        )
+        .catch(()=>{
+            return {error:true}
+        });
+    } catch ( e ) {
+        return { error: true, data: {}};
+    }
+}
+export async function getFraisAdminByDossierId( accessToken, invoiceId, dossierId ) {
+    try {
+        return axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/invoices/${invoiceId}/fraisAdmin/${dossierId}`, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            }
+        )
+        .catch(()=>{
+            return {error:true}
+        });
+    } catch ( e ) {
+        return { error: true, data: {}};
+    }
+}
+export async function getDeboursByDossierId( accessToken, invoiceId, dossierId ) {
+    try {
+        return axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/invoices/${invoiceId}/debours/${dossierId}`, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            }
+        )
+        .catch(()=>{
+            return {error:true}
+        });
+    } catch ( e ) {
+        return { error: true, data: {}};
+    }
+}
+export async function getFraisCollabByDossierId( accessToken, invoiceId, dossierId ) {
+    try {
+        return axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/invoices/${invoiceId}/fraisCollaborat/${dossierId}`, {
                 headers: {
                     Authorization: `Bearer ${accessToken}`
                 }

@@ -8,143 +8,176 @@ import {
     Col,
     Pagination,
     PaginationItem,
-    PaginationLink,
+    PaginationLink, PopoverBody, PopoverHeader,
     Row,
-    Table
+    Table, UncontrolledPopover
 } from 'reactstrap';
 import { useAuth0 } from '@auth0/auth0-react';
 import { usePagination, useTable } from 'react-table';
 import ReactLoading from 'react-loading';
 import NotificationAlert from 'react-notification-alert';
 import { getDateDetails } from '../../utils/DateUtils';
-import { getEMailRegisteredList } from '../../services/EmailRegisteredService';
-import { getStatusEmailRegistered } from '../affaire/mail/recommande/StatusEmailRegistered';
-import ReactBSAlert from 'react-bootstrap-sweetalert';
-import { Link } from 'react-router-dom';
-import ModalEMailRegistered from '../affaire/mail/recommande/ModalEMailRegistered';
 import { checkPaymentActivated } from '../../services/PaymentServices';
-import ModalEMailSign from '../affaire/mail/recommande/ModalEMailSign';
-import ModalEMailRegisteredStatus from '../affaire/mail/recommande/ModalEMailRegisteredStatus';
+import ErrorOutlineOutlinedIcon from '@material-ui/icons/ErrorOutlineOutlined';
+import { CustomPopover } from '../affaire/StatusQuestionPopup';
+import CreateIcon from '@material-ui/icons/Create';
+import GetApp from '@material-ui/icons/GetApp';
+import ModalUploadSignDocument from '../affaire/popup/ModalUploadSignDocument';
+import { downloadFileAttachedUsign } from '../../services/transparency/CaseService';
+import { getOptionNotification } from '../../utils/AlertUtils';
+import { downloadWithName } from '../../utils/TableUtils';
+import { attachEsignDocumentByVcKey, getUsignByVcKey } from '../../services/transparency/UsignService';
+import SignatureDTO from '../../model/usign/SignatureDTO';
 
 const ceil = require( 'lodash/ceil' );
 const range = require( 'lodash/range' );
 const size = require( 'lodash/size' );
 const isNil = require( 'lodash/isNil' );
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10;
 
-export default function EmailsList( {
+export default function UsignList( {
                                         label,
                                         updateList,
                                         showMessage,
-                                        email,
-                                        userId,
-                                        vckeySelected,
-                                        dossierId,
-                                        showDossier
+                                        vckeySelected
                                     } ) {
 
     const [data, setData] = useState( [] );
     const [count, setCount] = useState( 0 );
     const [deleteAlert, setDeleteAlert] = useState( null );
-    const [showEMail, setShowEMail] = useState( false );
-    const [showEMailStatus, setShowEMailStatus] = useState( false );
     const { getAccessTokenSilently } = useAuth0();
     const loadRef = useRef( true );
     const skipPageResetRef = useRef();
     const notificationAlert = useRef( null );
-    const emailRef = useRef( true );
     const payment = useRef( false );
-    const [modalEmailDisplay, setModalEmailDisplay] = useState( false );
+    const [modalUsignlDisplay, setModalUsignlDisplay] = useState( false );
     const [modalNotPaidSignDocument, setModalNotPaidSignDocument] = useState( false );
 
-    const openEMailRegistered = (id) => {
-        emailRef.current = id;
-        setShowEMail( !showEMail );
+
+    const _handleDownloadFile = async ( usignId, filename ) => {
+        const accessToken = await getAccessTokenSilently();
+
+        const result = await downloadFileAttachedUsign( accessToken, usignId );
+        //const name = fileContent.name;
+        //const arrn = name.split( '/' );
+        if ( result.error ) {
+            notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.error1, 'danger' ) );
+        } else {
+            downloadWithName( result.data, filename );
+        }
     };
 
-    const openEMailRegisteredStatus = (id) => {
-        emailRef.current = id;
-        setShowEMailStatus( !showEMailStatus );
-    };
 
     const columns = React.useMemo(
         () => [
             {
                 Header: '#',
-                accessor: 'id',
+                accessor: 'usignId',
                 Cell: row => {
-                    return <div>
+                    let statusGlyph = (<Col sm={6} md={6}>
                         <Button
+                            color="primary"
                             className="btn-icon btn-link margin-left-10"
-                            onClick={() => {
-                                openEMailRegistered( row.value );
-                            }}
-                            color="primary" size="sm">
-                            <i className="fa fa-eye "/>
+                            type="button"
+                            id={`PopoverNormal-${row.value}`}>
+                            <ErrorOutlineOutlinedIcon/>
                         </Button>
-                        {/* delivered ok => cannot be deleted */}
-                        {parseInt( row.row.original.status ) <= 60 ? (
+                        <UncontrolledPopover trigger="focus" placement="left" target={`PopoverNormal-${row.value}`}>
+                            <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                            <PopoverBody>
+                                <CustomPopover label={label}/>
+                            </PopoverBody>
+                        </UncontrolledPopover>
+                    </Col>);
+                    if ( row.row.original.status === 'SIGN' ) {
+                        statusGlyph = (<Col sm={6} md={6}>
                             <Button
-                                disabled={true}
+                                type="button"
+                                color="primary"
                                 className="btn-icon btn-link margin-left-10"
-                                onClick={() => {
-                                    deleteEMailRegistered( row.value );
-                                }}
-                                color="primary" size="sm">
-                                <i className="fa fa-trash"/>
+                                id={`PopoverSign-${row.value}`}>
+                                <CreateIcon className="green"/>
                             </Button>
-                        ) : null}
-                        {` `}
-                    </div>;
-                }
-            },
-            {
-                Header: label.mail.subject,
-                accessor: 'subject'
-            },
-            {
-                Header: showDossier ? label.mail.dossier : '',
-                accessor: 'dossierId',
-                Cell: row => {
-                    if(showDossier){
-                        if ( !isNil( row.value ) ) {
-                            return (
-                                <div>
-                                    <Link to={`/admin/affaire/${row.value}`}>{label.mail.dossier}</Link>
-                                </div>
-                            );
-                        } else {
-                            return (
-                                <div>
-                                    <p>N/A</p>
-                                </div>
-                            );
-                        }
-                    } else {
-                        return '';
+                            <UncontrolledPopover trigger="focus" placement="left" target={`PopoverSign-${row.value}`}>
+                                <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                                <PopoverBody>
+                                    <CustomPopover label={label}/>
+                                </PopoverBody>
+                            </UncontrolledPopover>
+                        </Col>);
+                    } else if ( row.row.original.status === 'WAITING' ) {
+                        statusGlyph = (<Col sm={6} md={6}>
+                            <Button
+                                type="button"
+                                id={`PopoverStart-${row.value}`}
+                                color="primary"
+                                className="btn-icon btn-link margin-left-10">
+                                <CreateIcon className="red glyphicon-ring"/>
+                            </Button>
+                            <UncontrolledPopover trigger="focus" placement="left" target={`PopoverStart-${row.value}`}>
+                                <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                                <PopoverBody>
+                                    <CustomPopover label={label}/>
+                                </PopoverBody>
+                            </UncontrolledPopover>
+                        </Col>);
+                    } else if ( row.row.original.status === 'START' ) {
+                        statusGlyph = (<Col sm={6} md={6}>
+                            <Button
+                                type="button"
+                                id={`PopoverStart-${row.value}`}
+                                color="primary"
+                                className="btn-icon btn-link margin-left-10">
+                                <CreateIcon className="red glyphicon-ring"/>
+                            </Button>
+                            <UncontrolledPopover trigger="focus" placement="left" target={`PopoverStart-${row.value}`}>
+                                <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                                <PopoverBody>
+                                    <CustomPopover label={label}/>
+                                </PopoverBody>
+                            </UncontrolledPopover>
+                        </Col>);
+                    } else if ( row.row.original.status === 'NORMAL' ) {
+                        statusGlyph = (<Col sm={6} md={6}>
+                            <Button
+                                type="button"
+                                id={`PopoverNormal-${row.value}`}
+                                size="sm"
+                                color="primary"
+                                className="btn-icon btn-link margin-left-10">
+                                <ErrorOutlineOutlinedIcon/>
+                            </Button>
+                            <UncontrolledPopover trigger="focus" placement="left" target={`PopoverNormal-${row.value}`}>
+                                <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                                <PopoverBody>
+                                    <CustomPopover label={label}/>
+                                </PopoverBody>
+                            </UncontrolledPopover>
+                        </Col>);
                     }
-
+                    return <Row>
+                        {statusGlyph}
+                        <Col sm={1} md={1}>
+                            <Button
+                                size="sm"
+                                color="primary"
+                                disabled={row.row.original.status === 'WAITING'}
+                                className="btn-icon"
+                                onClick={() => _handleDownloadFile( row.row.original.usignId, row.row.original.documentName )}>
+                                <GetApp/>
+                            </Button>
+                        </Col>
+                        {` `}
+                    </Row>;
                 }
-            } ,
+            },
             {
-                Header: label.mail.label11,
-                accessor: 'statusCode',
-                Cell: row => {
-                    return (
-                        <Button
-                            className="btn-link margin-left-10"
-                            onClick={() => {
-                                openEMailRegisteredStatus( row.row.original.id );
-                            }}
-                            color="primary" >
-                            {getStatusEmailRegistered( row.value, label )}
-                        </Button>
-                    )
-                }
+                Header: label.mail.label10,
+                accessor: 'documentName'
             },
             {
                 Header: label.mail.label12,
-                accessor: 'creDate',
+                accessor: 'createDate',
                 Cell: row => {
                     return getDateDetails( row.value );
                 }
@@ -191,7 +224,7 @@ export default function EmailsList( {
             let result;
             loadRef.current = false;
 
-            result = await getEMailRegisteredList( accessToken, offset, pageSize, dossierId );
+            result = await getUsignByVcKey( accessToken, offset, pageSize );
 
             if ( !result.error ) {
                 skipPageResetRef.current = true;
@@ -262,44 +295,49 @@ export default function EmailsList( {
             </PaginationLink>
         </PaginationItem>;
     }
-    const deleteEMailRegistered = ( ticketToken ) => {
-        setDeleteAlert( <ReactBSAlert
-            warning
-            style={{ display: 'block', marginTop: '30px' }}
-            title={label.common.label10}
-            onConfirm={() => {
-                _deleteEMailRegistered( ticketToken );
-            }}
-            onCancel={() => { setDeleteAlert( null ); }}
-            confirmBtnBsStyle="success"
-            cancelBtnBsStyle="danger"
-            confirmBtnText={label.common.label11}
-            cancelBtnText={label.common.cancel}
-            showCancel
-            btnSize=""
-        >
-            {label.common.label12}
-        </ReactBSAlert> );
-    };
 
-    const _deleteEMailRegistered = async ( ) => {
-        showMessage( label.common.success2, 'primary' );
 
-    };
-
-    const _openEmail = async () => {
+    const _openUsign = async () => {
         const accessToken = await getAccessTokenSilently();
 
         let resultPayment = await checkPaymentActivated( accessToken );
         if ( !isNil( resultPayment ) ) {
             payment.current = resultPayment.data;
             if ( payment.current === true ) {
-                setModalEmailDisplay( !modalEmailDisplay );
+                setModalUsignlDisplay( !modalUsignlDisplay );
             } else {
                 setModalNotPaidSignDocument( !modalNotPaidSignDocument );
             }
         }
     };
+
+    const _attachEsignDocument = async ( file ) => {
+        const accessToken = await getAccessTokenSilently();
+
+        if ( isNil( file ) ) {
+            notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.error2, 'danger' ) );
+            return;
+        }
+        notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.label9, 'warning' ) );
+
+        const result = await attachEsignDocumentByVcKey( accessToken, file );
+
+        if ( !result.error ) {
+            notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.success1, 'success' ) );
+        }
+
+        const offset = pageIndex * pageSize;
+        const resultUsign = await getUsignByVcKey( accessToken, offset, pageSize );
+
+        if ( !resultUsign.error && resultUsign.data.content ) {
+            const dataUsignTmp = resultUsign.data.content ? resultUsign.data.content.map( ( sign ) => {
+                return new SignatureDTO( sign );
+            } ) : [];
+
+            setData( dataUsignTmp );
+        }
+    };
+
 
     return (
         <>
@@ -313,27 +351,29 @@ export default function EmailsList( {
                     <Col lg="12" sm={12}>
                         <Card>
                             <CardHeader>
+                                <CardHeader>
                                     <Row>
                                         <Col md={10}>
                                             <CardTitle>
-                                                <h4>{label.mail.label2}
+                                                <h4>{label.dashboard.label7}
                                                 </h4>
                                             </CardTitle>
                                         </Col>
                                         <Col md={2}>
                                             <Button
-                                                onClick={() => _openEmail()}
+                                                onClick={() => _openUsign()}
                                                 className="float-right"
                                                 color="primary"
                                                 data-placement="bottom"
-                                                id="tooltip811118932"
                                                 type="button"
                                                 size="sm"
                                             >
                                                 <i className="tim-icons icon-send padding-icon-text"/> {' '}
-                                                {label.common.send}                                        </Button>
+                                                {label.common.send}
+                                            </Button>
                                         </Col>
                                     </Row>
+                                </CardHeader>
 
                             </CardHeader>
                             <CardBody>
@@ -394,39 +434,19 @@ export default function EmailsList( {
 
                 </Row>
             </div>
-            {showEMail ? (
-                <ModalEMailRegistered
-                    id={emailRef.current}
-                    showMessage={showMessage}
-                    label={label}
-                    isOpen={showEMail}
-                    toggle={openEMailRegistered}
-                />
-            ) : null}
-            {showEMailStatus ? (
-                <ModalEMailRegisteredStatus
-                    id={emailRef.current}
-                    showMessage={showMessage}
-                    label={label}
-                    isOpen={showEMailStatus}
-                    toggle={openEMailRegisteredStatus}
-                />
-            ) : null}
 
-            {/* POPUP CREATE EMAIL REGISTERED */}
-            {modalEmailDisplay ? (
-                <ModalEMailSign
-                    attachedFile={[]}
-                    dossierId={dossierId}
-                    label={label}
-                    userId={userId}
-                    email={email}
-                    vckeySelected={vckeySelected}
-                    showMessage={showMessage}
-                    updateList={updateList}
+            {/* POPUP USIGN */}
+            {modalUsignlDisplay ? (
+                <ModalUploadSignDocument
                     showMessagePopup={showMessage}
-                    toggleModalDetails={_openEmail}
-                    modalDisplay={modalEmailDisplay}/>
+                    affaireId={null}
+                    vckeySelected={vckeySelected}
+                    cas={null}
+                    label={label}
+                    payment={payment.current}
+                    toggleModalDetails={_openUsign}
+                    attachEsignDocument={_attachEsignDocument}
+                    modalDisplay={modalUsignlDisplay}/>
             ) : null}
         </>
     );

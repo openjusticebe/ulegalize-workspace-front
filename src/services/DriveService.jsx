@@ -25,8 +25,7 @@ export async function getDossierFilesList( accessToken, path ) {
             }
         } )
         .catch(()=>{
-            return {data:[
-                ]}
+            return { data: [], error: true };
         });
     } catch ( e ) {
         return { error: true, data:[] };

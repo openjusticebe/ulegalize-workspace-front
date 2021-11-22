@@ -27,9 +27,10 @@ import { getLawfirmList } from '../../services/LawfirmsService';
 import { RegisterClientModal } from '../client/RegisterClientModal';
 import PrestationChrono from './PrestationChrono';
 import NotificationAlert from 'react-notification-alert';
-import ModalReportPrestation from '../../views/popup/reports/ModalReportPrestation';
 import { openMeeting } from '../../services/JitsiService';
 import ReactBSAlert from 'react-bootstrap-sweetalert';
+import { RegisterFraisModal } from '../Affaire/RegisterFraisModal';
+import { getOptionNotification } from '../../utils/AlertUtils';
 
 const map = require( 'lodash/map' );
 const isNil = require( 'lodash/isNil' );
@@ -154,10 +155,13 @@ class AdminNavbar extends React.Component {
         } );
     };
     // this function is to open the Search modal
-    togglePopupCreatePrestation = () => {
+    togglePopupCreatePrestation = (e, message, type) => {
         this.setState( {
             togglePopupCreatePrest: !this.state.togglePopupCreatePrest
         } );
+        if ( message && type ) {
+            this._showMessage(message, type);
+        }
     };
     // this function is to open the Search modal
     togglePopupCreateCab = () => {
@@ -180,13 +184,26 @@ class AdminNavbar extends React.Component {
     render() {
         const {
             label,
+            currency,
+            history,
             vckeySelected,
+            fullName,
+            language,
             userEmail,
-            enumRights
+            enumRights,
+            handleMiniClick,
+            sidebarOpened,
+            toggleSidebar,
+            location
         } = this.props;
         const {
             logout
         } = this.props.auth0;
+
+        const { togglePopupCreatePrest ,togglePopupCreateCab,
+            vcKeys,
+            color,
+            collapseOpen } = this.state;
 
         return (
             <>
@@ -195,8 +212,8 @@ class AdminNavbar extends React.Component {
                 </div>
                 <Navbar
                     className={classNames( 'navbar-absolute', {
-                        [ this.state.color ]:
-                        this.props.location.pathname.indexOf( 'full-screen-map' ) === -1
+                        [ color ]:
+                        location.pathname.indexOf( 'full-screen-map' ) === -1
                     } )}
                     expand="lg"
                 >
@@ -207,7 +224,7 @@ class AdminNavbar extends React.Component {
                                     className="minimize-sidebar btn-just-icon"
                                     color="link"
                                     id="tooltip209599"
-                                    onClick={this.props.handleMiniClick}
+                                    onClick={handleMiniClick}
                                 >
                                     <i className="tim-icons icon-align-center visible-on-sidebar-regular"/>
                                     <i className="tim-icons icon-bullet-list-67 visible-on-sidebar-mini"/>
@@ -222,13 +239,13 @@ class AdminNavbar extends React.Component {
                             </div>
                             <div
                                 className={classNames( 'navbar-toggle d-inline', {
-                                    toggled: this.props.sidebarOpened
+                                    toggled: sidebarOpened
                                 } )}
                             >
                                 <button
                                     className="navbar-toggler"
                                     type="button"
-                                    onClick={this.props.toggleSidebar}
+                                    onClick={toggleSidebar}
                                 >
                                     <span className="navbar-toggler-bar bar1"/>
                                     <span className="navbar-toggler-bar bar2"/>
@@ -253,7 +270,7 @@ class AdminNavbar extends React.Component {
                             <span className="navbar-toggler-bar navbar-kebab"/>
                             <span className="navbar-toggler-bar navbar-kebab"/>
                         </button>
-                        <Collapse navbar isOpen={this.state.collapseOpen}>
+                        <Collapse navbar isOpen={collapseOpen}>
                             <Nav className="ml-auto" navbar>
                                 {/*<NavItem>*/}
                                 {/*    <NavLink className="btn btn-primary"*/}
@@ -270,15 +287,15 @@ class AdminNavbar extends React.Component {
                                         <DropdownMenu>
                                             <DropdownItem tag={Link}
                                                           to="/admin/create/affaire">{label.header.label2}</DropdownItem>
-                                            {/*<DropdownItem tag={Link}*/}
-                                            {/*              onClick={this.togglePopupCreatePrestation}>{label.header.label10}</DropdownItem>*/}
+                                            <DropdownItem
+                                                          onClick={this.togglePopupCreatePrestation}>{label.header.label10}</DropdownItem>
                                             <DropdownItem tag={Link}
                                                           to="/admin/create/compta">{label.header.label3}</DropdownItem>
                                             <DropdownItem tag={Link}
                                                           to="/admin/create/invoice">{label.header.label4}</DropdownItem>
-                                            <DropdownItem tag={Link}
+                                            <DropdownItem
                                                           onClick={this.togglePopupClient}>{label.header.label5}</DropdownItem>
-                                            <DropdownItem tag={Link}
+                                            <DropdownItem
                                                           onClick={this.togglePopupCreateCab}>{label.header.label6}</DropdownItem>
                                         </DropdownMenu>
                                     </UncontrolledDropdown>
@@ -312,8 +329,8 @@ class AdminNavbar extends React.Component {
                                         }}
                                         className="border-outline-primary"
                                     >
-                                        <i className="tim-icons icon-calendar-60"/>
-                                        <span className="d-lg-none d-md-block">Open meeting</span>
+                                        <i className="tim-icons icon-calendar-60 padding-icon-text"/>
+                                        {label.header.label12}
                                     </Button>
                                 </InputGroup>
                                 <InputGroup tag="li">
@@ -342,10 +359,10 @@ class AdminNavbar extends React.Component {
                                         </Button></div>
                                         <PopoverBody>
                                             <PrestationChrono
-                                                history={this.props.history}
+                                                history={history}
                                                 _savePrestationmessage={this.props._savePrestationmessage}
-                                                label={this.props.label}
-                                                currency={this.props.currency}
+                                                label={label}
+                                                currency={currency}
                                             />
                                         </PopoverBody>
                                     </Popover>
@@ -368,7 +385,7 @@ class AdminNavbar extends React.Component {
                                             </DropdownItem>
                                         </NavLink>
                                         <DropdownItem divider tag="li"/>
-                                        {this.state.vcKeys ?  map(this.state.vcKeys, lawfirm =>
+                                        {vcKeys ?  map(vcKeys, lawfirm =>
                                         {
                                            return (
                                                <NavLink key={lawfirm.vckey} tag="li">
@@ -413,36 +430,51 @@ class AdminNavbar extends React.Component {
                         </Collapse>
                     </Container>
                 </Navbar>
-                {this.state.togglePopupCreateCab ?
+                {togglePopupCreateCab ?
                     (
                         <ModalCreateLawfirm
                             refreshVckeys={this._refreshVckeys}
                             showMessage={this._showMessage}
-                            history={this.props.history}
-                            label={this.props.label}
+                            history={history}
+                            label={label}
                             toggle={this.togglePopupCreateCab}
-                            openDialog={this.state.togglePopupCreateCab}/>
+                            openDialog={togglePopupCreateCab}/>
                     ) : null}
-                {this.state.togglePopupCreatePrest ?
+                {togglePopupCreatePrest ?
                     (
-                       <></>
+                        <RegisterFraisModal
+                            isFrais={null}
+                            history={history}
+                            isCreated={true}
+                            label={label}
+                            currency={currency}
+                            affaireId={null}
+                            vckeySelected={vckeySelected}
+                            fullName={fullName}
+                            language={language}
+                            clientUpdated={this.togglePopupCreatePrestation}
+                            showMessagePopupFrais={this._showMessage}
+                            toggleFraisModal={this.togglePopupCreatePrestation}
+                            toggleClientFrais={this.togglePopupCreatePrestation}
+                            modal={togglePopupCreatePrest}
+                        />
                     ) : null}
                 {this.state.togglePopupClient ?
                     (
                         <RegisterClientModal
                             isCreate={true}
                             userId={this.props.userId}
-                            label={this.props.label}
+                            label={label}
                             idClient={null}
-                            vckeySelected={this.props.vckeySelected}
-                            fullName={this.props.fullName}
-                            language={this.props.language}
+                            vckeySelected={vckeySelected}
+                            fullName={fullName}
+                            language={language}
                             clientCreated={this._clientCreated}
                             toggleClient={this.togglePopupClient}
                             modal={this.state.togglePopupClient}
                             emailUserConnected={userEmail}
                             enumRights={enumRights}
-                            history={this.props.history}
+                            history={history}
                         />
                     ) : null}
                 {this.state.deleteAlert}

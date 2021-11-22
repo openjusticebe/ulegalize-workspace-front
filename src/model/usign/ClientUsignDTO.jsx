@@ -12,6 +12,7 @@ export default class ClientUsignDTO {
     width = 160;
     height = 80;
     pageNumber = 1;
+    sequence = 1;
 
     constructor( profile ) {
         if ( profile ) {
@@ -27,6 +28,7 @@ export default class ClientUsignDTO {
             this.width = profile.width;
             this.height = profile.height;
             this.pageNumber = profile.pageNumber;
+            this.sequence = profile.sequence;
 
         }
     }

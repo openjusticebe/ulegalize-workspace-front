@@ -174,6 +174,22 @@ export async function createDossier( accessToken, dossier ) {
         return { error: true };
     }
 }
+export async function createDossierAndAttach( accessToken, caseId, dossier ) {
+    try {
+        return axios.post( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/affaires/attach/${caseId}`,
+            new DossierDTO(dossier) ,
+            {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            }
+        } ).catch(()=>{
+            return { error: true }
+        });
+    } catch ( e ) {
+        return { error: true };
+    }
+}
 export async function addShareUser( accessToken, data, isSendMail ) {
     try {
         return axios.post( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/affaires/users/share`,

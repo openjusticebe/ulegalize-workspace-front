@@ -35,6 +35,25 @@
     }
   }
 
+  .card-header[role="tab"] {
+    &:not([data-background-color]) {
+      background-color: $extra-light-gray;
+    }
+    padding: 15px 15px 0;
+    border: 0;
+    color: rgba($white, 0.8);
+
+    .card-title {
+      color: $white;
+      font-weight: 100;
+    }
+
+    .card-category {
+      color: $dark-gray;
+      margin-bottom: 5px;
+      font-weight: 300;
+    }
+  }
   .card-header {
     &:not([data-background-color]) {
       background-color: transparent;

@@ -3,6 +3,7 @@ export default class PaymentDTO {
     id;
     status;
     amount;
+    amountTt;
     updUser;
     updDate;
     creUser;
@@ -14,6 +15,7 @@ export default class PaymentDTO {
             this.id = data.id;
             this.status = data.status;
             this.amount = data.amount;
+            this.amountTt = data.amountTt;
             this.updUser = data.updUser;
             this.updDate = data.updDate;
             this.creUser = data.creUser;

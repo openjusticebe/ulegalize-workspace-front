@@ -19,6 +19,7 @@ import CorrespondenceList from './views/list/CorrespondenceList';
 import Payment from './views/Payment';
 import EmailsList from './views/list/EmailsList';
 import MailRouteList from './views/affaire/mail/MailRouteList';
+import UsignList from './views/list/UsignList';
 
 function routes (label) {
     return [
@@ -98,21 +99,30 @@ function routes (label) {
                     layout: '/admin'
                 },
                 {
-                    path: '/list/emails',
-                    name: label.routes.label11,
-                    rtlName: 'لوحة القيادة',
-                    mini: 'emails',
-                    right: [0, 2],
-                    component: EmailsList,
-                    layout: '/admin'
-                },
-                {
                     path: '/list/mails',
                     name: label.routes.label12,
                     rtlName: 'لوحة القيادة',
                     mini: 'mails',
-                    right: [0, 2],
+                    right: [0],
                     component: MailRouteList,
+                    layout: '/admin'
+                },
+                {
+                    path: '/list/emails',
+                    name: label.routes.label11,
+                    rtlName: 'لوحة القيادة',
+                    mini: 'emails',
+                    right: [0],
+                    component: EmailsList,
+                    layout: '/admin'
+                },
+                {
+                    path: '/list/usign',
+                    name: label.routes.label14,
+                    rtlName: 'لوحة القيادة',
+                    mini: 'usign',
+                    right: [0],
+                    component: UsignList,
                     layout: '/admin'
                 },
                 {

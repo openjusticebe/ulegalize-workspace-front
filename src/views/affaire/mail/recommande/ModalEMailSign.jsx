@@ -118,6 +118,12 @@ export default function ModalEMailSign( {
             setbtnIsLoading( false );
             return;
         }
+        if ( isNil( subject ) || isEmpty( subject ) ) {
+            showMessagePopup( label.etat.error8, 'danger' );
+            setbtnIsLoading( false );
+            return;
+        }
+
         if ( !validateEmail( client.email ) ) {
             showMessagePopup( label.affaire.error18, 'danger' );
             setbtnIsLoading( false );

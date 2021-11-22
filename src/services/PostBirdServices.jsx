@@ -76,8 +76,8 @@ export async function payDocument( accessToken , documentId) {
                 headers: {
                     Authorization: `Bearer ${accessToken}`
                 }
-            } ).catch( () => {
-            return { data: false, error: true };
+            } ).catch( (e) => {
+            return {error:true, data: e.response.status}
         } );
     } catch ( e ) {
         return { error: true };
@@ -88,20 +88,6 @@ export async function payDocument( accessToken , documentId) {
 export async function getTotalCost( accessToken , documentId) {
     try {
         return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/postBird/${documentId}/cost/total`,
-            {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`
-                }
-            } ).catch( () => {
-            return { data: false, error: true };
-        } );
-    } catch ( e ) {
-        return { error: true };
-    }
-}
-export async function getCosts( accessToken , documentId) {
-    try {
-        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/postBird/${documentId}/cost`,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`

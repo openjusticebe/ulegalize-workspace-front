@@ -98,7 +98,7 @@ export default function ModalReportPrestation( { openDialog, toggle, label, show
 
     const _loadClientOptions = async ( inputValue, callback ) => {
         const accessToken = await getAccessTokenSilently();
-        let result = await getClient( accessToken, inputValue, vckeySelected );
+        let result = await getClient( accessToken, inputValue );
 
         callback( map( result.data, data => {
             return new ItemDTO( { value: data.id, label: data.fullName, isDefault: data.email } );

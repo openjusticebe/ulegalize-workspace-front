@@ -35,7 +35,7 @@ import AsyncSelect from 'react-select/async/dist/react-select.esm';
 import { getAffairesByVcUserIdAndSearchCriteria } from '../../services/DossierService';
 import ReactBSAlert from 'react-bootstrap-sweetalert';
 import AsyncCreatableSelect from 'react-select/async-creatable/dist/react-select.esm';
-import { getFullUserList } from '../../services/SearchService';
+import { getContact } from '../../services/SearchService';
 
 const map = require( 'lodash/map' );
 const isNil = require( 'lodash/isNil' );
@@ -207,7 +207,7 @@ export default function AppointmentModalPanel( props ) {
             ...selectedEvent,
             participantsEmailItem: users,
             participantsEmail: map( users, val => {
-                return val.label;
+                return val.value;
             } )
         } );
     };
@@ -280,7 +280,7 @@ export default function AppointmentModalPanel( props ) {
 
     const _loadUsersOptions = async ( inputValue, callback ) => {
         const accessToken = await getAccessTokenSilently();
-        let result = await getFullUserList( accessToken, inputValue );
+        let result = await getContact( accessToken, inputValue );
 
         callback( map( result.data, data => {
             return new ItemDTO( data );

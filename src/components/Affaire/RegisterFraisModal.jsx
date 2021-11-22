@@ -11,6 +11,7 @@ import { Prestation } from './wizard/Prestation';
 
 moment.locale( 'fr' );
 registerLocale( 'fr', fr );
+const isNil = require( 'lodash/isNil' );
 
 export const RegisterFraisModal = ( props ) => {
     const {
@@ -22,8 +23,9 @@ export const RegisterFraisModal = ( props ) => {
         affaireId,
         showMessagePopupFrais,
         label,
+        isFrais
     } = props;
-    const [choice, setChoice] = useState( 'prestation' );
+    const [choice, setChoice] = useState( !isNil(isFrais) && isFrais ? 'frais' : 'prestation' );
 
     let content;
     let title ;

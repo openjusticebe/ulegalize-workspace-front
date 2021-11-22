@@ -7,7 +7,7 @@ export async function fetchLawfirmCalendar( accessToken, vckeySelected, callback
     try {
 
         return await axios.all( [
-            getClient(accessToken, "", vckeySelected)
+            getClient(accessToken, "")
         ] )
         .then(
             axios.spread( ( lawfirm, contacts ) => {

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Button,
+    ButtonGroup,
     Col,
     Collapse,
     FormGroup,
@@ -26,12 +27,14 @@ import ClientUsignDTO from '../../../model/usign/ClientUsignDTO';
 import PdfUpload from '../../../components/CustomUpload/PdfUpload';
 import { fetchUsignPaymentPrice } from '../../../services/transparency/PriceServices';
 import { validateEmail } from '../../../utils/Utils';
+import TableUsignSequence from './TableUsignSequence';
 
 const findIndex = require( 'lodash/findIndex' );
 const isNil = require( 'lodash/isNil' );
 const isEmpty = require( 'lodash/isEmpty' );
-const map = require( 'lodash/map' );
+const forEach = require( 'lodash/forEach' );
 const size = require( 'lodash/size' );
+const orderBy = require( 'lodash/orderBy' );
 
 export default function ModalUploadSignDocument( {
                                                      cas,
@@ -57,6 +60,7 @@ export default function ModalUploadSignDocument( {
     const [openCollapse, setOpenCollapse] = useState( true );
     const [priceUsign, setPriceUsign] = useState( 0 );
     const { getAccessTokenSilently } = useAuth0();
+    const [sequenceMethod, setSequenceMethod] = useState( 'parallel' );
 
     // transparency
     useEffect( () => {
@@ -93,6 +97,7 @@ export default function ModalUploadSignDocument( {
 
     const _esignDocument = async () => {
         setbtnIsLoading( true );
+        files.append( 'sequence', sequenceMethod );
         files.append( 'content', emailContent );
         files.append( 'contact', JSON.stringify( toRecipientEmail ) );
         // if exists
@@ -112,16 +117,35 @@ export default function ModalUploadSignDocument( {
         toggleModalDetails();
     };
 
-    const removeRecipient = ( id ) => {
+    const modifyIndexRecepient = (index, indexHover) => {
+        let recipientTmp = toRecipientEmail;
+        // become the hover
+        let sequenceToChange = recipientTmp[index].sequence;
+        recipientTmp[index].sequence = recipientTmp[indexHover].sequence;
+        //become
+        recipientTmp[indexHover].sequence = sequenceToChange;
+        let recipientTmpOrdered = orderBy( recipientTmp, ['sequence'] );
+
+        setToRecipientEmail( [...recipientTmpOrdered] );
+    };
+
+    const removeRecipient = ( seq ) => {
         let toRecipientEmailTemp = toRecipientEmail;
-        var index = findIndex( toRecipientEmailTemp, { 'id': id } );
+        var index = findIndex( toRecipientEmailTemp, { 'sequence': seq } );
         if ( index === 0 ) {
             toRecipientEmailTemp.splice( index, 1 );
 
         } else {
             toRecipientEmailTemp.splice( index, index );
         }
-        setToRecipientEmail( [...toRecipientEmailTemp] );
+        const recipientTmp = [...toRecipientEmail];
+
+        let sequence = 1;
+        forEach(recipientTmp, recipient =>{
+            recipient.sequence = sequence ;
+            sequence++;
+        })
+        setToRecipientEmail( recipientTmp );
     };
 
     const handleBirthDatePickerChange = ( date, e ) => {
@@ -155,7 +179,14 @@ export default function ModalUploadSignDocument( {
         const nb = nbtoRecipientEmail.current + 1;
         client.id = nb;
         nbtoRecipientEmail.current = nb;
-        setToRecipientEmail( [...toRecipientEmail, client] );
+        const recipientTmp = [...toRecipientEmail, client];
+
+        let sequence = 1;
+        forEach(recipientTmp, recipient =>{
+            recipient.sequence = sequence ;
+            sequence++;
+        })
+        setToRecipientEmail( recipientTmp );
         setClient( new ClientUsignDTO( null, label ) );
     };
 
@@ -307,30 +338,26 @@ export default function ModalUploadSignDocument( {
                             <Row>
                                 {/*<!-- add client to list recipient -->*/}
                                 {!isNil( toRecipientEmail ) && !isEmpty( toRecipientEmail ) ? (
-                                        <Col lg={12} md={12} sm={12}>
-                                            <Table responsive>
-                                                <tbody>
-                                                {!isNil( toRecipientEmail ) && !isEmpty( toRecipientEmail ) ? map( toRecipientEmail, row => {
-                                                    return (
-                                                        <tr key={row.id}>
-                                                            <td>
-                                                                <Button
-                                                                    color="primary"
-                                                                    className="btn-icon btn-link"
-                                                                    onClick={() => removeRecipient( row.id )}>
-                                                                    <i className="tim-icons icon-trash-simple "/>
-                                                                </Button>
-                                                            </td>
-                                                            <td>{row.email}</td>
-                                                            <td>{row.firstname}</td>
-                                                            <td>{row.lastname}</td>
-                                                            <td>{row.birthdate}</td>
-                                                        </tr>
-                                                    );
-                                                } ) : null}
-                                                </tbody>
-                                            </Table>
-                                        </Col>
+                                        <>
+                                            <Col className="text-align-center" lg={12} md={12} sm={12}>
+                                                <ButtonGroup>
+                                                    <Button color={sequenceMethod === 'parallel' ? 'primary': 'default'} onClick={() => setSequenceMethod( 'parallel' )}
+                                                            active={sequenceMethod === 'parallel'}>{label.usign.label1}</Button>
+                                                    <Button color={sequenceMethod === 'sequence' ? 'primary': 'default'} onClick={() => setSequenceMethod( 'sequence' )}
+                                                            active={sequenceMethod === 'sequence'}>{label.usign.label2}</Button>
+                                                </ButtonGroup>
+                                            </Col>
+                                            <Col lg={12} md={12} sm={12}>
+                                                <TableUsignSequence
+                                                    removeRecipient={removeRecipient}
+                                                    modifyIndexRecepient={modifyIndexRecepient}
+                                                    sequenceMethod={sequenceMethod}
+                                                    data={toRecipientEmail}
+                                                    count={size(toRecipientEmail)}
+                                                    label={label}
+                                                    />
+                                            </Col>
+                                        </>
                                     )
                                     : null}
                             </Row>
@@ -408,7 +435,7 @@ export default function ModalUploadSignDocument( {
                         <Button
                             disabled={btnIsLoading}
                             color="primary"
-                            onClick={!btnIsLoading ? _esignDocument : null}>{label.etat.send} ({size( toRecipientEmail ) * priceUsign}€)</Button>
+                            onClick={!btnIsLoading ? _esignDocument : null}>{label.etat.send} ({(size( toRecipientEmail ) * priceUsign).toFixed( 2 )}€)</Button>
                         <FormText color="muted">
                             {label.etat.label1} {' '} {priceUsign}€
                         </FormText>

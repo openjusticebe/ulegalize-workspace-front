@@ -1,7 +1,7 @@
 import axios from 'axios';
 import LawfirmDTO from '../../model/admin/generalInfo/LawfirmDTO';
 
-export async function getVirtualcabById(accessToken, key) {
+export async function getVirtualcabById(accessToken) {
     try {
         return await axios.get(`${process.env.REACT_APP_LAWFIRM_SERVER}v2/admin/lawfirm`, {
             headers: {

@@ -24,17 +24,16 @@ import Channels from '../../affaire/Channels';
 import ReactLoading from 'react-loading';
 import { useAuth0 } from '@auth0/auth0-react';
 import ChannelDTO from '../../../model/affaire/ChannelDTO';
-import { getChannelsByCaseId } from '../../../services/transparency/CaseService';
+import { getCaseById, getChannelsByCaseId } from '../../../services/transparency/CaseService';
 
 const map = require( 'lodash/map' );
 const size = require( 'lodash/size' );
 const isEmpty = require( 'lodash/isEmpty' );
 const isNil = require( 'lodash/isNil' );
-const upperFirst = require( 'lodash/upperFirst' );
 const MAX_HEIGHT_CARD = 700;
 
 export default function ModalUpdateCase( {
-                                             modalDetails, id, cas, email, label, enumRights,
+                                             modalDetails, caseId, email, label, enumRights,
                                              toggleModalDetails,
                                              downloadFile,
                                              showMessagePopup,
@@ -48,17 +47,22 @@ export default function ModalUpdateCase( {
     const [isLoading, setIsLoading] = useState( false );
     const [channels, setChannels] = useState( [] );
     const [vTabs, setvTabs] = useState( 'vt1' );
+    const affaireIdRef = useRef( null );
     const updateChannelRef = useRef( false );
 
     const channelSize = channels ? size( channels ) : 0;
-
-    const currentState = upperFirst( cas.groupment.currentWorkflowStep.label );
 
     useEffect( () => {
         (async () => {
             const accessToken = await getAccessTokenSilently();
 
-            let result = await getChannelsByCaseId( accessToken, cas.id );
+            const resultCase = await getCaseById(accessToken, caseId);
+
+            if(!resultCase.error){
+                affaireIdRef.current = resultCase.data && resultCase.data.affaireItem ? resultCase.data.affaireItem.value : null
+            }
+
+            let result = await getChannelsByCaseId( accessToken, caseId );
             if ( !result.error && !isEmpty(result.data) ) {
                 const channelTemp = map(result.data, data =>{
                     return new ChannelDTO(data);
@@ -66,7 +70,6 @@ export default function ModalUpdateCase( {
                 setChannels( channelTemp );
 
                 setvTabs(channelTemp[0].id)
-
             }
         })();
     }, [getAccessTokenSilently, updateChannelRef.current] );
@@ -77,8 +80,8 @@ export default function ModalUpdateCase( {
     }
     return (
         <Modal size='xl' className="custom-large-modal-xl" isOpen={modalDetails} toggle={toggleModalDetails}>
-            <ModalHeader className="justify-content-center" toggle={toggleModalDetails}>
-                {label.casJuridiqueForm.label104} {id} <Badge bsStyle="primary">{currentState}</Badge>
+            <ModalHeader tag={'h5'} className="justify-content-center" toggle={toggleModalDetails}>
+                {label.casJuridiqueForm.label104} {caseId}
             </ModalHeader>
             <ModalBody>
                 <Row>
@@ -98,8 +101,8 @@ export default function ModalUpdateCase( {
                                     emailPayUser={email}
                                     updateCaseRef={isLoading}
                                     clientId={null}
-                                    affaireId={cas.affaireItem ? cas.affaireItem.value : null}
-                                    cas={cas}
+                                    caseId={caseId}
+                                    affaireId={affaireIdRef.current}
                                     dossierType={null}
                                     label={label}
                                     partie={null}
@@ -173,7 +176,7 @@ export default function ModalUpdateCase( {
                                                                 history={history}
                                                                 enumRights={enumRights}
                                                                 emailPayUser={email}
-                                                                affaireId={cas.affaireItem ? cas.affaireItem.value : null}
+                                                                affaireId={affaireIdRef.current}
                                                                 showMessagePopup={showMessagePopup}
                                                                 isLoadingSave={isLoading}
                                                                 label={label}

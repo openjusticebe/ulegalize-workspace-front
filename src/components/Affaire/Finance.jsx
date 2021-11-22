@@ -16,7 +16,8 @@ export default function Finance( props ) {
         label,
         affaireid,
         currency,
-        vckeySelected
+        vckeySelected,
+        updateFinance
     } = props;
     const notificationAlert = useRef( null );
     const { getAccessTokenSilently } = useAuth0();
@@ -35,7 +36,7 @@ export default function Finance( props ) {
             }
 
         })();
-    }, [getAccessTokenSilently] );
+    }, [getAccessTokenSilently, updateFinance] );
 
     return (
         <>

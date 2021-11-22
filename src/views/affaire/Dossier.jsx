@@ -109,6 +109,7 @@ export default function Dossier( props ) {
     const [channels, setChannels] = useState( [] );
     // force update within composant
     const [updatePrestation, setUpdatePrestation] = useState( false );
+    const [updateFinance, setUpdateFinance] = useState( false );
     const [updateFrais, setUpdateFrais] = useState( false );
     const updateCase = useRef( false );
     const casNotExist = useRef( true );
@@ -247,6 +248,7 @@ export default function Dossier( props ) {
     const showMessagePopupFrais = ( message, type ) => {
         if ( message && type ) {
             setUpdatePrestation( !updatePrestation );
+            setUpdateFinance( !updateFinance );
             notificationAlert.current.notificationAlert( getOptionNotification( message, type ) );
         }
     };
@@ -254,6 +256,7 @@ export default function Dossier( props ) {
     const showMessagePopupFraisAdmin = ( message, type ) => {
         if ( message && type ) {
             setUpdateFrais( !updateFrais );
+            setUpdateFinance( !updateFinance );
             notificationAlert.current.notificationAlert( getOptionNotification( message, type ) );
         }
     };
@@ -268,6 +271,7 @@ export default function Dossier( props ) {
 
         if ( message && type ) {
             setUpdateFrais( !updateFrais );
+            setUpdateFinance( !updateFinance );
             notificationAlert.current.notificationAlert( getOptionNotification( message, type ) );
         }
 
@@ -783,6 +787,7 @@ export default function Dossier( props ) {
                                     <Card className="card-chart" style={{ minHeight: MAX_HEIGHT_CARD }}>
                                         <CardBody>
                                             <Agenda
+                                                dossierItem={new ItemDTO({value: dossier.id, label : dossier.label})}
                                                 onlyDossier={true}
                                                 auth0={props.auth0}
                                                 dossierId={affaireId}
@@ -811,8 +816,6 @@ export default function Dossier( props ) {
                             </TabPane>
                             <TabPane tabId="dev1">
                                 {verticalTabsIcons === 'dev1' ? (
-                                    <Card className="card-chart" style={{ minHeight: MAX_HEIGHT_CARD }}>
-                                        <CardBody>
                                             <Mail
                                                 userId={userId}
                                                 email={email}
@@ -820,8 +823,6 @@ export default function Dossier( props ) {
                                                 vckeySelected={vckeySelected}
                                                 showMessage={showMessagePopup}
                                                 label={label}/>
-                                        </CardBody>
-                                    </Card>
                                 ) : null}
                             </TabPane>
                             <TabPane tabId="dev2">
@@ -1012,6 +1013,7 @@ export default function Dossier( props ) {
                                     <TabPane tabId="preview">
                                         {affaireId ? (
                                             <Finance
+                                                updateFinance={updateFinance}
                                                 label={label}
                                                 currency={currency}
                                                 vckeySelected={vckeySelected}
@@ -1272,13 +1274,12 @@ export default function Dossier( props ) {
                 {openModalFrais ?
                     (
                         <RegisterFraisModal
+                            isFrais={horizontalPrestationTabs === 'frais'}
                             history={props.history}
                             isCreated={true}
-                            profile={props.profile}
                             label={label}
                             currency={currency}
                             affaireId={affaireId}
-                            idClient={clientModal}
                             vckeySelected={vckeySelected}
                             fullName={props.fullName}
                             language={props.language}

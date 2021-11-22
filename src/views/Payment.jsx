@@ -17,19 +17,16 @@ import {
 } from 'reactstrap';
 import { getOptionInfoNotification, getOptionNotification } from '../utils/AlertUtils';
 import NotificationAlert from 'react-notification-alert';
-import { getVirtualcabById } from '../services/generalInfo/LawfirmService';
 import { useAuth0 } from '@auth0/auth0-react';
-import LawfirmDTO from '../model/admin/generalInfo/LawfirmDTO';
 import PaymentMethod from './payment/PaymentMethod';
 import Transactions from './payment/Transactions';
-import {
-    checkPaymentActivated,
-    getLastPaymentError
-} from '../services/PaymentServices';
+import { checkPaymentActivated, getLastPaymentError, updateInvoiceAddress } from '../services/PaymentServices';
 import PaymentMethodToPay from './payment/PaymentMethodToPay';
 
 import { loadStripe } from '@stripe/stripe-js';
 import ReactLoading from 'react-loading';
+import PaymentAddress from './payment/PaymentAddress';
+import { validateEmail } from '../utils/Utils';
 
 const stripePromise = loadStripe( process.env.REACT_APP_STRIPE );
 
@@ -46,7 +43,6 @@ export default function Payment( props ) {
         vckeySelected
     } = props;
     const [verticalTabsIcons, setVerticalTabsIcons] = useState( 'payment' );
-    const [lawfirmDto, setLawfirmDto] = useState( null );
     const notificationAlert = useRef( null );
     const [paymentLoading, setPaymentLoading] = useState( false );
     const [paymentLoadingData, setPaymentLoadingData] = useState( true );
@@ -58,15 +54,14 @@ export default function Payment( props ) {
     useEffect( () => {
         (async () => {
             const accessToken = await getAccessTokenSilently();
-            let virtualCabtResult = await getVirtualcabById( accessToken );
+            // check if email/address is set in the workspace
             let checkResult = await checkPaymentActivated( accessToken );
             let lastErrorResult = await getLastPaymentError( accessToken );
 
-            if ( lastErrorResult.data && !isEmpty(lastErrorResult.data) ) {
+            if ( lastErrorResult.data && !isEmpty( lastErrorResult.data ) ) {
                 setPaymentErrorModal( lastErrorResult.data );
             }
             checkResultRef.current = checkResult.data;
-            setLawfirmDto( new LawfirmDTO( virtualCabtResult.data ) );
             setPaymentLoadingData( false );
 
         })();
@@ -79,7 +74,9 @@ export default function Payment( props ) {
                 history.replace();
             }
             let paramsLocation = new URLSearchParams( location.search );
-            if ( paramsLocation && paramsLocation.get( 'successstripe' ) === 'success' ) {
+            if ( paramsLocation
+                && paramsLocation.get( 'successstripe' ) === 'success'
+                && paramsLocation.get( 'redirect_status' ) !== 'failed' ) {
                 // redirct
                 props.history.push( { pathname: `/admin/payment`, state: { stripe: true } } );
             }
@@ -87,9 +84,9 @@ export default function Payment( props ) {
         })();
     }, [location.state] );
 
-    const _isPaymentLoading = async ( value ) => {
+    const _isPaymentLoading = async ( value, checkActivated ) => {
         // only check if the payment is not loading
-        if ( !value ) {
+        if ( checkActivated === true ) {
 
             const accessToken = await getAccessTokenSilently();
             let checkResult = await checkPaymentActivated( accessToken );
@@ -102,7 +99,7 @@ export default function Payment( props ) {
     };
 
     const _closePaymentIntent = () => {
-        setPaymentErrorModal(null);
+        setPaymentErrorModal( null );
 
     };
     const changeUsersTab = ( e, tadName ) => {
@@ -111,6 +108,51 @@ export default function Payment( props ) {
     };
     const _showMessage = ( message, type ) => {
         notificationAlert.current.notificationAlert( getOptionNotification( message, type ) );
+    };
+
+    const _handleUpdateLawfirmAddress = async ( lawfirmInvoice ) => {
+        setPaymentLoading( true );
+        const accessToken = await getAccessTokenSilently();
+
+        if ( (!isNil( lawfirmInvoice.email ) || isEmpty( lawfirmInvoice.email ))
+            && !validateEmail( lawfirmInvoice.email ) ) {
+            setPaymentLoading( false );
+            _showMessage( label.affaire.error18, 'danger' );
+            return false;
+        }
+        if ( (isNil( lawfirmInvoice.city ) || isEmpty( lawfirmInvoice.city )) ) {
+            setPaymentLoading( false );
+            _showMessage( label.affaire.error22, 'danger' );
+            return false;
+        }
+        if ( (isNil( lawfirmInvoice.street ) || isEmpty( lawfirmInvoice.street )) ) {
+            setPaymentLoading( false );
+            _showMessage( label.affaire.error23, 'danger' );
+            return false;
+        }
+        if ( (isNil( lawfirmInvoice.countryCode ) || isEmpty( lawfirmInvoice.countryCode )) ) {
+            setPaymentLoading( false );
+            _showMessage( label.affaire.error24, 'danger' );
+            return false;
+        }
+
+        const resultUpdate = await updateInvoiceAddress( accessToken, lawfirmInvoice );
+
+        if ( !resultUpdate.error ) {
+            _showMessage( label.common.success1, 'primary' );
+        } else if ( resultUpdate.error && resultUpdate.data === 403 ) {
+            _showMessage( label.payment.error7, 'danger' );
+            setPaymentLoading( false );
+
+            return false;
+        } else {
+            _showMessage( label.payment.error1, 'danger' );
+            setPaymentLoading( false );
+
+            return false;
+        }
+        setPaymentLoading( false );
+        return true;
     };
 
     return (
@@ -128,71 +170,108 @@ export default function Payment( props ) {
                             <CardBody>
                                 {paymentLoadingData ? (
                                     <ReactLoading className="loading" height={'20%'} width={'20%'}/>
-                                ): (
-                                <Row>
-                                    <Col lg="12" md={12}>
-                                        {/* color-classes: "nav-pills-primary", "nav-pills-info", "nav-pills-success", "nav-pills-warning","nav-pills-danger" */}
-                                        <Nav className="nav-pills-info" pills>
-                                            <NavItem>
-                                                <NavLink
-                                                    data-toggle="tab"
-                                                    href="#pablo"
-                                                    className={
-                                                        verticalTabsIcons === 'payment'
-                                                            ? 'active'
-                                                            : ''
-                                                    }
-                                                    onClick={e =>
-                                                        changeUsersTab( e, 'payment' )
+                                ) : (
+                                    <Row>
+                                        <Col lg="12" md={12}>
+                                            {/* color-classes: "nav-pills-primary", "nav-pills-info", "nav-pills-success", "nav-pills-warning","nav-pills-danger" */}
+                                            <Nav className="nav-pills-info" pills>
+                                                <NavItem>
+                                                    <NavLink
+                                                        data-toggle="tab"
+                                                        href="#pablo"
+                                                        className={
+                                                            verticalTabsIcons === 'payment'
+                                                                ? 'active'
+                                                                : ''
+                                                        }
+                                                        onClick={e =>
+                                                            changeUsersTab( e, 'payment' )
 
-                                                    }
-                                                >
-                                                    <i className="tim-icons icon-lock-circle"/>
-                                                    {label.payment.label1}
-                                                </NavLink>
-                                            </NavItem>
-                                            <NavItem>
-                                                <NavLink
-                                                    data-toggle="tab"
-                                                    href="#pablo"
-                                                    className={
-                                                        verticalTabsIcons === 'transaction'
-                                                            ? 'active'
-                                                            : ''
-                                                    }
-                                                    onClick={e =>
-                                                        changeUsersTab( e, 'transaction' )
+                                                        }
+                                                    >
+                                                        <i className="tim-icons icon-credit-card"/>
+                                                        {label.payment.label1}
+                                                    </NavLink>
+                                                </NavItem>
+                                                <NavItem>
+                                                    <NavLink
+                                                        data-toggle="tab"
+                                                        href="#pablo"
+                                                        className={
+                                                            verticalTabsIcons === 'transaction'
+                                                                ? 'active'
+                                                                : ''
+                                                        }
+                                                        onClick={e =>
+                                                            changeUsersTab( e, 'transaction' )
 
-                                                    }
-                                                >
-                                                    <i className="tim-icons icon-lock-circle"/>
-                                                    {label.payment.label2}
-                                                </NavLink>
-                                            </NavItem>
-                                        </Nav>
-                                        <TabContent activeTab={verticalTabsIcons}>
-                                            <TabPane tabId="payment">
-                                                <PaymentMethod
-                                                    paymentUpdated={paymentUpdated.current}
-                                                    isPaymentLoading={_isPaymentLoading}
-                                                    paymentLoading={paymentLoading}
-                                                    checkResult={checkResultRef.current}
-                                                    currency={currency}
-                                                    showMessage={_showMessage}
-                                                    lawfirmDto={lawfirmDto}
-                                                    email={email}
-                                                    vckeySelected={vckeySelected}
-                                                    label={label}
-                                                />
-                                            </TabPane>
-                                            <TabPane tabId="transaction">
-                                                {verticalTabsIcons === 'transaction' ? (
-                                                    <Transactions label={label}/>
-                                                ) : null}
-                                            </TabPane>
-                                        </TabContent>
-                                    </Col>
-                                </Row>
+                                                        }
+                                                    >
+                                                        <i className="tim-icons icon-lock-circle"/>
+                                                        {label.payment.label2}
+                                                    </NavLink>
+                                                </NavItem>
+                                                <NavItem>
+                                                    <NavLink
+                                                        data-toggle="tab"
+                                                        href="#"
+                                                        className={
+                                                            verticalTabsIcons === 'address'
+                                                                ? 'active'
+                                                                : ''
+                                                        }
+                                                        onClick={e =>
+                                                            changeUsersTab( e, 'address' )
+
+                                                        }
+                                                    >
+                                                        <i className="tim-icons icon-world"/>
+                                                        {label.payment.label11}
+                                                    </NavLink>
+                                                </NavItem>
+                                            </Nav>
+                                            <TabContent activeTab={verticalTabsIcons}>
+                                                <TabPane tabId="payment">
+                                                    <PaymentMethod
+                                                        paymentUpdated={paymentUpdated.current}
+                                                        isPaymentLoading={_isPaymentLoading}
+                                                        handleUpdateLawfirmAddress={_handleUpdateLawfirmAddress}
+                                                        paymentLoading={paymentLoading}
+                                                        checkResult={checkResultRef.current}
+                                                        currency={currency}
+                                                        showMessage={_showMessage}
+                                                        email={email}
+                                                        vckeySelected={vckeySelected}
+                                                        label={label}
+                                                    />
+                                                </TabPane>
+                                                <TabPane tabId="transaction">
+                                                    {verticalTabsIcons === 'transaction' ? (
+                                                        <Transactions label={label}/>
+                                                    ) : null}
+                                                </TabPane>
+                                                <TabPane tabId="address">
+                                                    {verticalTabsIcons === 'address' ? (
+                                                        <Row>
+                                                            <Col lg={8}>
+                                                                <PaymentAddress
+                                                                    isPopup={false}
+                                                                    togglePopupLawfirmEmail={null}
+                                                                    paymentLoading={paymentLoading}
+                                                                    vckeySelected={vckeySelected}
+                                                                    checkResult={checkResultRef.current}
+                                                                    label={label}
+                                                                    showMessage={_showMessage}
+                                                                    handleUpdateLawfirmAddress={_handleUpdateLawfirmAddress}
+                                                                />
+                                                            </Col>
+                                                        </Row>
+
+                                                    ) : null}
+                                                </TabPane>
+                                            </TabContent>
+                                        </Col>
+                                    </Row>
                                 )}
                             </CardBody>
                         </Card>
@@ -201,7 +280,7 @@ export default function Payment( props ) {
                 {!isNil( paymentErrorModal ) ? (
                     <Elements stripe={stripePromise}>
 
-                    <PaymentMethodToPay
+                        <PaymentMethodToPay
                             paymentUpdated={paymentUpdated.current}
                             isPaymentLoading={_isPaymentLoading}
                             closePaymentIntent={_closePaymentIntent}
@@ -210,7 +289,6 @@ export default function Payment( props ) {
                             checkResult={checkResultRef.current}
                             currency={currency}
                             showMessage={_showMessage}
-                            lawfirmDto={lawfirmDto}
                             email={email}
                             vckeySelected={vckeySelected}
                             label={label}

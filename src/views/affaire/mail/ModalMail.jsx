@@ -44,7 +44,6 @@ import { getStatusPostBird } from './StatusPostBird';
 import ItemDTO from '../../../model/ItemDTO';
 import PriceDetail from '../../../model/postbird/PriceDetail';
 import ReactLoading from 'react-loading';
-import PriceDifference from '../../../model/postbird/PriceDifference';
 import { getStatusBPostPostBird } from './StatusBPostPostBird';
 import MailPostBirdGenerator from './MailPostBirdGenerator';
 import classnames from 'classnames';
@@ -72,7 +71,6 @@ export default function ModalMail( {
     const [countryList, setCountryList] = useState( [] );
     const [isLoading, setIsLoading] = useState( false );
     const [choice, setChoice] = useState( 'addAddressPage' );
-    const [costs, setCosts] = useState( null );
     const [totalCost, setTotalCost] = useState( 0 );
     const [bpostStatus, setBpostStatus] = useState( 0 );
     const [horizontalTabs, setHorizontalTabs] = useState( 'document' );
@@ -80,10 +78,6 @@ export default function ModalMail( {
     const [updateDossierDisable, setUpdateDossierDisable] = useState( true );
     // use for timer
     const documentIdRef = useRef( documentId );
-    const costColor = useRef( 0 );
-    const costPrior = useRef( 0 );
-    const costRegistred = useRef( 0 );
-    const costTwoSide = useRef( 0 );
 
     const { getAccessTokenSilently } = useAuth0();
 
@@ -137,32 +131,7 @@ export default function ModalMail( {
         if ( !isNil( documentIdRef.current ) ) {
 
             const accessToken = await getAccessTokenSilently();
-            // get cost
-            let resultCost = await getCosts( accessToken, documentIdRef.current );
 
-            if ( !resultCost.error ) {
-                const costTemp = map( resultCost.data, data => {
-                    return new PriceDifference( data );
-                } );
-
-                forEach( costTemp, cost => {
-                    if ( cost.name === 'color' ) {
-                        costColor.current = cost.total;
-                    }
-                    if ( cost.name === 'base_price_prior_send_cost' ) {
-                        costPrior.current = cost.total;
-                    }
-                    if ( cost.name === 'registered' ) {
-                        costRegistred.current = cost.total;
-                    }
-                    if ( cost.name === 'two-sided' ) {
-                        costTwoSide.current = cost.total;
-                    }
-
-                } );
-
-                setCosts( costTemp );
-            }
             let resultTotalCost = await getTotalCost( accessToken, documentIdRef.current );
             if ( !resultTotalCost.error ) {
                 const costTemp = new PriceDetail( resultTotalCost.data );
@@ -204,7 +173,7 @@ export default function ModalMail( {
 
         const result = await payDocument( accessToken, documentIdRef.current );
 
-        if ( result.data ) {
+        if ( !result.error ) {
             const documentTmp = new DocumentDTO( result.data );
             setDocument( documentTmp );
             showMessage( label.mail.success3, 'primary' );
@@ -512,20 +481,37 @@ export default function ModalMail( {
                                                         </CardBody>
                                                     </Card>
                                                 </Col>
-                                                {/* BPost DOCUMENT SENT */}
-                                                {!isNil( document ) && parseInt( document.status ) >= 13 ? (
-                                                    <Col md={6}>
-                                                        <Card>
-                                                            <CardHeader>
-                                                                {label.mail.bpostStatus}
-                                                            </CardHeader>
-                                                            <CardBody>
-                                                                {getStatusBPostPostBird( bpostStatus, label )}
 
-                                                            </CardBody>
-                                                        </Card>
-                                                    </Col>
-                                                ) : null}
+                                                <Col md={6}>
+                                                    {/* GET COST */}
+                                                    { !isNil( document ) && document.status
+                                                    && parseInt( document.status ) >= 0 && parseInt( document.status ) < 11 ? (
+                                                        <>
+                                                            <h4>{label.mail.label22}</h4>
+                                                            <strong>{totalCost.totalPriceExVat} € </strong>
+                                                            {totalCost.totalPriceInVat ? (
+                                                                   <>
+                                                                       <h4>{label.mail.label23}</h4>
+                                                                       <strong>{totalCost.totalPriceInVat} € </strong>
+                                                                   </>
+                                                            ): null}
+                                                        </>
+                                                    ) : null}
+                                                </Col>
+
+                                                <Col md={12}>
+                                                    {/* BPost DOCUMENT SENT */}
+                                                    {!isNil( document ) && parseInt( document.status ) >= 13 && !isEmpty( document.trackingCode ) ? (
+                                                        <>
+                                                            {getStatusBPostPostBird( bpostStatus, label )} {' '}
+                                                            <a
+                                                                target="_blank" rel="noopener noreferrer"
+                                                                href={`${process.env.REACT_APP_BPOST_TRACK}${document.trackingCode}`}>
+                                                                {process.env.REACT_APP_BPOST_TRACK}{document.trackingCode}
+                                                            </a>
+                                                        </>
+                                                    ) : null}
+                                                </Col>
                                             </Row>
                                             {/* if it's not ok refresh status */}
                                             {!isNil( document ) && document.status !== '8' ? (
@@ -695,111 +681,125 @@ export default function ModalMail( {
                                         <TabPane tabId="sendOptions">
 
                                             {/**** SENDING OPTION ****/}
-                                            {/**** color ****/}
                                             <Row>
-                                                <Col md="12">
-                                                    <FormGroup check>
-                                                        <Label check>
-                                                            <Input
-                                                                disabled={parseInt( document.status ) >= 11}
-                                                                defaultChecked={document.color}
-                                                                type="checkbox"
-                                                                onChange={( e ) => {
-                                                                    setDocument( {
-                                                                        ...document,
-                                                                        color: e.target.checked
-                                                                    } );
-                                                                    document.color = e.target.checked;
-                                                                    _updateSendingOptions();
-                                                                }}
-                                                            />{' '}
-                                                            <span className={`form-check-sign`}>
+                                                <Col md={6}>
+                                                    {/**** color ****/}
+                                                    <Row>
+                                                        <Col md="12">
+                                                            <FormGroup check>
+                                                                <Label check>
+                                                                    <Input
+                                                                        disabled={parseInt( document.status ) >= 11}
+                                                                        defaultChecked={document.color}
+                                                                        type="checkbox"
+                                                                        onChange={( e ) => {
+                                                                            setDocument( {
+                                                                                ...document,
+                                                                                color: e.target.checked
+                                                                            } );
+                                                                            document.color = e.target.checked;
+                                                                            _updateSendingOptions();
+                                                                        }}
+                                                                    />{' '}
+                                                                    <span className={`form-check-sign`}>
                                                                 <span
-                                                                    className="check"> {label.mail.label26} ({costColor.current} €)</span>
+                                                                    className="check"> {label.mail.label26}</span>
                                                             </span>
-                                                        </Label>
-                                                    </FormGroup>
-                                                </Col>
-                                            </Row>
-                                            {/**** doubleSide ****/}
-                                            <Row>
-                                                <Col md="12">
-                                                    <FormGroup check>
-                                                        <Label check>
-                                                            <Input
-                                                                defaultChecked={document.twoSided}
-                                                                disabled={parseInt( document.status ) >= 11}
-                                                                type="checkbox"
-                                                                onChange={( e ) => {
-                                                                    setDocument( {
-                                                                        ...document,
-                                                                        twoSided: e.target.checked
-                                                                    } );
-                                                                    document.twoSided = e.target.checked;
-                                                                    _updateSendingOptions();
-                                                                }}
-                                                            />{' '}
-                                                            <span className={`form-check-sign`}>
+                                                                </Label>
+                                                            </FormGroup>
+                                                        </Col>
+                                                    </Row>
+                                                    {/**** doubleSide ****/}
+                                                    <Row>
+                                                        <Col md="12">
+                                                            <FormGroup check>
+                                                                <Label check>
+                                                                    <Input
+                                                                        defaultChecked={document.twoSided}
+                                                                        disabled={parseInt( document.status ) >= 11}
+                                                                        type="checkbox"
+                                                                        onChange={( e ) => {
+                                                                            setDocument( {
+                                                                                ...document,
+                                                                                twoSided: e.target.checked
+                                                                            } );
+                                                                            document.twoSided = e.target.checked;
+                                                                            _updateSendingOptions();
+                                                                        }}
+                                                                    />{' '}
+                                                                    <span className={`form-check-sign`}>
                                                                 <span
-                                                                    className="check"> {label.mail.label27} ({costTwoSide.current} €)</span>
+                                                                    className="check"> {label.mail.label27} </span>
                                                             </span>
-                                                        </Label>
-                                                    </FormGroup>
-                                                </Col>
-                                            </Row>
-                                            {/**** registered ****/}
-                                            <Row>
-                                                <Col md="12">
-                                                    <FormGroup check>
-                                                        <Label check>
-                                                            <Input
-                                                                defaultChecked={document.registered}
-                                                                disabled={parseInt( document.status ) >= 11}
-                                                                type="checkbox"
-                                                                onChange={( e ) => {
-                                                                    setDocument( {
-                                                                        ...document,
-                                                                        registered: e.target.checked
-                                                                    } );
-                                                                    document.registered = e.target.checked;
-                                                                    _updateSendingOptions();
-                                                                }}
-                                                            />{' '}
-                                                            <span className={`form-check-sign`}>
+                                                                </Label>
+                                                            </FormGroup>
+                                                        </Col>
+                                                    </Row>
+                                                    {/**** registered ****/}
+                                                    <Row>
+                                                        <Col md="12">
+                                                            <FormGroup check>
+                                                                <Label check>
+                                                                    <Input
+                                                                        defaultChecked={document.registered}
+                                                                        disabled={parseInt( document.status ) >= 11}
+                                                                        type="checkbox"
+                                                                        onChange={( e ) => {
+                                                                            setDocument( {
+                                                                                ...document,
+                                                                                registered: e.target.checked
+                                                                            } );
+                                                                            document.registered = e.target.checked;
+                                                                            _updateSendingOptions();
+                                                                        }}
+                                                                    />{' '}
+                                                                    <span className={`form-check-sign`}>
                                                                 <span
-                                                                    className="check"> {label.mail.label28} ({costRegistred.current} €)</span>
+                                                                    className="check"> {label.mail.label28} </span>
                                                             </span>
-                                                        </Label>
-                                                    </FormGroup>
-                                                </Col>
-                                            </Row>
-                                            {/**** prior ****/}
-                                            <Row>
-                                                <Col md="12">
-                                                    <FormGroup check>
-                                                        <Label check>
-                                                            <Input
-                                                                defaultChecked={document.prior}
-                                                                type="checkbox"
-                                                                disabled={parseInt( document.status ) >= 11}
-                                                                onChange={( e ) => {
-                                                                    setDocument( {
-                                                                        ...document,
-                                                                        prior: e.target.checked
-                                                                    } );
-                                                                    document.prior = e.target.checked;
-                                                                    _updateSendingOptions();
-                                                                }}
-                                                            />{' '}
-                                                            <span className={`form-check-sign`}>
+                                                                </Label>
+                                                            </FormGroup>
+                                                        </Col>
+                                                    </Row>
+                                                    {/**** prior ****/}
+                                                    <Row>
+                                                        <Col md="12">
+                                                            <FormGroup check>
+                                                                <Label check>
+                                                                    <Input
+                                                                        defaultChecked={document.prior}
+                                                                        type="checkbox"
+                                                                        disabled={parseInt( document.status ) >= 11}
+                                                                        onChange={( e ) => {
+                                                                            setDocument( {
+                                                                                ...document,
+                                                                                prior: e.target.checked
+                                                                            } );
+                                                                            document.prior = e.target.checked;
+                                                                            _updateSendingOptions();
+                                                                        }}
+                                                                    />{' '}
+                                                                    <span className={`form-check-sign`}>
                                                                 <span
-                                                                    className="check"> {label.mail.label29} ({costPrior.current} €)</span>
+                                                                    className="check"> {label.mail.label29} </span>
                                                             </span>
-                                                        </Label>
-                                                    </FormGroup>
-                                                </Col>
-                                            </Row>
+                                                                </Label>
+                                                            </FormGroup>
+                                                        </Col>
+                                                    </Row>
 
+                                                </Col>
+                                                <Col md={6}>
+                                                    {/* GET COST */}
+                                                    { !isNil( document ) && document.status
+                                                    && parseInt( document.status ) >= 0 && parseInt( document.status ) < 11 ? (
+                                                        <>
+                                                            <h4>{label.mail.label22}</h4>
+                                                            <strong>{totalCost.totalPriceExVat} € </strong>
+                                                        </>
+                                                    ) : null}
+                                                </Col>
+                                            </Row>
                                         </TabPane>
 
                                         <TabPane tabId="showMail">
@@ -851,16 +851,6 @@ export default function ModalMail( {
                                         </tr>
                                         </tbody>
                                     </Table>
-                                </>
-                            ) : null}
-                        </Col>
-                        <Col md={3}>
-                            {/* GET COST */}
-                            {!isNil( costs ) && !isNil( document ) && document.status
-                            && parseInt( document.status ) >= 0 && parseInt( document.status ) < 11 ? (
-                                <>
-                                    <h4>{label.mail.label23}</h4>
-                                    <strong>{totalCost.totalPriceInVat} € </strong> ( {totalCost.totalPriceExVat} € {label.mail.label22})
                                 </>
                             ) : null}
                         </Col>

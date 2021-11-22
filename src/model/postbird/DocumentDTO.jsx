@@ -18,6 +18,7 @@ export default class DocumentDTO {
     registered;
     twoSided = true;
     color;
+    trackingCode;
 
     constructor( data ) {
         if(data) {
@@ -38,6 +39,7 @@ export default class DocumentDTO {
             this.registered = data.registered;
             this.twoSided = data.twoSided;
             this.color = data.color;
+            this.trackingCode = data.trackingCode;
         }
     }
 }

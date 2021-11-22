@@ -32,6 +32,21 @@ export async function getFullUserList( accessToken , search ) {
     }
 }
 
+export async function getContact( accessToken , search ) {
+    try {
+        return await axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/search/contact`, {
+            params:{ search : search},
+            headers: {
+                Authorization: `Bearer ${accessToken}`
+            }
+        } ).catch(()=>{
+            return {data:[]}
+        });
+    } catch ( e ) {
+        return { error: true };
+    }
+}
+
 export async function getMatieres( accessToken ) {
     try {
         return await axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/search/matieres`, {
@@ -244,12 +259,9 @@ export async function getMesureType( accessToken ) {
         return { error: true };
     }
 }
-export async function getCalendarEventType( accessToken, onlyDossier ) {
+export async function getCalendarEventType( accessToken ) {
     try {
         return await axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/search/calendarEventType`, {
-            params:{
-                onlyDossier:onlyDossier
-            },
             headers: {
                 Authorization: `Bearer ${accessToken}`
             }

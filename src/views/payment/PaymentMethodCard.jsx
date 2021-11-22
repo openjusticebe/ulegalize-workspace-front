@@ -1,13 +1,10 @@
-import React, { useMemo } from 'react';
-import { Button, Col, FormGroup, Label, Row, Spinner } from 'reactstrap';
+import React, { useMemo, useState } from 'react';
+import { Button, Col, FormGroup, Label, Modal, ModalBody, ModalHeader, Row, Spinner } from 'reactstrap';
 import { CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { useAuth0 } from '@auth0/auth0-react';
 import { createSetupIntent, deactivatePayment } from '../../services/PaymentServices';
 import useResponsiveFontSize from './useResponsiveFontSize';
-import { updateVirtualcab } from '../../services/generalInfo/LawfirmService';
-
-const isEmpty = require( 'lodash/isEmpty' );
-const isNil = require( 'lodash/isNil' );
+import PaymentAddress from './PaymentAddress';
 
 const useOptions = () => {
     const fontSize = useResponsiveFontSize();
@@ -36,20 +33,27 @@ const useOptions = () => {
 };
 
 const PaymentMethodCard = ( {
-                                label, vckeySelected, lawfirm, email,amount,
-                                openPopupLawfirmEmail,
+                                label, vckeySelected, email, amount,
+                                openPopupLawfirmEmail, handleUpdateLawfirmAddress,
                                 isPaymentLoading, paymentLoading,
                                 showMessage, checkResult
                             } ) => {
     const stripe = useStripe();
     const elements = useElements();
     const { getAccessTokenSilently } = useAuth0();
+    const [popupLawfirmEmail, setPopupLawfirmEmail] = useState( false );
     const options = useOptions();
 
-    const handleSubmit = async ( event ) => {
-        // We don't want to let default form submission happen here,
-        // which would refresh the page.
-        event.preventDefault();
+    const handleConfirmSubmit = async ( event ) => {
+        isPaymentLoading( false );
+        _togglePopupLawfirmEmail();
+    };
+
+    const _togglePopupLawfirmEmail = () => {
+        setPopupLawfirmEmail( !popupLawfirmEmail );
+    };
+
+    const handleSubmit = async ( lawfirm ) => {
 
         if ( !stripe || !elements ) {
             // Stripe.js has not yet loaded.
@@ -59,16 +63,6 @@ const PaymentMethodCard = ( {
         isPaymentLoading( true );
 
         const accessToken = await getAccessTokenSilently();
-        if ( isNil(lawfirm.email) || isEmpty(lawfirm.email) ) {
-            showMessage( label.payment.error5, 'danger' );
-            isPaymentLoading(false)
-            openPopupLawfirmEmail();
-
-            return;
-        }
-
-        // update lawfirm in order to receive within payment module
-        updateVirtualcab( accessToken, lawfirm );
 
         const resultPayment = await createSetupIntent( accessToken, lawfirm );
         if ( resultPayment.error ) {
@@ -93,11 +87,11 @@ const PaymentMethodCard = ( {
         if ( result.error ) {
             deactivatePayment( accessToken );
 
-            showMessage( result.error.message  + label.payment.error2, 'danger' );
+            showMessage( result.error.message + label.payment.error2, 'danger' );
         } else {
             showMessage( label.payment.success1, 'primary' );
         }
-        isPaymentLoading( false );
+        isPaymentLoading( false, true );
     };
     return (
         <>
@@ -116,10 +110,10 @@ const PaymentMethodCard = ( {
 
             </Row>
             <Row>
-            <Col md="12" className="padding-top-25">
+                <Col md="12" className="padding-top-25">
                     <Button color="primary" type="button"
                             disabled={checkResult === true || paymentLoading === true}
-                            onClick={handleSubmit}
+                            onClick={handleConfirmSubmit}
                     >
                         {paymentLoading ? (
                             <Spinner
@@ -131,6 +125,31 @@ const PaymentMethodCard = ( {
                     </Button>
                 </Col>
             </Row>
+            {popupLawfirmEmail ? (
+                <Modal size="md" isOpen={popupLawfirmEmail} toggle={_togglePopupLawfirmEmail}>
+                    <ModalHeader toggle={_togglePopupLawfirmEmail}>
+                        <h4>{label.payment.label9}</h4>
+                    </ModalHeader>
+                    <ModalBody>
+                        <PaymentAddress
+                            isPopup={true}
+                            togglePopupLawfirmEmail={_togglePopupLawfirmEmail}
+                            paymentLoading={paymentLoading}
+                            vckeySelected={vckeySelected}
+                            checkResult={checkResult}
+                            label={label}
+                            showMessage={showMessage}
+                            handleUpdateLawfirmAddress={async ( lawfirm ) => {
+                                const result = await handleUpdateLawfirmAddress( lawfirm );
+                                if ( result ) {
+                                    await handleSubmit( lawfirm );
+                                    _togglePopupLawfirmEmail();
+                                }
+                            }}
+                        />
+                    </ModalBody>
+                </Modal>
+            ) : null}
         </>
     );
 };

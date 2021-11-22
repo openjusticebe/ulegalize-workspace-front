@@ -16,7 +16,7 @@ import Select from 'react-select';
 import ItemDTO from '../../model/ItemDTO';
 import { getShareUsers } from '../../services/DriveService';
 import ShareFileDTO from '../../model/drive/ShareFileDTO';
-import { getFullUserList } from '../../services/SearchService';
+import { getContact } from '../../services/SearchService';
 import AsyncCreatableSelect from 'react-select/async-creatable';
 
 const map = require( 'lodash/map' );
@@ -46,7 +46,7 @@ export default function ModalShareDrive( { label, modalDisplay, saveShare, toggl
 
     const _loadUsersOptions = async ( inputValue, callback ) => {
         const accessToken = await getAccessTokenSilently();
-        let result = await getFullUserList( accessToken, inputValue );
+        let result = await getContact( accessToken, inputValue );
 
         callback( map( result.data, data => {
             return new ItemDTO( data );
@@ -93,10 +93,7 @@ export default function ModalShareDrive( { label, modalDisplay, saveShare, toggl
                                     name="singleSelect"
                                     onChange={value => setData( {
                                         ...data,
-                                        usersItem: value,
-                                        usersId: map(value , val=>{
-                                            return val.value;
-                                        })
+                                        usersItem: value
                                     } )}
                                     loadOptions={_loadUsersOptions}
                                     placeholder={label.drive.label10}

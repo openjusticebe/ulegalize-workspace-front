@@ -39,6 +39,7 @@ import DossierDTO from '../model/affaire/DossierDTO';
 import InvoiceDTO from '../model/invoice/InvoiceDTO';
 import { Link } from 'react-router-dom';
 import VisibilityIcon from '@material-ui/icons/Visibility';
+import ReactBSAlert from 'react-bootstrap-sweetalert';
 
 const map = require( 'lodash/map' );
 const isNil = require( 'lodash/isNil' );
@@ -186,7 +187,7 @@ export const Compta = ( props ) => {
 
     const _loadClientOptions = async ( inputValue, callback ) => {
         const accessToken = await getAccessTokenSilently();
-        let result = await getClient( accessToken, inputValue, vckeySelected );
+        let result = await getClient( accessToken, inputValue );
 
         callback( map( result.data, data => {
             return new ItemDTO( { value: data.id, label: data.fullName, isDefault: data.email } );
@@ -327,40 +328,45 @@ export const Compta = ( props ) => {
                 <div className="rna-container">
                     <NotificationAlert ref={notificationAlert}/>
                 </div>
-                <h1>{props.label.compta.generalAccounting}</h1>
+                <Row>
+                    <Col md={9} sm={5}>
+                        <Link className="btn btn-link btn-primary padding-left-25" to={`/admin/list/compta`}>
+                            <i className="fas fa-arrow-left"/>{' '}{label.common.list}</Link>
+                    </Col>
+                    <Col className="margin-bottom-15" md={{ size: 3 }} sm={{ size: 7 }}>
+                        <ButtonGroup>
+                            {isCreated.current ? (
+                                <Button color="primary" type="button" disabled={loadingSave}
+                                        onClick={_saveCompta}
+                                >
+                                    {loadingSave ? (
+                                        <Spinner
+                                            size="sm"
+                                            color="secondary"
+                                        />
+                                    ) : null}
+                                    {' '} {label.common.save}
+                                </Button>
+                            ) : (
+                                <Button color="primary" type="button" disabled={loadingSave}
+                                        onClick={_updateCompta}
+                                >
+
+                                    {label.common.update}
+                                </Button>
+                            )}
+                            {(isCreated.current === false ? (
+                                <Button color="danger" type="button">
+                                    {label.common.delete}
+                                </Button>
+                            ) : null)}
+                        </ButtonGroup>
+                    </Col>
+                </Row>
                 <Card>
                     <CardHeader>
                         <Row>
                             <Col lg={9} md={9} sm={5}>{props.label.compta.journalEntry}</Col>
-                            <Col lg={{ size: 2 }} md={{ size: 2 }} sm={{ size: 5 }}>
-                                <ButtonGroup>
-                                    {isCreated.current ? (
-                                        <Button color="primary" type="button" disabled={loadingSave}
-                                                onClick={_saveCompta}
-                                        >
-                                            {loadingSave ? (
-                                                <Spinner
-                                                    size="sm"
-                                                    color="secondary"
-                                                />
-                                            ) : null}
-                                            {' '} {label.common.save}
-                                        </Button>
-                                    ) : (
-                                        <Button color="primary" type="button" disabled={loadingSave}
-                                                onClick={_updateCompta}
-                                        >
-
-                                            {label.common.update}
-                                        </Button>
-                                    )}
-                                    {(isCreated.current === false ? (
-                                        <Button color="danger" type="button">
-                                            {label.common.delete}
-                                        </Button>
-                                    ) : null)}
-                                </ButtonGroup>
-                            </Col>
                         </Row>
                     </CardHeader>
                     <CardBody>
@@ -671,24 +677,6 @@ export const Compta = ( props ) => {
                         }
                     </CardBody>
                 </Card>
-
-                {false ? (<Card>
-                    <CardHeader>{props.label.compta.dataBeforeMod}</CardHeader>
-                    <CardBody>
-                        <Table>
-                            <thead>
-                            <tr>
-                                <th>#1</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr>
-                                <th scope="row">14030</th>
-                            </tr>
-                            </tbody>
-                        </Table>
-                    </CardBody>
-                </Card>) : null}
 
             </div>
 

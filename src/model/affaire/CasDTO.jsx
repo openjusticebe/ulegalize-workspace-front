@@ -15,6 +15,8 @@ export default class CasDTO {
     assistanceJuridique;
     groupment
     comments
+    lastComments;
+    lastCommentsDate;
     shared;
     affaire;
     channels;
@@ -57,6 +59,8 @@ export default class CasDTO {
             this.assistanceJuridique = data.assistanceJuridique;
             this.groupment = data.groupment;
             this.comments = data.comments;
+            this.lastComments = data.lastComments;
+            this.lastCommentsDate = data.lastCommentsDate;
             this.shared = data.shared;
             this.affaire = data.affaire;
             this.affaireItem = data.affaireItem;

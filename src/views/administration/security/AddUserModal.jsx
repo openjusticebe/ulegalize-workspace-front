@@ -5,7 +5,7 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import AsyncCreatableSelect from 'react-select/async-creatable';
 import ItemDTO from '../../../model/ItemDTO';
 import Select from 'react-select';
-import { getFullUserList, getFunctions } from '../../../services/SearchService';
+import { getContact, getFullUserList, getFunctions } from '../../../services/SearchService';
 import { getFullUserResponsableList, getSecurityGroup, saveUserToVcKey } from '../../../services/AdminService';
 import SecurityGroupUserDTO from '../../../model/admin/user/SecurityGroupUserDTO';
 
@@ -108,7 +108,7 @@ const AddUserModal = ( {
     };
     const _loadUsersOptions = async ( inputValue, callback ) => {
         const accessToken = await getAccessTokenSilently();
-        let result = await getFullUserList( accessToken, inputValue );
+        let result = await getContact( accessToken, inputValue );
 
         callback( map( result.data, data => {
             return new ItemDTO( data );
@@ -117,7 +117,7 @@ const AddUserModal = ( {
 
     const _handleUserChange = ( newValue ) => {
         setData( { ...data,
-            email: newValue.label,
+            email: newValue.value,
             userEmailItem: newValue
         } );
     };

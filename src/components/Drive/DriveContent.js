@@ -246,6 +246,7 @@ class DriveContent extends Component {
             // to be improve if size is null: FOLDER
             //if ( isNil(pathFolder.size) ) {
             let folderName = split( pathFolder.name, '/' );
+            let originFolderName = split( pathFolder.name, '/' );
 
             const minSize = size( folderName ) - 2 <= 0 ? 0 : size( folderName ) - 2;
             folderName = slice( folderName, minSize, size( folderName ) - 1 );
@@ -269,7 +270,12 @@ class DriveContent extends Component {
                         <ListItemText primary={folderName}
                                       secondary={folderDate}/>
                         {/* ENTIRE MENU MUST BE DISPLAY BECAUSE OF ISSUE ON MENUITEM*/}
-                        {folderName && folderName[ 0 ] !== 'dossiers' && folderName[ 0 ] !== 'templates' && folderName[ 0 ] !== 'factures' ? (
+                        {originFolderName && originFolderName[ 0 ] !== 'dossiers'
+                        && originFolderName[ 0 ] !== 'templates'
+                        && originFolderName[ 0 ] !== 'esignatures'
+                        && originFolderName[ 0 ] !== 'emails'
+                        && originFolderName[ 0 ] !== 'postalMail'
+                        && originFolderName[ 0 ] !== 'factures' ? (
 
                             <ListItemSecondaryAction>
 
@@ -338,6 +344,8 @@ class DriveContent extends Component {
         // list of files
         const files = map( containsFiles, ( path ) => {
 
+            let originFolderName = split( path.name, '/' );
+
             const fileDate = getDateDetails( path.lastModified );
 
             // to be improve if size is not null: FILE
@@ -362,6 +370,7 @@ class DriveContent extends Component {
                     <ListItemText
                         onDoubleClick={() => this._doubleDownloadFile( path.name )}
                         primary={fileName} secondary={fileDate}/>
+
                     <ListItemSecondaryAction>
 
                         <IconButton
@@ -382,33 +391,49 @@ class DriveContent extends Component {
                                 },
                             }}>
 
+                            {/* DOWNLOAD */}
                             <MenuItem onClick={() => this._downloadFile( path.name )}>{label.drive.label4}</MenuItem>
                             <Divider/>
-                            <MenuItem
-                                onClick={( event ) => this._toggleModalRename( event, path )}>{label.drive.label2}</MenuItem>
-                            <MenuItem onClick={() => {
-                                this.setState( {
-                                        deleteAlert: (<ReactBSAlert
-                                            warning
-                                            style={{ display: 'block', marginTop: '100px' }}
-                                            title={label.common.label10}
-                                            onConfirm={() => {
-                                                this._toggleModalDelete();
-                                                this.setState( { deleteAlert: null } );
-                                            }}
-                                            onCancel={() => { this.setState( { deleteAlert: null } ); }}
-                                            confirmBtnBsStyle="success"
-                                            cancelBtnBsStyle="danger"
-                                            confirmBtnText={label.common.label11}
-                                            cancelBtnText={label.common.cancel}
-                                            showCancel
-                                            btnSize=""
-                                        >
-                                            {label.common.label12}
-                                        </ReactBSAlert>)
-                                    }
-                                );
-                            }}>{label.drive.label3}</MenuItem>
+                            {/* RENAME */}
+                            {
+                                originFolderName[ 0 ] !== 'esignatures'
+                                && originFolderName[ 0 ] !== 'emails'
+                                && originFolderName[ 0 ] !== 'postalMail'
+                                && originFolderName[ 0 ] !== 'factures' ? (
+                                        <MenuItem
+                                            onClick={( event ) => this._toggleModalRename( event, path )}>{label.drive.label2}</MenuItem>
+                                ) : null}
+                            {/* DELETE */}
+                            {
+                                originFolderName[ 0 ] !== 'esignatures'
+                                && originFolderName[ 0 ] !== 'emails'
+                                && originFolderName[ 0 ] !== 'postalMail'
+                                && originFolderName[ 0 ] !== 'factures' ? (
+                                    <MenuItem onClick={() => {
+                                        this.setState( {
+                                                deleteAlert: (<ReactBSAlert
+                                                    warning
+                                                    style={{ display: 'block', marginTop: '100px' }}
+                                                    title={label.common.label10}
+                                                    onConfirm={() => {
+                                                        this._toggleModalDelete();
+                                                        this.setState( { deleteAlert: null } );
+                                                    }}
+                                                    onCancel={() => { this.setState( { deleteAlert: null } ); }}
+                                                    confirmBtnBsStyle="success"
+                                                    cancelBtnBsStyle="danger"
+                                                    confirmBtnText={label.common.label11}
+                                                    cancelBtnText={label.common.cancel}
+                                                    showCancel
+                                                    btnSize=""
+                                                >
+                                                    {label.common.label12}
+                                                </ReactBSAlert>)
+                                            }
+                                        );
+                                    }}>{label.drive.label3}</MenuItem>
+                                ) : null}
+
                             <MenuItem
                                 onClick={() => this._handleModalShare( path.name )}>{label.drive.label7}</MenuItem>
                             <MenuItem onClick={() => this._shareToLink( path.name )}>{label.drive.label8}</MenuItem>
@@ -420,7 +445,6 @@ class DriveContent extends Component {
 
 
                     </ListItemSecondaryAction>
-
                 </ListItem>
             );
         } );

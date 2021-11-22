@@ -28,6 +28,8 @@ import {
     updateFrais
 } from '../../../services/FraisAdminService';
 import FraisAdminDTO from '../../../model/fraisadmin/FraisAdminDTO';
+import AsyncSelect from 'react-select/async/dist/react-select.esm';
+import { getAffairesByVcUserIdAndSearchCriteria } from '../../../services/DossierService';
 
 const map = require( 'lodash/map' );
 const isNil = require( 'lodash/isNil' );
@@ -82,6 +84,8 @@ export const FraisAdmin = ( { label, fraisAdminId, isCreated, affaireId, externa
             } );
             setDebourType( timesheetT );
 
+            data.idDoss = affaireId;
+
             setFraisAdminDTO( data );
             if(externalUse) {
                 externalUseFrais(data);
@@ -100,7 +104,6 @@ export const FraisAdmin = ( { label, fraisAdminId, isCreated, affaireId, externa
             return;
 
         }
-        fraisAdminDTO.idDoss = affaireId;
 
         let result;
         if ( isCreated ) {
@@ -122,11 +125,57 @@ export const FraisAdmin = ( { label, fraisAdminId, isCreated, affaireId, externa
         }
 
     };
+    const _handleDossierChange = ( newValue ) => {
+        setFraisAdminDTO( {
+            ...fraisAdminDTO,
+            idDoss: newValue.value,
+            dossierItem: new ItemDTO( newValue )
+        } );
+    };
+
+    const _loadDossierOptions = async ( inputValue, callback ) => {
+        const accessToken = await getAccessTokenSilently();
+        let result = await getAffairesByVcUserIdAndSearchCriteria( accessToken, inputValue );
+
+        if ( !isNil( result ) ) {
+            if ( !isNil( result.data ) ) {
+
+                callback(
+                    map( result.data, dossier => {
+                        return new ItemDTO( dossier );
+                    } ) );
+
+            } else if ( result.error ) {
+                // no data
+            }
+        }
+    };
 
     const date = fraisAdminDTO.dateAction ? moment( fraisAdminDTO.dateAction ).toDate() : null;
     return (
         <>
-            <Row className="mt-5">
+            {isNil(affaireId) ? (
+                <Row>
+                    <Col lg="12">
+                        <Label>{label.wizardFrais.label25}</Label>
+                        <FormGroup>
+                            <AsyncSelect
+                                value={fraisAdminDTO.dossierItem}
+
+                                className="react-select info"
+                                classNamePrefix="react-select"
+                                cacheOptions
+                                loadOptions={_loadDossierOptions}
+                                defaultOptions
+                                onChange={_handleDossierChange}
+                                placeholder={label.appointmentmodalpanel.label16}
+                            />
+                        </FormGroup>
+                    </Col>
+                </Row>
+            ): null}
+
+            <Row>
                 <Col md="10">
                     <Label>{label.wizardFrais.label7}</Label>
                     <FormGroup>

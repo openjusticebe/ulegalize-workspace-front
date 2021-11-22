@@ -473,87 +473,6 @@ export default function InvoicesList( props ) {
             notificationAlert.current.notificationAlert( getOptionNotification( message, type ) );
         }
     };
-    //const _getPager = ( totalPages, pageSize ) => {
-    //
-    //    // default page size is 10
-    //
-    //    pageSize = pageSize || 10;
-    //
-    //    // calculate total pages
-    //
-    //    var startPage, endPage;
-    //
-    //    if ( totalPages <= 10 ) {
-    //
-    //        nums.map( num => {
-    //            return (
-    //                <PaginationItem active={num === pageIndex}>
-    //                    <PaginationLink onClick={() => {
-    //                        gotoPage( num );
-    //                    }}>
-    //                        {num}
-    //                    </PaginationLink>
-    //                </PaginationItem>
-    //            );
-    //        } );
-    //    } else {
-    //
-    //        // more than 10 total pages so calculate start and end pages
-    //
-    //        if ( currentPage <= 6 ) {
-    //            startPage = 1;
-    //            endPage = 10;
-    //        } else if ( currentPage + 4 >= totalPages ) {
-    //
-    //            startPage = totalPages - 9;
-    //
-    //            endPage = totalPages;
-    //
-    //        } else {
-    //
-    //            startPage = currentPage - 5;
-    //
-    //            endPage = currentPage + 4;
-    //
-    //        }
-    //
-    //    }
-    //
-    //    // calculate start and end item indexes
-    //
-    //    var startIndex = (currentPage - 1) * pageSize;
-    //
-    //    var endIndex = Math.min( startIndex + pageSize - 1, totalItems - 1 );
-    //
-    //    // create an array of pages to ng-repeat in the pager control
-    //
-    //    var pages = [...Array( (endPage + 1) - startPage ).keys()].map( i => startPage + i );
-    //
-    //    // return an object with all pager properties required by the view
-    //
-    //    return {
-    //
-    //        totalItems: totalItems,
-    //
-    //        currentPage: currentPage,
-    //
-    //        pageSize: pageSize,
-    //
-    //        totalPages: totalPages,
-    //
-    //        startPage: startPage,
-    //
-    //        endPage: endPage,
-    //
-    //        startIndex: startIndex,
-    //
-    //        endIndex: endIndex,
-    //
-    //        pages: pages
-    //
-    //    };
-    //
-    //};
 
     return (
         <>
@@ -565,10 +484,24 @@ export default function InvoicesList( props ) {
                     <Col lg="12" sm={12}>
                         <Card>
                             <CardHeader>
-                                <CardTitle>
-                                    <h4>{label.invoice.label10}
-                                    </h4>
-                                </CardTitle>
+                                <Row>
+                                    <Col md={10}>
+                                        <CardTitle>
+                                            <h4>{label.invoice.label10}
+                                            </h4>
+                                        </CardTitle>
+                                    </Col>
+                                    <Col md={2}>
+                                        <Link to="/admin/create/invoice"
+                                            className="btn btn-sm btn-primary float-right"
+                                            color="primary"
+                                            size="sm"
+                                        >
+                                            <i className="tim-icons icon-simple-add padding-icon-text"/> {' '}
+                                            {label.common.create}
+                                        </Link>
+                                    </Col>
+                                </Row>
                             </CardHeader>
                             <CardBody>
                                 {loadRef.current === false ? (

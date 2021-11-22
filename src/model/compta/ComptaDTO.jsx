@@ -23,6 +23,11 @@ export default class ComptaDTO {
     poste;
     tiersFullname;
 
+    alreadyInvoiced;
+    invoiceChecked;
+    factExtId;
+    factExtRef;
+
         constructor(data) {
 
             this.id = data.id;
@@ -45,6 +50,10 @@ export default class ComptaDTO {
             this.memo = data.memo;
             this.poste = data.poste;
             this.tiersFullname = data.tiersFullname;
+            this.invoiceChecked = data.invoiceChecked;
+            this.alreadyInvoiced = data.alreadyInvoiced;
+            this.factExtId = data.factExtId;
+            this.factExtRef = data.factExtRef;
 
     }
 }

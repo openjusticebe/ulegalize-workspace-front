@@ -35,3 +35,51 @@ export async function getEMailRegisteredList( accessToken , offset, limit, dossi
         return { error: true };
     }
 }
+
+export async function getEmailById( accessToken, id ) {
+    try {
+        return axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/emailRegistered/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            }
+        )
+        .catch(()=>{
+            return {error:true}
+        });
+    } catch ( e ) {
+        return { error: true, data: []};
+    }
+}
+
+export async function getPdfById( accessToken, id ) {
+    try {
+        return axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/emailRegistered/${id}/pdf`, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            }
+        )
+        .catch(()=>{
+            return {error:true}
+        });
+    } catch ( e ) {
+        return { error: true, data: []};
+    }
+}
+
+export async function getHtmlById( accessToken, id ) {
+    try {
+        return axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/emailRegistered/${id}/html`, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            }
+        )
+        .catch(()=>{
+            return {error:true}
+        });
+    } catch ( e ) {
+        return { error: true, data: []};
+    }
+}

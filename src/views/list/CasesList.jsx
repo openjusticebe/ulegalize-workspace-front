@@ -23,7 +23,7 @@ import {
     attachDossier,
     attachEsignDocument,
     attachFileCase,
-    countCaseList,
+    createDossierTransparency,
     downloadFileAttached,
     getCaseList,
     saveLawyer
@@ -37,14 +37,21 @@ import { getDate } from '../../utils/DateUtils';
 import { Link } from 'react-router-dom';
 import { downloadWithName } from '../../utils/TableUtils';
 import CreateDossierField from './CreateDossierField';
-import { createDossier, getDossierById, switchDossierDigital } from '../../services/DossierService';
+import { createDossierAndAttach, getDossierById, switchDossierDigital } from '../../services/DossierService';
 import DossierDTO from '../../model/affaire/DossierDTO';
-import { createClient, getClient, getClientByEmail } from '../../services/ClientService';
+import {
+    createClient,
+    getClient,
+    getClientByEmail,
+    getClientById,
+    getClientListByIds
+} from '../../services/ClientService';
 import ContactSummary from '../../model/client/ContactSummary';
 import CaseCreationDTO from '../../model/affaire/CaseCreationDTO';
 
 const ceil = require( 'lodash/ceil' );
 const map = require( 'lodash/map' );
+const join = require( 'lodash/join' );
 const range = require( 'lodash/range' );
 const isEmpty = require( 'lodash/isEmpty' );
 const isNil = require( 'lodash/isNil' );
@@ -53,6 +60,7 @@ const PAGE_SIZE = 10;
 
 export default function CasesList( { label, email, userId, vckeySelected, enumRights, history } ) {
     const notificationAlert = useRef( null );
+    const skipPageResetRef = useRef();
     const [modalDetails, setModalDetails] = useState( false );
     const [modalCreateDossier, setModalCreateDossier] = useState( false );
     const [modalVckeys, setModalVckeys] = useState( false );
@@ -68,6 +76,21 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
 
     const columns = React.useMemo(
         () => [
+            {
+                accessor: 'id',
+                Header: '#',
+                width: 150,
+                Cell: row => {
+                    return (<div>
+                        <Button
+                            className="btn-icon btn-link margin-left-10"
+                            onClick={() => toggleUpdateCase( row.row.original )}
+                            color="primary" size="sm">
+                            <i className="fa fa-eye "/>
+                        </Button>
+                    </div>);
+                }
+            },
             {
                 accessor: '_id',
                 Header: label.affaire.label22,
@@ -87,20 +110,21 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
                 }
             },
             {
-                accessor: 'id',
-                Header: '#',
-                width: 150,
+                accessor: 'partieEmail',
+                Header: label.affaire.label44,
                 Cell: row => {
-                    return (<div>
-                        <Button color="info"
-                                onClick={() => toggleUpdateCase( row.row.original )}
-                                size="sm">{label.affaire.label27}</Button>
-                    </div>);
+
+                    return map( row.value, part => {
+                        return (<p>
+                                {part.email}
+                            </p>
+                        );
+                    } );
                 }
             },
             {
                 accessor: 'vcKeys',
-                Header: label.affaire.label6,
+                Header: label.affaire.label45,
                 //width: 180,
                 //filterable: false,
                 Cell: row => {
@@ -122,15 +146,13 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
                 }
             },
             {
-                accessor: 'question',
+                accessor: 'lastComments',
                 Header: label.affaire.label28,
-                width: 350,
-            },
-            {
-                accessor: 'complete',
-                Header: label.affaire.label29,
-                width: 200,
-                filterable: false,
+                Cell: row => {
+                    return (
+                        <p>{row.value}</p>
+                    );
+                }
             },
             {
                 accessor: 'createDate',
@@ -172,20 +194,16 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
             },
             manualPagination: true,
             pageCount: ceil( count / PAGE_SIZE ),
+            autoResetPage: !skipPageResetRef.current,
+            autoResetExpanded: !skipPageResetRef.current,
+            autoResetGroupBy: !skipPageResetRef.current,
+            autoResetSelectedRows: !skipPageResetRef.current,
+            autoResetSortBy: !skipPageResetRef.current,
+            autoResetFilters: !skipPageResetRef.current,
+            autoResetRowState: !skipPageResetRef.current,
         },
         usePagination
     );
-
-    useEffect( () => {
-        (async () => {
-            const accessToken = await getAccessTokenSilently();
-
-            let resultCount = await countCaseList( accessToken );
-            if ( !resultCount.error ) {
-                setCount( resultCount.data );
-            }
-        })();
-    }, [count] );
 
     useEffect( () => {
         (async () => {
@@ -195,13 +213,19 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
             loadRef.current = false;
             let result = await getCaseList( accessToken, offset, pageSize );
             if ( !result.error ) {
-                const dataList = map( result.data, frais => {
+                skipPageResetRef.current = true;
+                const dataList = map( result.data.content, frais => {
                     return new CasDTO( frais );
                 } );
                 setData( dataList );
+                setCount( result.data.totalElements );
             }
         })();
     }, [pageIndex, pageSize, updateList.current] );
+
+    useEffect( () => {
+        skipPageResetRef.current = false;
+    } );
 
     let pagination;
     let reste = count % pageSize !== 0 ? 1 : 0;
@@ -211,7 +235,7 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
         // case 1 : less than 10
         // case 2 more than 10 , start page : current - 5 end page : current + 5 or max
         // total page < = 10
-        if ( size(nums) <= 10 ) {
+        if ( size( nums ) <= 10 ) {
 
             pagination = nums.map( num => {
                 return (
@@ -230,11 +254,11 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
             // current
             if ( pageIndex <= 6 ) {
                 nums = range( endPage );
-            } else if ( pageIndex + 4 >= size(nums) ) {
+            } else if ( pageIndex + 4 >= size( nums ) ) {
 
-                startPage = size(nums) - 9;
+                startPage = size( nums ) - 9;
 
-                endPage = size(nums);
+                endPage = size( nums );
                 nums = range( startPage, endPage );
 
             } else {
@@ -266,8 +290,8 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
     }
 
     const _toggleCreateDossier = async ( cas ) => {
-        setCasesModal( cas );
         setModalCreateDossier( !modalCreateDossier );
+        setCasesModal( cas );
     };
 
     const _attachDossier = async ( responsableId, dossierId ) => {
@@ -279,15 +303,41 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
         if ( resultDossier.error ) {
             notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.error11, 'danger' ) );
         } else {
-            // attach the cas transparency with new affaire
             const newDossier = new DossierDTO( resultDossier.data );
-            //const caseCreation = new CaseCreationDTO( newDossier, client );
+            // attach the cas transparency with new affaire
+            let clientList = [];
+            // create transparency only if client has an email
+            let isTransparency = false;
+            if ( newDossier.type !== 'MD' ) {
+                const clientResult = await getClientById( accessToken, newDossier.idClient );
+                if ( !clientResult.error ) {
 
-            //let result = await createDossierTransparency( accessToken, caseCreation );
+                    const client = new ContactSummary( clientResult.data, label );
 
+                    isTransparency = !isNil( client.email ) && client.email !== '';
+                    clientList.push( client );
+                }
+            } else {
+                const clientIds = map( newDossier.clientList, clientTmp => clientTmp.value );
+                const clientResult = await getClientListByIds( accessToken, clientIds );
 
-            //const result = await attachDossier( accessToken, caseCreation, casesModal.id );
-            switchDossierDigital( accessToken, newDossier.id );
+                if ( !clientResult.error ) {
+                    clientList = map( clientResult.data, data => {
+                        // if one of them is valid
+                        isTransparency = !isNil( data.email ) && data.email !== '';
+                        return new ContactSummary( data, label );
+                    } );
+
+                }
+            }
+            const caseCreation = new CaseCreationDTO( newDossier, clientList );
+
+            let result = await attachDossier( accessToken, caseCreation, casesModal.id );
+
+            if ( !result.error ) {
+                switchDossierDigital( accessToken, newDossier.id );
+
+            }
         }
         updateList.current = !updateList.current;
         setIsLoading( false );
@@ -299,19 +349,19 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
 
         let dossier = new DossierDTO();
 
-        if(isNil(casesModal.partieEmail)){
+        if ( isNil( casesModal.partieEmail ) ) {
             _showMessagePopup( label.ajout_client.error8, 'danger' );
             setIsLoading( false );
             return;
         }
         // this is the second in partieEmail because itt's a fresh case without affaire
-        const partie = casesModal.partieEmail[size(casesModal.partieEmail) -1] ;
+        const partie = casesModal.partieEmail[ size( casesModal.partieEmail ) - 1 ];
         // client
         const resultClient = await getClientByEmail( accessToken, partie.email );
         let client;
 
         if ( resultClient.data && !isEmpty( resultClient.data ) ) {
-            client = new ContactSummary(resultClient.data, label);
+            client = new ContactSummary( resultClient.data, label );
             dossier.idClient = resultClient.data.id;
         } else {
             // create a new client
@@ -335,7 +385,7 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
         }
 
         // client adverse
-        const resultClientAdv = await getClient( accessToken, 'adverse' , vckeySelected);
+        const resultClientAdv = await getClient( accessToken, 'adverse' );
 
         if ( resultClientAdv.data && !isEmpty( resultClientAdv.data ) ) {
             dossier.idAdverseClient = resultClientAdv.data[ 0 ].id;
@@ -364,26 +414,17 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
         dossier.idUserResponsible = responsableId;
         dossier.type = 'DC';
 
-        const resultDossier = await createDossier( accessToken, dossier );
+        const resultDossier = await createDossierAndAttach( accessToken, casesModal.id, dossier );
 
         if ( resultDossier.error ) {
             notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.error11, 'danger' ) );
         } else {
             // attach the cas transparency with new affaire
             const newDossier = new DossierDTO( resultDossier.data );
-            const caseCreation = new CaseCreationDTO( newDossier, [client], client );
 
-            //let result = await createDossierTransparency( accessToken, caseCreation );
-
-
-            const result = await attachDossier( accessToken, caseCreation, casesModal.id );
             switchDossierDigital( accessToken, newDossier.id );
-            if ( !result.error ) {
-                notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.success7, 'prmary' ) );
+            notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.success7, 'prmary' ) );
 
-            } else {
-                notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.error11, 'danger' ) );
-            }
         }
         updateList.current = !updateList.current;
         setIsLoading( false );
@@ -446,8 +487,8 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
     };
 
     const toggleUpdateCase = ( cas ) => {
-        setCasesModal( cas );
         setModalDetails( !modalDetails );
+        setCasesModal( cas );
     };
 
     const toggleVcKey = ( cas ) => {
@@ -474,7 +515,6 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
             getOptionNotification( message, type )
         );
     };
-
 
     return (
         <>
@@ -545,10 +585,9 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
                                     <ReactLoading className="loading" height={'20%'} width={'20%'}/>
                                 )}
                                 {modalDetails ? (
-                                    <ModalUpdateCase id={casesModal.id}
+                                    <ModalUpdateCase caseId={casesModal.id}
                                                      email={email}
                                                      enumRights={enumRights}
-                                                     cas={casesModal}
                                                      label={label}
                                                      lg={12} md={12}
                                                      showMessagePopup={_showMessagePopup}
@@ -579,7 +618,7 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
                                                             modalDetails={modalCreateDossier}
                                                             toggle={_toggleCreateDossier}
                                                             isLoading={isLoading}
-                                                            cas={casesModal}
+                                                            caseId={casesModal.id}
                                                             vckeySelected={vckeySelected}
                                                             email={email}
                                                             userId={userId}

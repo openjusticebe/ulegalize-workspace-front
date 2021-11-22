@@ -8,7 +8,6 @@ import {
     FormText,
     Input,
     Label,
-    ListGroup,
     PopoverBody,
     PopoverHeader,
     Row,
@@ -42,6 +41,7 @@ const isNil = require( 'lodash/isNil' );
 //const find = require( 'lodash/find' );
 
 const MAX_COMMENT = 1;
+const MAX_ATTACHED = 1;
 
 export default function ContentChannel( {
                                             channel,
@@ -64,6 +64,7 @@ export default function ContentChannel( {
     const [modalUploadBasicDocument, setModalUploadBasicDocument] = useState( false );
     const [modalNotPaidSignDocument, setModalNotPaidSignDocument] = useState( false );
     const [collapseComments, setCollapseComments] = useState( false );
+    const [collapseFiles, setCollapseFiles] = useState( false );
     const [channelContent, setChannelContent] = useState( channel );
     const [openModalConseil, setOpenModalConseil] = useState( null );
     const payment = useRef( false );
@@ -77,6 +78,9 @@ export default function ContentChannel( {
 
     const _toggleComments = () => {
         setCollapseComments( !collapseComments );
+    };
+    const _toggleFiles = () => {
+        setCollapseFiles( !collapseFiles );
     };
     const _toggleBasicCheckPayment = () => {
         _basicUpload();
@@ -241,8 +245,20 @@ export default function ContentChannel( {
         } );
     }
 
-    const filesTemp = channelContent.filesStored && !isEmpty( channelContent.filesStored ) ?
-        map( channelContent.filesStored, file => {
+    // last 2 files displayed
+    let filesList;
+    // Old files: if the file list > 2 , old are shwon into "More ... " link
+    let filesListOld;
+    let filesListOldComponents;
+    const sizeFile = size( channelContent.filesStored );
+    const filesTemp = orderBy( channelContent.filesStored, ['recDate'] );
+
+    if ( MAX_ATTACHED >= size( channelContent.filesStored ) - 1 ) {
+        filesList = slice( filesTemp, 0, sizeFile - 1 );
+    } else {
+        filesList = slice( filesTemp, sizeFile - MAX_ATTACHED - 1, sizeFile );
+        filesListOld = slice( filesTemp, 0, sizeFile - MAX_ATTACHED - 1 );
+        filesListOldComponents = map( filesListOld, file => {
             let statusGlyph = (<Col sm={1} md={1}>
                 <Button
                     outline
@@ -276,7 +292,7 @@ export default function ContentChannel( {
                         </PopoverBody>
                     </UncontrolledPopover>
                 </Col>);
-            }  else if ( file.status === 'WAITING' ) {
+            } else if ( file.status === 'WAITING' ) {
                 statusGlyph = (<Col sm={1} md={1}>
                     <Button
                         outline
@@ -351,11 +367,128 @@ export default function ContentChannel( {
                         </Col>
                         {file.status === 'WAITING' ? (<FormText>
                             {label.casJuridiqueForm.waiting}
-                        </FormText>): null}
+                        </FormText>) : null}
                     </Row>
                 </li>
             );
-        } ) : null;
+        } );
+    }
+
+    //const filesTemp = channelContent.filesStored && !isEmpty( channelContent.filesStored ) ?
+    //    map( channelContent.filesStored, file => {
+    //        let statusGlyph = (<Col sm={1} md={1}>
+    //            <Button
+    //                outline
+    //                color="info"
+    //                type="button"
+    //                id={`PopoverNormal-${file.requestId}`}
+    //                className="no-border btn-icon">
+    //                <ErrorOutlineOutlinedIcon/>
+    //            </Button>
+    //            <UncontrolledPopover trigger="focus" placement="left" target={`PopoverNormal-${file.requestId}`}>
+    //                <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+    //                <PopoverBody>
+    //                    <CustomPopover label={label}/>
+    //                </PopoverBody>
+    //            </UncontrolledPopover>
+    //        </Col>);
+    //        if ( file.status === 'SIGN' ) {
+    //            statusGlyph = (<Col sm={1} md={1}>
+    //                <Button
+    //                    outline
+    //                    color="info"
+    //                    type="button"
+    //                    id={`PopoverSign-${file.requestId}`}
+    //                    className="no-border btn-icon">
+    //                    <CreateIcon className="green"/>
+    //                </Button>
+    //                <UncontrolledPopover trigger="focus" placement="left" target={`PopoverSign-${file.requestId}`}>
+    //                    <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+    //                    <PopoverBody>
+    //                        <CustomPopover label={label}/>
+    //                    </PopoverBody>
+    //                </UncontrolledPopover>
+    //            </Col>);
+    //        }  else if ( file.status === 'WAITING' ) {
+    //            statusGlyph = (<Col sm={1} md={1}>
+    //                <Button
+    //                    outline
+    //                    color="info"
+    //                    type="button"
+    //                    id={`PopoverStart-${file.requestId}`}
+    //                    className="no-border btn-icon">
+    //                    <CreateIcon className="red glyphicon-ring"/>
+    //                </Button>
+    //                <UncontrolledPopover trigger="focus" placement="left" target={`PopoverStart-${file.requestId}`}>
+    //                    <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+    //                    <PopoverBody>
+    //                        <CustomPopover label={label}/>
+    //                    </PopoverBody>
+    //                </UncontrolledPopover>
+    //            </Col>);
+    //        } else if ( file.status === 'START' ) {
+    //            statusGlyph = (<Col sm={1} md={1}>
+    //                <Button
+    //                    outline
+    //                    color="info"
+    //                    type="button"
+    //                    id={`PopoverStart-${file.requestId}`}
+    //                    className="no-border btn-icon">
+    //                    <CreateIcon className="red glyphicon-ring"/>
+    //                </Button>
+    //                <UncontrolledPopover trigger="focus" placement="left" target={`PopoverStart-${file.requestId}`}>
+    //                    <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+    //                    <PopoverBody>
+    //                        <CustomPopover label={label}/>
+    //                    </PopoverBody>
+    //                </UncontrolledPopover>
+    //            </Col>);
+    //        } else if ( file.status === 'NORMAL' ) {
+    //            statusGlyph = (<Col sm={1} md={1}>
+    //                <Button
+    //                    outline
+    //                    color="info"
+    //                    type="button"
+    //                    id={`PopoverNormal-${file.requestId}`}
+    //                    size="sm"
+    //                    className="no-border btn-icon">
+    //                    <ErrorOutlineOutlinedIcon/>
+    //                </Button>
+    //                <UncontrolledPopover trigger="focus" placement="left" target={`PopoverNormal-${file.requestId}`}>
+    //                    <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+    //                    <PopoverBody>
+    //                        <CustomPopover label={label}/>
+    //                    </PopoverBody>
+    //                </UncontrolledPopover>
+    //            </Col>);
+    //        }
+    //        return (
+    //            <li className="list-group-item" key={file.requestId}>
+    //                <Row>
+    //                    {statusGlyph}
+    //                    <Col sm={{ size: 8, offset: 1 }} md={{ size: 8, offset: 1 }}>
+    //                        {file.value}
+    //                        <FormText
+    //                            color="muted">{file.recDate ? getDateDetails( file.recDate ) : ''
+    //                        } / {file.recUser}</FormText>
+    //                    </Col>
+    //                    <Col sm={1} md={1}>
+    //                        <Button
+    //                            size="sm"
+    //                            color="primary"
+    //                            className="btn-icon"
+    //                            disabled={file.status === 'WAITING'}
+    //                            onClick={() => handleDownloadFile( channelContent.id, file )}>
+    //                            <GetApp/>
+    //                        </Button>
+    //                    </Col>
+    //                    {file.status === 'WAITING' ? (<FormText>
+    //                        {label.casJuridiqueForm.waiting}
+    //                    </FormText>): null}
+    //                </Row>
+    //            </li>
+    //        );
+    //    } ) : null;
 
     return (
         <Row>
@@ -363,7 +496,7 @@ export default function ContentChannel( {
                 <Form horizontal>
                     {/* PARTIE INFO*/}
                     {channel.parties ? map( channel.parties, partie => {
-                        return (
+                        return partie.type !== 'creator' ? (
                             <Row>
                                 <Label md="3">{partie.label} </Label>
                                 <Col md="8">
@@ -379,7 +512,7 @@ export default function ContentChannel( {
                                         color="primary"
                                         type="button"
                                         size="sm"
-                                        onClick={(e) => _toggleCreateConseil(e, partie )}
+                                        onClick={( e ) => _toggleCreateConseil( e, partie )}
                                     >
                                         <i className="tim-icons icon-pencil"/>
                                     </Button>
@@ -400,7 +533,7 @@ export default function ContentChannel( {
                                             showMessage={showMessagePopup}
                                         />
                                     ) : null}
-                            </Row>);
+                            </Row>) : null;
                     } ) : null}
 
                     <Row>
@@ -430,6 +563,8 @@ export default function ContentChannel( {
                             ) : null}
                         </Col>
                     </Row>
+                    {/*list of files freezed*/}
+
                     <Row>
                         <Label for="exampleFiles" sm={2}>{label.casJuridiqueForm.label4} {' '}
                             <Button
@@ -448,9 +583,147 @@ export default function ContentChannel( {
                             </PopoverBody>
                         </UncontrolledPopover>
                         <Col lg={9} md={9} sm={10}>
-                            <ListGroup>
-                                {filesTemp}
-                            </ListGroup>
+                            {
+                                // if size of the comment is > than MAX_COMMENT show "more" link to expand with the last MAX_COMMENT comments displayed
+                                // TBD
+                                filesListOld ?
+                                    (
+                                        <div>
+                                            <Button color="primary" onClick={_toggleFiles} className="btn-link"
+                                                    style={{ marginBottom: '1rem' }}>{label.casJuridiqueForm.label114}</Button>
+                                            <Collapse isOpen={collapseFiles}>
+
+                                                {filesListOldComponents}
+
+                                            </Collapse>
+
+                                        </div>
+                                    ) : null
+                            }
+
+
+                            {filesList ? map( filesList, file => {
+                                let statusGlyph = (<Col sm={1} md={1}>
+                                    <Button
+                                        outline
+                                        color="info"
+                                        type="button"
+                                        id={`PopoverNormal-${file.requestId}`}
+                                        className="no-border btn-icon">
+                                        <ErrorOutlineOutlinedIcon/>
+                                    </Button>
+                                    <UncontrolledPopover trigger="focus" placement="left"
+                                                         target={`PopoverNormal-${file.requestId}`}>
+                                        <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                                        <PopoverBody>
+                                            <CustomPopover label={label}/>
+                                        </PopoverBody>
+                                    </UncontrolledPopover>
+                                </Col>);
+                                if ( file.status === 'SIGN' ) {
+                                    statusGlyph = (<Col sm={1} md={1}>
+                                        <Button
+                                            outline
+                                            color="info"
+                                            type="button"
+                                            id={`PopoverSign-${file.requestId}`}
+                                            className="no-border btn-icon">
+                                            <CreateIcon className="green"/>
+                                        </Button>
+                                        <UncontrolledPopover trigger="focus" placement="left"
+                                                             target={`PopoverSign-${file.requestId}`}>
+                                            <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                                            <PopoverBody>
+                                                <CustomPopover label={label}/>
+                                            </PopoverBody>
+                                        </UncontrolledPopover>
+                                    </Col>);
+                                } else if ( file.status === 'WAITING' ) {
+                                    statusGlyph = (<Col sm={1} md={1}>
+                                        <Button
+                                            outline
+                                            color="info"
+                                            type="button"
+                                            id={`PopoverStart-${file.requestId}`}
+                                            className="no-border btn-icon">
+                                            <CreateIcon className="red glyphicon-ring"/>
+                                        </Button>
+                                        <UncontrolledPopover trigger="focus" placement="left"
+                                                             target={`PopoverStart-${file.requestId}`}>
+                                            <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                                            <PopoverBody>
+                                                <CustomPopover label={label}/>
+                                            </PopoverBody>
+                                        </UncontrolledPopover>
+                                    </Col>);
+                                } else if ( file.status === 'START' ) {
+                                    statusGlyph = (<Col sm={1} md={1}>
+                                        <Button
+                                            outline
+                                            color="info"
+                                            type="button"
+                                            id={`PopoverStart-${file.requestId}`}
+                                            className="no-border btn-icon">
+                                            <CreateIcon className="red glyphicon-ring"/>
+                                        </Button>
+                                        <UncontrolledPopover trigger="focus" placement="left"
+                                                             target={`PopoverStart-${file.requestId}`}>
+                                            <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                                            <PopoverBody>
+                                                <CustomPopover label={label}/>
+                                            </PopoverBody>
+                                        </UncontrolledPopover>
+                                    </Col>);
+                                } else if ( file.status === 'NORMAL' ) {
+                                    statusGlyph = (<Col sm={1} md={1}>
+                                        <Button
+                                            outline
+                                            color="info"
+                                            type="button"
+                                            id={`PopoverNormal-${file.requestId}`}
+                                            size="sm"
+                                            className="no-border btn-icon">
+                                            <ErrorOutlineOutlinedIcon/>
+                                        </Button>
+                                        <UncontrolledPopover trigger="focus" placement="left"
+                                                             target={`PopoverNormal-${file.requestId}`}>
+                                            <PopoverHeader>{label.casJuridiqueForm.status}</PopoverHeader>
+                                            <PopoverBody>
+                                                <CustomPopover label={label}/>
+                                            </PopoverBody>
+                                        </UncontrolledPopover>
+                                    </Col>);
+                                }
+                                return (
+                                    <li className="list-group-item" key={file.requestId}>
+                                        <Row>
+                                            {statusGlyph}
+                                            <Col sm={{ size: 8, offset: 1 }} md={{ size: 8, offset: 1 }}>
+                                                {file.value}
+                                                <FormText
+                                                    color="muted">{file.recDate ? getDateDetails( file.recDate ) : ''
+                                                } / {file.recUser}</FormText>
+                                            </Col>
+                                            <Col sm={1} md={1}>
+                                                <Button
+                                                    size="sm"
+                                                    color="primary"
+                                                    className="btn-icon"
+                                                    disabled={file.status === 'WAITING'}
+                                                    onClick={() => handleDownloadFile( channelContent.id, file )}>
+                                                    <GetApp/>
+                                                </Button>
+                                            </Col>
+                                            {file.status === 'WAITING' ? (<FormText>
+                                                {label.casJuridiqueForm.waiting}
+                                            </FormText>) : null}
+                                        </Row>
+                                    </li>
+                                );
+                            } ) : null}
+                            {/*    <ListGroup>*/}
+                            {/*        {filesTemp}*/}
+                            {/*    </ListGroup>*/}
                         </Col>
                     </Row>
                     <Row>
@@ -549,10 +822,10 @@ export default function ContentChannel( {
                         modalDisplay={modalUploadBasicDocument}/>
                 ) : null}
                 {modalNotPaidSignDocument ? (
-                        <ModalNoActivePayment
-                            label={label}
-                            toggleModalDetails={_toggleModaNPlUploadSignDocument}
-                            modalDisplay={modalNotPaidSignDocument}/>
+                    <ModalNoActivePayment
+                        label={label}
+                        toggleModalDetails={_toggleModaNPlUploadSignDocument}
+                        modalDisplay={modalNotPaidSignDocument}/>
                 ) : null}
                 {modalUploadSignDocument ? (
                     <ModalUploadSignDocument

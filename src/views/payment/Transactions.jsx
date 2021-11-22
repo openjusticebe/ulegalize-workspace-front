@@ -6,12 +6,13 @@ import { usePagination, useTable } from 'react-table';
 // nodejs library that concatenates classes
 import { useAuth0 } from '@auth0/auth0-react';
 import { getDate } from '../../utils/DateUtils';
-import { getPaymentTransactions } from '../../services/PaymentServices';
+import { getInvoiceUrl, getPaymentTransactions } from '../../services/PaymentServices';
 import { getWorkflowNameLabel } from '../affaire/mail/WorkflowNameLabel';
 import { getStatusTransaction } from '../affaire/mail/StatusTransactionLabel';
+import PaymentDTO from '../../model/payment/PaymentDTO';
 
-let moment = require( 'moment-timezone' );
 
+const map = require( 'lodash/map' );
 const ceil = require( 'lodash/ceil' );
 const range = require( 'lodash/range' );
 const PAGE_SIZE = 10;
@@ -41,8 +42,20 @@ export default function Transactions( props ) {
                 }
             },
             {
-                Header: label.payment.amount,
+                Header: label.payment.amountHt,
                 accessor: 'amount',
+                Cell: row => {
+                    return row ? (
+                        <div>
+                            <p>{row.value.toFixed( 2 )} €</p>
+                            {` `}
+                        </div>
+                    ) : '';
+                }
+            },
+            {
+                Header: label.payment.amount,
+                accessor: 'amountTt',
                 Cell: row => {
                     return row ? (
                         <div>
@@ -69,16 +82,28 @@ export default function Transactions( props ) {
                 Header: label.payment.status,
                 accessor: 'status',
                 Cell: row => {
-                    let dueDate = '';
-                    if ( row.value === 'DUE_DATE' ) {
-                        const month = moment().date( 5 ).add( 1, 'months' );
-                        dueDate = '(' + getDate( month ) + ')';
-                    }
-
                     return row ? (
                         <div>
-                            <p>{getStatusTransaction( row.value, label )} {dueDate}</p>
+                            <p>{getStatusTransaction( row.value, label )}</p>
                             {` `}
+                        </div>
+                    ) : '';
+                }
+            },
+            {
+                Header: label.payment.invoiceStripeId,
+                accessor: 'invoiceStripeId',
+                Cell: row => {
+                    return row && row.value ? (
+                        <div>
+                            <a
+                                className="btn-icon btn-link margin-left-10"
+                                onClick={() => {
+                                    _onclickShowInvoice(row.value);
+                                }}
+                                color="primary" size="sm">
+                                <i className="fa fa-eye "/>
+                            </a>
                         </div>
                     ) : '';
                 }
@@ -138,7 +163,8 @@ export default function Transactions( props ) {
             if ( !result.error ) {
                 skipPageResetRef.current = true;
                 setCount( result.data.totalElements );
-                setData( result.data.content );
+                const tmp = map(result.data.content, payment=>{return new PaymentDTO(payment)})
+                setData( tmp );
             }
         })();
     }, [pageIndex, pageSize] );
@@ -171,6 +197,17 @@ export default function Transactions( props ) {
             </PaginationLink>
         </PaginationItem>;
     }
+
+    const _onclickShowInvoice = async(invoiceId) => {
+        const accessToken = await getAccessTokenSilently();
+
+        const result = await getInvoiceUrl(accessToken, invoiceId);
+
+        if(!result.error) {
+            window.open(result.data, "_blank", 'noopener noreferrer');
+        }
+
+    };
 
     return (
         <>

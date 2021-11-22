@@ -1,55 +1,54 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 
 // reactstrap components
-import {
-    Alert,
-    Button,
-    Col,
-    FormGroup,
-    Input,
-    Label,
-    Modal,
-    ModalBody,
-    ModalFooter,
-    ModalHeader,
-    Nav,
-    NavItem,
-    NavLink,
-    Row,
-    Spinner,
-    TabContent,
-    TabPane
-} from 'reactstrap';
+import { Alert, Button, Col, Nav, NavItem, NavLink, Row, Spinner, TabContent, TabPane } from 'reactstrap';
 import PaymentMethodBancontact from './PaymentMethodBancontact';
 import PaymentMethodCard from './PaymentMethodCard';
 import stripeLogo from '../../assets/img/Powered by Stripe - blurple.svg';
 import Card from '@repay/react-credit-card';
 import { useAuth0 } from '@auth0/auth0-react';
-import { deactivatePayment, getLastCard } from '../../services/PaymentServices';
+import { countTransaction, deactivatePayment, getLastCard } from '../../services/PaymentServices';
 import CardsDTO from '../../model/payment/CardsDTO';
 import ReactBSAlert from 'react-bootstrap-sweetalert';
 import ReactLoading from 'react-loading';
-import { updateVirtualcab } from '../../services/generalInfo/LawfirmService';
-import { validateEmail } from '../../utils/Utils';
 
 const stripePromise = loadStripe( process.env.REACT_APP_STRIPE );
 
-const isEmpty = require( 'lodash/isEmpty' );
 const isNil = require( 'lodash/isNil' );
+
+function useInterval( callback, delay ) {
+    const savedCallback = useRef();
+
+    useEffect( () => {
+        savedCallback.current = callback;
+    } );
+
+    useEffect( () => {
+        function tick() {
+            savedCallback.current();
+        }
+
+        if ( delay !== null ) {
+            let id = setInterval( tick, delay );
+            return () => clearInterval( id );
+        }
+    }, [delay] );
+}
 
 export default function PaymentMethod( {
                                            label, email, vckeySelected,
-                                           lawfirmDto, showMessage,
+                                           showMessage,
                                            checkResult,
+                                           handleUpdateLawfirmAddress,
                                            paymentUpdated,
                                            isPaymentLoading, paymentLoading
                                        } ) {
     const [paymentMethodVerticalTabsIcons, setPaymentMethodVerticalTabsIcons] = useState( 'bancontact' );
-    const [popupLawfirmEmail, setPopupLawfirmEmail] = useState( false );
-    const [lawfirmEmail, setLawfirmEmail] = useState( lawfirmDto.email );
     const [lastCard, setLastCard] = useState( null );
+    // cardRegisterd is being registered so let's poll
+    const cardRegisterd = useRef( false );
     const [deleteAlert, setDeleteAlert] = useState( null );
     const { getAccessTokenSilently } = useAuth0();
 
@@ -67,50 +66,53 @@ export default function PaymentMethod( {
         })();
     }, [getAccessTokenSilently, checkResult, paymentUpdated] );
 
+    useInterval( async () => {
+        const accessToken = await getAccessTokenSilently();
+        let lastCardResult = await getLastCard( accessToken, vckeySelected );
+        if ( !lastCardResult.error && lastCardResult.data ) {
+            cardRegisterd.current = false;
+            isPaymentLoading( false );
+            setLastCard( new CardsDTO( lastCardResult.data ) );
+        }
+    }, cardRegisterd.current === true ? 2000 : null );
+
     const changeUsersTab = ( e, tadName ) => {
         e.preventDefault();
         setPaymentMethodVerticalTabsIcons( tadName );
     };
 
-    const _togglePopupLawfirmEmail = () => {
-        setPopupLawfirmEmail( !popupLawfirmEmail );
+    const _handleUpdateLawfirmAddress = async ( lawfirm ) => {
+        return await handleUpdateLawfirmAddress( lawfirm );
     };
-
     const _handleDeactivate = async () => {
         isPaymentLoading( true );
         const accessToken = await getAccessTokenSilently();
-        const result = await deactivatePayment( accessToken );
 
-        if ( result.error ) {
-            showMessage( label.payment.error3, 'danger' );
+        const resultCount = await countTransaction( accessToken );
+
+        if ( resultCount.error || resultCount.data !== 0 ) {
+            showMessage( label.payment.error6, 'danger' );
         } else {
-            showMessage( label.payment.success2, 'primary' );
+            const result = await deactivatePayment( accessToken );
+
+            if ( result.error ) {
+                showMessage( label.payment.error3, 'danger' );
+            } else {
+                showMessage( label.payment.success2, 'primary' );
+            }
         }
+
         isPaymentLoading( false );
     };
 
-    const _handleSaveEmailLawfirm = async () => {
-        isPaymentLoading( true );
-        const accessToken = await getAccessTokenSilently();
+    const _isPaymentLoading = async ( value, checkActivated ) => {
+        // only if it's false fire interval
+        if ( checkActivated === true ) {
+            cardRegisterd.current = true;
 
-        if ( (!isNil(lawfirmEmail) || isEmpty(lawfirmEmail) )
-            && !validateEmail( lawfirmEmail ) ) {
-            isPaymentLoading( false );
-            showMessage( label.affaire.error18, 'danger' );
-            return;
         }
 
-        lawfirmDto.email = lawfirmEmail;
-        const result = await updateVirtualcab( accessToken, lawfirmDto );
-
-        if ( result.error ) {
-            showMessage( label.common.error2, 'danger' );
-        } else {
-            showMessage( label.common.success1, 'primary' );
-        }
-        _togglePopupLawfirmEmail();
-
-        isPaymentLoading( false );
+        isPaymentLoading( value );
     };
 
     return (
@@ -119,9 +121,6 @@ export default function PaymentMethod( {
                 <Col md={7}>
                     <Alert color="info">
                         <div>{label.payment.label8}</div>
-                    </Alert>
-                    <Alert color="info">
-                        <div>{label.payment.label10}</div>
                     </Alert>
                     <div className="stripe-logo-img">
                         <img src={stripeLogo} alt="stripe-logo"/>
@@ -168,12 +167,11 @@ export default function PaymentMethod( {
                             <TabPane tabId="card">
                                 <PaymentMethodCard
                                     amount={0}
-                                    openPopupLawfirmEmail={_togglePopupLawfirmEmail}
-                                    isPaymentLoading={isPaymentLoading}
+                                    isPaymentLoading={_isPaymentLoading}
                                     paymentLoading={paymentLoading}
                                     checkResult={checkResult}
                                     showMessage={showMessage}
-                                    lawfirm={lawfirmDto}
+                                    handleUpdateLawfirmAddress={_handleUpdateLawfirmAddress}
                                     email={email}
                                     vckeySelected={vckeySelected}
                                     label={label}
@@ -182,12 +180,11 @@ export default function PaymentMethod( {
                             <TabPane tabId="bancontact">
                                 <PaymentMethodBancontact
                                     amount={1}
-                                    openPopupLawfirmEmail={_togglePopupLawfirmEmail}
-                                    isPaymentLoading={isPaymentLoading}
+                                    isPaymentLoading={_isPaymentLoading}
                                     paymentLoading={paymentLoading}
                                     checkResult={checkResult}
+                                    handleUpdateLawfirmAddress={_handleUpdateLawfirmAddress}
                                     showMessage={showMessage}
-                                    lawfirm={lawfirmDto}
                                     email={email}
                                     vckeySelected={vckeySelected}
                                     label={label}
@@ -207,7 +204,7 @@ export default function PaymentMethod( {
                                 <>
                                     <Card
                                         name={lastCard.name}
-                                        number={`************${!isNil(lastCard.last4) ? lastCard.last4 : '' }`}
+                                        number={`************${!isNil( lastCard.last4 ) ? lastCard.last4 : ''}`}
                                         expiration={`${lastCard.exp_month}/${lastCard.exp_year}`}
                                         cvc={lastCard.cvc_check}
                                         type={lastCard.brand}
@@ -250,37 +247,6 @@ export default function PaymentMethod( {
 
                 </Col>
             </Row>
-            {popupLawfirmEmail ? (
-                <Modal size="md" isOpen={popupLawfirmEmail} toggle={_togglePopupLawfirmEmail}>
-                    <ModalHeader toggle={_togglePopupLawfirmEmail}>
-                        <h4>{label.payment.label9}</h4>
-                    </ModalHeader>
-                    <ModalBody>
-                        <Row>
-                            <Col md={9} lg={9}>
-                                <FormGroup>
-                                    <Label>{label.generalInfo.email}</Label>
-                                    <Input
-                                        value={lawfirmEmail}
-                                        type="email"
-                                        onChange={( e ) => setLawfirmEmail( e.target.value )}
-                                        placeholder={label.generalInfo.email}
-                                    />
-                                </FormGroup>
-
-                            </Col>
-                        </Row>
-                    </ModalBody>
-                    <ModalFooter>
-                        <Button color="secondary" onClick={() => _togglePopupLawfirmEmail()}>
-                            {label.common.close}
-                        </Button>
-                        <Button color="primary" onClick={_handleSaveEmailLawfirm}>
-                            {label.common.save}
-                        </Button>
-                    </ModalFooter>
-                </Modal>
-            ) : null}
             {deleteAlert}
         </>
     )

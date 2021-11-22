@@ -21,6 +21,9 @@ export default class InvoiceDTO {
     clientItem;
     invoiceDetailsDTOList;
     prestationIdList;
+    fraisAdminIdList;
+    deboursIdList;
+    fraisCollaborationIdList;
 
     constructor( data ) {
         if ( data ) {
@@ -46,6 +49,9 @@ export default class InvoiceDTO {
             this.clientItem = data.clientItem;
             this.invoiceDetailsDTOList = data.invoiceDetailsDTOList;
             this.prestationIdList = data.prestationIdList;
+            this.fraisAdminIdList = data.fraisAdminIdList;
+            this.deboursIdList = data.deboursIdList;
+            this.fraisCollaborationIdList = data.fraisCollaborationIdList;
         }
     }
 

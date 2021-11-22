@@ -36,7 +36,7 @@ export async function fetchEmailPaymentPrice( accessToken, callback ) {
 }
 export async function getUsignPaymentPrice( accessToken ) {
     try {
-        return await axios.get( `${process.env.REACT_APP_TRANSPARENCY_SERVER}v2/payment/usign`,
+        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/price/usign`,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`

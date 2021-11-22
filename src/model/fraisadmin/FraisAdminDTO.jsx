@@ -19,6 +19,10 @@ export default class FraisAdminDTO {
 
     // not used in the backend
     costCalculated;
+    invoiceChecked;
+    alreadyInvoiced;
+    factExtId;
+    factExtRef;
 
     constructor( data ) {
         if ( data ) {
@@ -26,6 +30,7 @@ export default class FraisAdminDTO {
             this.type = data.type;
             this.archived = data.archived;
             this.idDoss = data.idDoss;
+            this.dossierItem = data.dossierItem;
             this.idUserResponsible = data.idUserResponsible;
 
             this.idDebourType = data.idDebourType;
@@ -38,6 +43,10 @@ export default class FraisAdminDTO {
             this.pricePerUnit = data.pricePerUnit;
             this.dateAction = data.dateAction;
             this.comment = data.comment;
+            this.invoiceChecked = data.invoiceChecked;
+            this.alreadyInvoiced = data.alreadyInvoiced;
+            this.factExtId = data.factExtId;
+            this.factExtRef = data.factExtRef;
         }
     }
 }
