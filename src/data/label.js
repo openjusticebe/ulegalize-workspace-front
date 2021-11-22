@@ -2324,7 +2324,7 @@ const label =
                 'label34': 'Verzonden',
                 'label35': 'Voorvertoning van de e-mail',
                 'emailContent': 'Message',
-                'subject': 'Subject',
+                'subject': 'Onderwerp',
                 'mailFrom': 'Afzender',
                 'attachment': 'Attachment',
                 'bpoststatus0': 'Onbekend',
