@@ -23,7 +23,6 @@ import ActionAssignment from '@material-ui/icons/Assignment';
 import ModalSaveFolder from './ModalSaveFolder';
 import IconButton from '@material-ui/core/IconButton';
 import MoreVertIcon from '@material-ui/icons/MoreVert';
-//import ConfirmModal from '../../shared/ConfirmModal';
 import PopoverDrive from './PopoverDrive';
 import ReactLoading from 'react-loading';
 import { getDateDetails } from '../../utils/DateUtils';

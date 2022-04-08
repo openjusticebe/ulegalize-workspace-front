@@ -8,8 +8,7 @@ import {
     FormText,
     Input,
     Label,
-    Modal,
-    ModalBody,
+    ListGroupItem,
     ModalFooter,
     Row,
     Spinner
@@ -22,13 +21,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import fr from 'date-fns/locale/fr';
 import en from 'date-fns/locale/en-GB';
 import Select from 'react-select';
-import {
-    approvedEvent,
-    createEvent,
-    deleteEvent,
-    fetchLawfirmCalendar,
-    updateEvent
-} from '../../services/AgendaService';
+import { deleteEvent, fetchLawfirmCalendar, } from '../../services/AgendaService';
 import ItemDTO from '../../model/ItemDTO';
 import { useAuth0 } from '@auth0/auth0-react';
 import AsyncSelect from 'react-select/async/dist/react-select.esm';
@@ -36,6 +29,10 @@ import { getAffairesByVcUserIdAndSearchCriteria } from '../../services/DossierSe
 import ReactBSAlert from 'react-bootstrap-sweetalert';
 import AsyncCreatableSelect from 'react-select/async-creatable/dist/react-select.esm';
 import { getContact } from '../../services/SearchService';
+import GetApp from '@material-ui/icons/GetApp';
+import { Link } from 'react-router-dom';
+import VisibilityIcon from '@material-ui/icons/Visibility';
+import { RegisterFraisModal } from '../Affaire/RegisterFraisModal';
 
 const map = require( 'lodash/map' );
 const isNil = require( 'lodash/isNil' );
@@ -43,23 +40,32 @@ moment.locale( 'fr' );
 registerLocale( 'fr', fr );
 registerLocale( 'en', en );
 
-export default function AppointmentModalPanel( props ) {
-    const {
-        toggleAppointment, modal,
-        userResponsableList,
-        label,
-        userId,
-        calendarTypeList,
-        vckeySelected,
-        approved
-    } = props;
-
+export default function AppointmentModalPanel( {
+                                                   toggleAppointment, isModal,
+                                                   isCreated,
+                                                   userResponsableList,
+                                                   label,
+                                                   userId,
+                                                   saveEvent,
+                                                   currency,
+                                                   fullName,
+                                                   language,
+                                                   history,
+                                                   isLoadingSave,
+                                                   dossierId,
+                                                   calendarTypeList,
+                                                   selectedEventProps,
+                                                   showMessageFromPopup,
+                                                   vckeySelected,
+                                                   approved
+                                               } ) {
     const userResponsableRef = useRef( userResponsableList );
 
-    const [selectedEvent, setSelectedEvent] = useState( props.selectedEvent );
+    const [selectedEvent, setSelectedEvent] = useState( selectedEventProps );
     const [optionsUsers, setOptionsUsers] = useState( userResponsableRef.current );
-    const [isLoading, setIsLoading] = useState( false );
+    const [isLoading, setIsLoading] = useState( isLoadingSave );
     const [deleteAlert, setDeleteAlert] = useState( null );
+    const [togglePopupCreatePrest, settogglePopupCreatePrest] = useState( false );
     const { getAccessTokenSilently } = useAuth0();
 
     useEffect( () => {
@@ -68,7 +74,7 @@ export default function AppointmentModalPanel( props ) {
 
             fetchLawfirmCalendar( accessToken, vckeySelected, ( contacts ) => {
 //build user option list
-                if ( props.selectedEvent.eventType === 'TASK' ) {
+                if ( selectedEventProps.eventType === 'TASK' || selectedEventProps.eventType === 'RECORD' ) {
                     const selectedUser = new ItemDTO( { value: null, label: label.common.label1 } );
                     // ADD all members
                     userResponsableRef.current = [...userResponsableList, (selectedUser)];
@@ -85,12 +91,30 @@ export default function AppointmentModalPanel( props ) {
         })();
     }, [getAccessTokenSilently] );
 
+    useEffect( () => {
+        if ( !isNil( selectedEventProps ) ) {
+            setSelectedEvent( {
+                ...selectedEvent,
+                id: selectedEventProps.id,
+                microText: selectedEventProps.microText,
+                audioText: selectedEventProps.audioText,
+                pathFile: selectedEventProps.pathFile,
+                speechToTextActivated: selectedEventProps.speechToTextActivated,
+            } );
+        }
+
+    }, [selectedEventProps] );
+    useEffect( () => {
+        setIsLoading( isLoadingSave );
+
+    }, [isLoadingSave] );
+
     const handleSaveEvent = async ( form ) => {
         form.preventDefault();
         setIsLoading( true );
 
         if ( isNil( selectedEvent.start ) ) {
-            props.showMessageFromPopup( label.agenda.error1, 'danger' );
+            showMessageFromPopup( label.agenda.error1, 'danger' );
             setIsLoading( false );
 
             return;
@@ -98,69 +122,29 @@ export default function AppointmentModalPanel( props ) {
 
         if ( selectedEvent.eventType !== 'TASK' ) {
             if ( isNil( selectedEvent.end ) ) {
-                props.showMessageFromPopup( label.agenda.error4, 'danger' );
+                showMessageFromPopup( label.agenda.error4, 'danger' );
                 setIsLoading( false );
 
                 return;
             }
             if ( moment( selectedEvent.end ).isBefore( selectedEvent.start ) ) {
-                props.showMessageFromPopup( label.agenda.error3, 'danger' );
+                showMessageFromPopup( label.agenda.error3, 'danger' );
                 setIsLoading( false );
 
                 return;
             }
         }
 
-        // if UPDATE
-        if ( !isNil( selectedEvent.id ) ) {
-            const accessToken = await getAccessTokenSilently();
+        saveEvent( selectedEvent );
 
-            // save without approval
-            const result = await updateEvent( accessToken, selectedEvent.id, selectedEvent );
+        setIsLoading( false );
 
-            if ( approved === true ) {
-                const resultApproved = await approvedEvent( accessToken, selectedEvent.id );
-
-                if ( !resultApproved.error ) {
-                    setIsLoading( false );
-                    props.showMessageFromPopup( label.agenda.success2, 'success', true );
-                    props.toggleAppointment( true );
-                } else {
-                    props.showMessageFromPopup( label.agenda.error11, 'danger' );
-                    setIsLoading( false );
-                    return;
-                }
-            } else {
-                if ( !result.error ) {
-                    setIsLoading( false );
-                    props.showMessageFromPopup( label.agenda.success2, 'success', true );
-                    props.toggleAppointment( true );
-                } else {
-                    setIsLoading( false );
-                    props.showMessageFromPopup( label.agenda.error8, 'danger' );
-                }
-            }
-
-        } else {
-            const accessToken = await getAccessTokenSilently();
-
-            const result = await createEvent( accessToken, selectedEvent );
-
-            if ( !result.error ) {
-                setIsLoading( false );
-                props.showMessageFromPopup( label.agenda.success1, 'success', true );
-                props.toggleAppointment( true );
-            } else {
-                setIsLoading( false );
-                props.showMessageFromPopup( label.agenda.error9, 'danger' );
-            }
-        }
     };
 
     const handleDatePickerChange = ( date ) => {
         // if the end date is before start date => add 30 min to end date
         if ( moment( date ).isAfter( selectedEvent.end )
-            ||  moment( date ).isSame( selectedEvent.end ) ) {
+            || moment( date ).isSame( selectedEvent.end ) ) {
             const end = moment( date ).add( 30, 'minutes' );
             setSelectedEvent( { ...selectedEvent, start: date, end: end } );
         } else {
@@ -176,7 +160,7 @@ export default function AppointmentModalPanel( props ) {
 
     const handleEventTypeChange = ( event ) => {
         let selectedUser;
-        if ( event.value === 'TASK' ) {
+        if ( event.value === 'TASK' || event.value === 'RECORD' ) {
             selectedUser = new ItemDTO( { value: null, label: label.common.label1 } );
             // ADD all members
             userResponsableRef.current = [...optionsUsers, (selectedUser)];
@@ -228,11 +212,11 @@ export default function AppointmentModalPanel( props ) {
 
         if ( !result.error ) {
             setIsLoading( false );
-            props.showMessageFromPopup( label.agenda.success3, 'success' );
-            props.toggleAppointment( true );
+            showMessageFromPopup( label.agenda.success3, 'success' );
+            toggleAppointment( true );
         } else {
             setIsLoading( false );
-            props.showMessageFromPopup( label.agenda.error10, 'danger' );
+            showMessageFromPopup( label.agenda.error10, 'danger' );
         }
     };
 
@@ -325,19 +309,6 @@ export default function AppointmentModalPanel( props ) {
                         </FormGroup>
                     </Col>
                 </Row>
-                {/* REMARKS */}
-                <Row>
-                    <Col lg="12">
-                        <Label>{label.appointmentmodalpanel.label1}</Label>
-                        <FormGroup>
-                            <Input type="textarea" rows="5"
-                                   value={selectedEvent.note} onChange={handleEventNoteChange}
-                                   placeholder={`${label.appointmentmodalpanel.label1}...`}/>
-                            <FormText>{label.appointmentmodalpanel.label14}</FormText>
-
-                        </FormGroup>
-                    </Col>
-                </Row>
             </div>
         );
     };
@@ -386,19 +357,6 @@ export default function AppointmentModalPanel( props ) {
                         </FormGroup>
                     </Col>
                 </Row>
-                {/* REMARKS */}
-                <Row>
-                    <Col lg="12">
-                        <Label>{label.appointmentmodalpanel.label1}</Label>
-                        <FormGroup>
-                            <Input type="textarea" rows="5"
-                                   value={selectedEvent.note} onChange={handleEventNoteChange}
-                                   placeholder={`${label.appointmentmodalpanel.label1}...`}/>
-                            <FormText>{label.appointmentmodalpanel.label14}</FormText>
-
-                        </FormGroup>
-                    </Col>
-                </Row>
             </div>
         );
     };
@@ -413,18 +371,6 @@ export default function AppointmentModalPanel( props ) {
                             <Input placeholder={label.appointmentmodalpanel.label4}
                                    value={selectedEvent.title}
                                    onChange={handleEventTitleChange}/>
-                        </FormGroup>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col lg="12">
-                        <Label>{label.appointmentmodalpanel.label1}</Label>
-                        <FormGroup>
-                            <Input type="textarea" rows="5"
-                                   value={selectedEvent.note} onChange={handleEventNoteChange}
-                                   placeholder={`${label.appointmentmodalpanel.label1}...`}/>
-                            <FormText>{label.appointmentmodalpanel.label14}</FormText>
-
                         </FormGroup>
                     </Col>
                 </Row>
@@ -452,18 +398,6 @@ export default function AppointmentModalPanel( props ) {
                         </FormGroup>
                     </Col>
                 </Row>
-                <Row>
-                    <Col lg="12">
-                        <Label>{label.appointmentmodalpanel.label1}</Label>
-                        <FormGroup>
-                            <Input type="textarea" rows="5"
-                                   value={selectedEvent.note} onChange={handleEventNoteChange}
-                                   placeholder={`${label.appointmentmodalpanel.label1}...`}/>
-                            <FormText>{label.appointmentmodalpanel.label14}</FormText>
-
-                        </FormGroup>
-                    </Col>
-                </Row>
             </div>
         );
     };
@@ -482,9 +416,34 @@ export default function AppointmentModalPanel( props ) {
                         </FormGroup>
                     </Col>
                 </Row>
+                {!isNil( selectedEvent.pathFile ) && isCreated === false ? (
+                    <Row>
+                        <Col lg="12">
+                            <ListGroupItem>
+                                <Col sm={{ size: 8, offset: 1 }} md={{ size: 8, offset: 1 }}>
+                                    {selectedEvent.pathFile}
+                                </Col>
+                                <Col sm={1} md={1}>
+                                    <Button
+                                        size="sm"
+                                        color="primary"
+                                        className="btn-icon"
+                                    >
+                                        <GetApp/>
+                                    </Button>
+                                </Col>
+                            </ListGroupItem>
+                        </Col>
+                    </Row>
+                ) : null}
                 <Row>
                     <Col lg="12">
-                        <Label>{label.appointmentmodalpanel.label11}</Label>
+                        <Label>{selectedEvent.dossierItem ? (
+                                <Link
+                                    to={`/admin/affaire/${selectedEvent.dossierItem.value}`}>{label.appointmentmodalpanel.label11} {' '}
+                                    <VisibilityIcon/></Link>
+                            ) :
+                            label.appointmentmodalpanel.label11}</Label>
                         <FormGroup>
                             <AsyncSelect
                                 value={selectedEvent.dossierItem}
@@ -499,37 +458,41 @@ export default function AppointmentModalPanel( props ) {
                         </FormGroup>
                     </Col>
                 </Row>
-                <Row>
-                    <Col lg="12">
-                        <Label>{label.appointmentmodalpanel.label1}</Label>
-                        <FormGroup>
-                            <Input type="textarea" rows="5"
-                                   value={selectedEvent.note} onChange={handleEventNoteChange}
-                                   placeholder={`${label.appointmentmodalpanel.label1}...`}/>
-                            <FormText>{label.appointmentmodalpanel.label14}</FormText>
-
-                        </FormGroup>
-                    </Col>
-                </Row>
             </div>
         );
     };
-
+    const _togglePopupCreatePrestation = ( e, message, type ) => {
+        settogglePopupCreatePrest(!togglePopupCreatePrest);
+        if ( message && type ) {
+            showMessageFromPopup( message, type );
+        }
+    };
     return (
-        <Modal size="md" isOpen={modal} toggle={toggleAppointment}>
-
-            <ModalBody>
-                {!props.isCreated ? (
+        <>
+            {isCreated === false ? (
+                <>
                     <Row>
-                        <Col lg={{ size: 1, offset: 10 }}>
+                        <Col lg={{ size: 2 }}>
+                            <Button color="primary" size="sm"
+                                    disabled={isLoading} onClick={_togglePopupCreatePrestation}>
+                                <i className="tim-icons icon-simple-add padding-icon-text"/>
+                                {label.appointmentmodalpanel.label21}
+                            </Button>
+                        </Col>
+                        {deleteAlert}
+                        <Col lg={{ size: 1, offset: 8 }}>
                             <Button color="danger" size="sm" disabled={isLoading} onClick={deleteMessageModal}><i
                                 className="fa fa-trash"/> </Button>
                         </Col>
                         {deleteAlert}
                     </Row>
-                ) : null}
+                </>
+            ) : null}
 
-                <Form>
+            <Form>
+
+                {/* if it's record don't show the type */}
+                {selectedEvent.eventType !== 'RECORD' ? (
                     <Row>
                         <Col lg="12">
                             <Label>{label.appointmentmodalpanel.label5}</Label>
@@ -546,109 +509,165 @@ export default function AppointmentModalPanel( props ) {
                             </FormGroup>
                         </Col>
                     </Row>
-                    {selectedEvent.start ?
-                        <Row>
-                            <Col lg="12">
-                                <Label>{startLabel}</Label>
-                                <FormGroup>
-                                    <DatePicker
-                                        selected={selectedEvent.start}
-                                        onChange={handleDatePickerChange}
-                                        showTimeSelect
-                                        locale="fr"
-                                        timeFormat="HH:mm"
-                                        timeIntervals={30}
-                                        timeCaption="time"
-                                        dateFormat="dd MMMM yyyy, HH:mm"
-                                        className="form-control color-primary"
-                                    />
-                                </FormGroup>
-                            </Col>
-                        </Row>
-                        : ''}
-                    {selectedEvent.end && selectedEvent.eventType !== 'TASK' ?
-                        <Row>
-                            <Col lg="12">
-                                <Label>{label.appointmentmodalpanel.label7}</Label>
-                                <FormGroup>
-                                    <DatePicker
-                                        selected={new Date( selectedEvent.end )}
-                                        minDate={selectedEvent.start}
-                                        onChange={handleEndDatePickerChange}
-                                        showTimeSelect
-                                        locale="fr"
-                                        timeFormat="HH:mm"
-                                        timeIntervals={30}
-                                        timeCaption="time"
-                                        dateFormat="dd MMMM yyyy, HH:mm"
-                                        className="form-control color-primary"
-                                    />
-                                </FormGroup>
-                            </Col>
-                        </Row>
-                        : ''}
-                    {selectedEvent.eventType === 'AUD' ? panelAudience() : ''}
-                    {selectedEvent.eventType === 'PERM' ? panelOnduty() : ''}
-                    {selectedEvent.eventType === 'RDV' ? panelRendezVous() : ''}
-                    {selectedEvent.eventType === 'OTH' ? panelOther() : ''}
-                    {selectedEvent.eventType === 'TASK' ? panelTask() : ''}
-                    <Row>
-                        <Col xs={{ size: 11, offset: 1 }}>
-                            <hr/>
-                        </Col>
-                    </Row>
+                ) : null}
+                {selectedEvent.start ?
                     <Row>
                         <Col lg="12">
-                            <Label>{label.appointmentmodalpanel.label8}</Label>
+                            <Label>{startLabel}</Label>
                             <FormGroup>
-                                <AsyncCreatableSelect
-                                    value={selectedEvent.participantsEmailItem}
-                                    className="react-select info"
-                                    classNamePrefix="react-select"
-                                    cacheOptions
-                                    loadOptions={_loadUsersOptions}
-                                    defaultOptions
-                                    isMulti
-                                    onChange={handleParticipants}
-                                    placeholder={label.common.label14}
+                                <DatePicker
+                                    selected={selectedEvent.start}
+                                    onChange={handleDatePickerChange}
+                                    showTimeSelect
+                                    locale="fr"
+                                    timeFormat="HH:mm"
+                                    timeIntervals={30}
+                                    timeCaption="time"
+                                    dateFormat="dd MMMM yyyy, HH:mm"
+                                    className="form-control color-primary"
                                 />
                             </FormGroup>
                         </Col>
                     </Row>
+                    : ''}
+                {selectedEvent.end && selectedEvent.eventType !== 'TASK' && selectedEvent.eventType !== 'RECORD' ?
                     <Row>
                         <Col lg="12">
-                            <Label>{label.appointmentmodalpanel.label20}</Label>
+                            <Label>{label.appointmentmodalpanel.label7}</Label>
                             <FormGroup>
-                                <Select value={selectedEvent.userItem}
-                                        options={optionsUsers}
-                                        placeholder={`${label.appointmentmodalpanel.label20}...`}
-                                        onChange={handleSelectUser}
-                                        backspaceRemovesValue
-                                        isSearchable
+                                <DatePicker
+                                    selected={new Date( selectedEvent.end )}
+                                    minDate={selectedEvent.start}
+                                    onChange={handleEndDatePickerChange}
+                                    showTimeSelect
+                                    locale="fr"
+                                    timeFormat="HH:mm"
+                                    timeIntervals={30}
+                                    timeCaption="time"
+                                    dateFormat="dd MMMM yyyy, HH:mm"
+                                    className="form-control color-primary"
                                 />
                             </FormGroup>
                         </Col>
                     </Row>
-                </Form>
-            </ModalBody>
+                    : ''}
+                {selectedEvent.eventType === 'AUD' ? panelAudience() : ''}
+                {selectedEvent.eventType === 'PERM' ? panelOnduty() : ''}
+                {selectedEvent.eventType === 'RDV' ? panelRendezVous() : ''}
+                {selectedEvent.eventType === 'OTH' ? panelOther() : ''}
+                {selectedEvent.eventType === 'TASK' || selectedEvent.eventType === 'RECORD' ? panelTask() : ''}
 
-            <ModalFooter>
-                <Button color="default" disabled={isLoading} onClick={toggleAppointment}><i
-                    className="fa fa-times"/> {label.common.cancel}</Button>
-                <Button color="primary" type="button" disabled={isLoading}
-                        id="invoiceLabelId1"
-                        onClick={handleSaveEvent}
-                >
-                    {isLoading ? (
-                        <Spinner
-                            size="sm"
-                            color="secondary"
-                        />
-                    ) : null}
-                    {' '} {label.common.save}
-                </Button>
-            </ModalFooter>
-        </Modal>
+                {/* REMARKS */}
+                <Row>
+                    <Col lg="12">
+                        <Label>{label.appointmentmodalpanel.label1}</Label>
+                        <FormGroup>
+                            <Input type="textarea" rows="5" maxLength={2000}
+                                   value={selectedEvent.note} onChange={handleEventNoteChange}
+                                   placeholder={`${label.appointmentmodalpanel.label1}...`}/>
+                            <FormText>{label.appointmentmodalpanel.label14}</FormText>
+
+                        </FormGroup>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col xs={{ size: 11, offset: 1 }}>
+                        <hr/>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col lg="12">
+                        <Label>{label.appointmentmodalpanel.label8}</Label>
+                        <FormGroup>
+                            <AsyncCreatableSelect
+                                value={selectedEvent.participantsEmailItem}
+                                className="react-select info"
+                                classNamePrefix="react-select"
+                                cacheOptions
+                                loadOptions={_loadUsersOptions}
+                                defaultOptions
+                                isMulti
+                                onChange={handleParticipants}
+                                placeholder={label.common.label14}
+                            />
+                        </FormGroup>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col lg="12">
+                        <Label>{label.appointmentmodalpanel.label20}</Label>
+                        <FormGroup>
+                            <Select value={selectedEvent.userItem}
+                                    options={optionsUsers}
+                                    placeholder={`${label.appointmentmodalpanel.label20}...`}
+                                    onChange={handleSelectUser}
+                                    backspaceRemovesValue
+                                    isSearchable
+                            />
+                        </FormGroup>
+                    </Col>
+                </Row>
+            </Form>
+            {isModal ? (
+                    <ModalFooter>
+                        <Button color="default" disabled={isLoading} onClick={toggleAppointment}><i
+                            className="fa fa-times"/> {label.common.cancel}</Button>
+                        <Button color="primary" type="button" disabled={isLoading}
+                                id="saveEvent1"
+                                onClick={handleSaveEvent}
+                        >
+                            {isLoading ? (
+                                <Spinner
+                                    size="sm"
+                                    color="secondary"
+                                />
+                            ) : null}
+                            {' '} {label.common.save}
+                        </Button>
+                    </ModalFooter>
+                ) :
+                (
+                    <Row>
+                        <Col md={{ size: 12 }} sm={{ size: 12 }}>
+                            {/* DISABLE : is loading OR record type with no file added or Uspeech not activated */}
+                            <Button
+                                block={true}
+                                color="primary" type="button"
+                                disabled={isLoading || (selectedEvent.eventType === 'RECORD' && isNil( selectedEvent.pathFile ) && selectedEvent.speechToTextActivated === false)}
+                                id="saveEvent1"
+                                onClick={handleSaveEvent}
+                            >
+                                {isLoading ? (
+                                    <Spinner
+                                        size="sm"
+                                        color="secondary"
+                                    />
+                                ) : null}
+                                {' '} {label.common.save}
+                            </Button>
+                        </Col>
+                    </Row>
+                )}
+            {togglePopupCreatePrest ?
+                (
+                    <RegisterFraisModal
+                        isFrais={null}
+                        history={history}
+                        isCreated={true}
+                        label={label}
+                        currency={currency}
+                        affaireId={null}
+                        vckeySelected={vckeySelected}
+                        fullName={fullName}
+                        language={language}
+                        clientUpdated={_togglePopupCreatePrestation}
+                        showMessagePopupFrais={showMessageFromPopup}
+                        toggleFraisModal={_togglePopupCreatePrestation}
+                        toggleClientFrais={_togglePopupCreatePrestation}
+                        modal={togglePopupCreatePrest}
+                    />
+                ) : null}
+        </>
     );
 
 }

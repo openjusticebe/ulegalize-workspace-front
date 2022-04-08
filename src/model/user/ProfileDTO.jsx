@@ -11,6 +11,7 @@ export default class  ProfileDTO {
 	userId;
 	enumRights;
 	driveType;
+	verified;
 
 	constructor(profile) {
 		if(profile) {
@@ -25,6 +26,7 @@ export default class  ProfileDTO {
 			this.userId = profile.userId;
 			this.enumRights = profile.enumRights;
 			this.driveType = profile.driveType;
+			this.verified = profile.verified;
 		}
 	}
 }

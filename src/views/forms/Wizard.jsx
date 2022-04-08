@@ -7,7 +7,7 @@ import { Col } from 'reactstrap';
 
 // wizard steps
 import Step1 from './SignupWizardSteps/Step1';
-import { validateUser } from '../../services/UserServices';
+import {getUsers, validateUser} from '../../services/UserServices';
 import { useAuth0 } from '@auth0/auth0-react';
 import ProfileDTO from '../../model/user/ProfileDTO';
 import CircularProgress from '@material-ui/core/CircularProgress';
@@ -105,6 +105,20 @@ export const Wizard = ( { user, label, history } ) => {
             defaultLawfirmDTO.lawfirmDTO = allStates.info.virtualCab;
             defaultLawfirmDTO.itemVatDTOList = [];
 
+            const resultUser = await getUsers(accessToken);
+
+            if (!isNil(resultUser)) {
+                if (!isNil(resultUser.data)) {
+                    const profileDto = new ProfileDTO(resultUser.data);
+
+                    if (profileDto.verified !== true) {
+                        notificationAlert.current.notificationAlert(getOptionNotification(label.wizardSignup.unverifiedUser, 'danger'));
+                        setLoading(false);
+                        return;
+                    }
+                }
+            }
+
             const result = await validateUser( accessToken, defaultLawfirmDTO );
             if ( result.error ) {
                 setVckeyNameState( 'has-danger' );
@@ -154,6 +168,7 @@ export const Wizard = ( { user, label, history } ) => {
                                 headerTextCenter
                                 nextButtonText={label.common.next}
                                 previousButtonText={label.common.preview}
+                                finishButtonText={label.common.validate}
                                 finishButtonClasses={btnFinishClass}
                                 nextButtonClasses="btn-wd btn-info"
                                 previousButtonClasses="btn-wd"

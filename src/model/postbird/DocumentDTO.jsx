@@ -2,6 +2,7 @@ export default class DocumentDTO {
 
     documentId;
     dossierId;
+    dossierPath;
     base64DocumentContent;
     documentName;
     status;
@@ -24,6 +25,7 @@ export default class DocumentDTO {
         if(data) {
             this.documentId = data.documentId;
             this.dossierId = data.dossierId;
+            this.dossierPath = data.dossierPath;
             this.base64DocumentContent = data.base64DocumentContent;
             this.documentName = data.documentName;
             this.status = data.status;

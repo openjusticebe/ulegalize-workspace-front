@@ -43,6 +43,7 @@ export default class DossierDTO {
     couthoraire;
     emailClient;
     isDigital = false;
+    shareUsers;
     balance;
 
     constructor( data ) {
@@ -86,6 +87,7 @@ export default class DossierDTO {
             this.emailClient = data.emailClient;
             this.isDigital = data.isDigital;
             this.balance = data.balance;
+            this.shareUsers = data.shareUsers;
         }
     }
 }

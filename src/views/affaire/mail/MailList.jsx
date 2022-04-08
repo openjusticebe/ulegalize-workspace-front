@@ -210,7 +210,7 @@ export default function MailList( {
             if ( payment.current === true ) {
                 setModalPostMailDisplay( !modalPostMailDisplay );
             } else {
-                setModalNotPaidSignDocument( !modalNotPaidSignDocument );
+                _toggleUnPaid();
             }
         }
     };

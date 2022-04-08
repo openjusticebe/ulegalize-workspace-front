@@ -1,6 +1,6 @@
 {
   "name": "lawfirm-front",
-  "version": "2.9.2",
+  "version": "2.10.4",
   "private": true,
   "scripts": {
     "start": "nps",
@@ -21,9 +21,12 @@
     "@repay/react-credit-card": "^1.0.2",
     "@stripe/react-stripe-js": "^1.4.0",
     "@stripe/stripe-js": "^1.13.2",
+    "@tkrotoff/bootstrap-input-spinner": "0.10.2",
     "antd": "^4.9.4",
+    "audiobuffer-to-wav": "^1.0.0",
     "axios": "^0.21.1",
     "bootstrap": "^4.5.3",
+    "ciseaux": "^0.4.0",
     "classnames": "^2.2.6",
     "date-fns": "^2.11.0",
     "docxtemplater": "^3.19.9",
@@ -32,6 +35,9 @@
     "history": "^4.9.0",
     "install": "^0.13.0",
     "jwt-decode": "^3.0.0-beta.2",
+    "lamejs": "^1.2.0",
+    "lodash": "^4.17.21",
+    "microsoft-cognitiveservices-speech-sdk": "^1.19.0",
     "moment": "^2.24.0",
     "moment-timezone": "^0.5.31",
     "perfect-scrollbar": "^1.4.0",
@@ -49,15 +55,18 @@
     "react-dnd-html5-backend": "^14.0.0",
     "react-dom": "^16.12.0",
     "react-dropzone": "^10.2.1",
+    "react-h5-audio-player": "^3.7.4",
     "react-human-timer": "^1.0.1",
     "react-loading": "^2.0.3",
     "react-notification-alert": "^0.0.13",
     "react-pdf": "^5.1.0",
     "react-router-dom": "^5.2.0",
     "react-select": "^3.0.8",
+    "react-speech-recognition": "^3.9.0",
     "react-table": "^7.6.1",
     "react-transition-group": "^2.6.1",
-    "reactstrap": "^7.1.0"
+    "reactstrap": "^7.1.0",
+    "web-speech-cognitive-services": "7.1.0"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -69,8 +78,11 @@
     "not op_mini all"
   ],
   "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.16.5",
+    "@types/testing-library__jest-dom": "^5.14.2",
     "concurrently": "^4.1.0",
     "dotenv-cli": "^3.1.0",
+    "eslint-config-react-app": "^7.0.0",
     "node-sass": "^6.0.1",
     "nps": "^5.10.0",
     "nps-utils": "^1.7.0",

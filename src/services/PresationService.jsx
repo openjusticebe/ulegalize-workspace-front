@@ -143,12 +143,14 @@ export async function generateReportPrestation( accessToken, start, end, isShare
         return { error: true, data: {}};
     }
 }
-export async function generateReportPrestationByDossier( accessToken, start, end, dossierId ) {
+export async function generateReportPrestationByDossier( accessToken, start, end, dossierId, responsableId ) {
     try {
         return axios.get( `${process.env.REACT_APP_REPORT_SERVER}prestation/dossier/${dossierId}`, {
             params:{
+                responsableId : responsableId,
                 startDate : start,
-                endDate: end},
+                endDate: end
+            },
             headers: {
                     Authorization: `Bearer ${accessToken}`
                 }

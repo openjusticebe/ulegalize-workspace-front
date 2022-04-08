@@ -180,12 +180,15 @@
     box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
   }
 
+  .bootstrap-switch-on:before {
+    background: rgba(darken($primary, 10%), 0.5);
+  }
   .bootstrap-switch.bootstrap-switch-off .bootstrap-switch-label {
-    background: darken($light-bg, 10%);
+    background: darken($black, 10%);
   }
 
   .bootstrap-switch-off:before {
-    background: rgba(darken($light-bg, 10%), 0.5);
+    background: rgba(darken($black, 10%), 0.5);
   }
 
   .card:not(.card-white) {

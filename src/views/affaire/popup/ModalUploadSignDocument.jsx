@@ -12,8 +12,7 @@ import {
     ModalBody,
     ModalFooter,
     ModalHeader,
-    Row,
-    Table
+    Row
 } from 'reactstrap';
 import { getDossierById } from '../../../services/DossierService';
 
@@ -28,6 +27,9 @@ import PdfUpload from '../../../components/CustomUpload/PdfUpload';
 import { fetchUsignPaymentPrice } from '../../../services/transparency/PriceServices';
 import { validateEmail } from '../../../utils/Utils';
 import TableUsignSequence from './TableUsignSequence';
+import AsyncCreatableSelect from 'react-select/async-creatable';
+import { getClient, getClientById } from '../../../services/ClientService';
+import ItemDTO from '../../../model/ItemDTO';
 
 const findIndex = require( 'lodash/findIndex' );
 const isNil = require( 'lodash/isNil' );
@@ -35,6 +37,7 @@ const isEmpty = require( 'lodash/isEmpty' );
 const forEach = require( 'lodash/forEach' );
 const size = require( 'lodash/size' );
 const orderBy = require( 'lodash/orderBy' );
+const map = require( 'lodash/map' );
 
 export default function ModalUploadSignDocument( {
                                                      cas,
@@ -46,6 +49,7 @@ export default function ModalUploadSignDocument( {
                                                      showMessagePopup,
                                                      payment,
                                                      label,
+                                                     partiesSelected
                                                  } ) {
 
     const [isLoading, setIsLoading] = useState( true );
@@ -53,6 +57,7 @@ export default function ModalUploadSignDocument( {
     const [client, setClient] = useState( new ClientUsignDTO( null ) );
     const [toRecipientEmail, setToRecipientEmail] = useState( [] );
     const nbtoRecipientEmail = useRef( 0 );
+    const clientSelected = useRef( partiesSelected );
 
     const [documentName, setDocumentName] = useState( '' );
     const [emailContent, setEmailContent] = useState( '' );
@@ -68,7 +73,8 @@ export default function ModalUploadSignDocument( {
             const accessToken = await getAccessTokenSilently();
             const dossierId = !isNil( affaireId ) ? affaireId : null;
             // if dossier does not exist get the user email
-            if ( !isNil( dossierId ) ) {
+            // if a party is not selected
+            if ( !isNil( dossierId ) && isNil(partiesSelected)) {
                 const resultDossier = await getDossierById( accessToken, dossierId, vckeySelected );
                 if ( !resultDossier.error ) {
                     const dossier = new DossierDTO( resultDossier.data );
@@ -77,6 +83,7 @@ export default function ModalUploadSignDocument( {
                     clientTemp.firstname = dossier.firstnameClient;
                     clientTemp.lastname = dossier.lastnameClient;
                     clientTemp.birthdate = dossier.birthdateClient;
+                    clientSelected.current = new ItemDTO( { value: clientTemp.email, label: clientTemp.email } );
 
                     setClient( clientTemp );
                 }
@@ -84,7 +91,11 @@ export default function ModalUploadSignDocument( {
             } else if ( cas && cas.username ) {
                 let clientTemp = new ClientUsignDTO( null, label );
                 clientTemp.email = cas.username.email;
+                clientSelected.current = new ItemDTO( { value: clientTemp.email, label: clientTemp.email } );
                 setClient( clientTemp );
+            } else if(!isNil(partiesSelected)){
+                clientSelected.current = new ItemDTO( { value: partiesSelected, label: partiesSelected } );
+
             }
             setIsLoading( false );
 
@@ -117,13 +128,13 @@ export default function ModalUploadSignDocument( {
         toggleModalDetails();
     };
 
-    const modifyIndexRecepient = (index, indexHover) => {
+    const modifyIndexRecepient = ( index, indexHover ) => {
         let recipientTmp = toRecipientEmail;
         // become the hover
-        let sequenceToChange = recipientTmp[index].sequence;
-        recipientTmp[index].sequence = recipientTmp[indexHover].sequence;
+        let sequenceToChange = recipientTmp[ index ].sequence;
+        recipientTmp[ index ].sequence = recipientTmp[ indexHover ].sequence;
         //become
-        recipientTmp[indexHover].sequence = sequenceToChange;
+        recipientTmp[ indexHover ].sequence = sequenceToChange;
         let recipientTmpOrdered = orderBy( recipientTmp, ['sequence'] );
 
         setToRecipientEmail( [...recipientTmpOrdered] );
@@ -141,10 +152,10 @@ export default function ModalUploadSignDocument( {
         const recipientTmp = [...toRecipientEmail];
 
         let sequence = 1;
-        forEach(recipientTmp, recipient =>{
-            recipient.sequence = sequence ;
+        forEach( recipientTmp, recipient => {
+            recipient.sequence = sequence;
             sequence++;
-        })
+        } );
         setToRecipientEmail( recipientTmp );
     };
 
@@ -182,11 +193,12 @@ export default function ModalUploadSignDocument( {
         const recipientTmp = [...toRecipientEmail, client];
 
         let sequence = 1;
-        forEach(recipientTmp, recipient =>{
-            recipient.sequence = sequence ;
+        forEach( recipientTmp, recipient => {
+            recipient.sequence = sequence;
             sequence++;
-        })
+        } );
         setToRecipientEmail( recipientTmp );
+        clientSelected.current = null;
         setClient( new ClientUsignDTO( null, label ) );
     };
 
@@ -218,14 +230,67 @@ export default function ModalUploadSignDocument( {
         setOpenCollapse( false );
         setFiles( data );
     };
+    const _loadClientOptions = async ( inputValue, callback ) => {
+        const accessToken = await getAccessTokenSilently();
+        let result = await getClient( accessToken, inputValue );
 
+        callback( map( result.data, data => {
+            if ( !isNil( data.email ) ) {
+                return new ItemDTO( {
+                    value: data.id,
+                    label: data.fullName,
+                    isDefault: data.email
+                } );
+            }
+        } ) );
+    };
+    const _handleClientChange = async ( newValue ) => {
+        clientSelected.current = newValue;
+
+        if ( !isNil( newValue ) ) {
+            let clientTemp = new ClientUsignDTO( client );
+            const accessToken = await getAccessTokenSilently();
+            let result = await getClientById( accessToken, newValue.value );
+            if ( !isNil( result.data ) && !isEmpty( result.data ) ) {
+                let clientResult = new ClientUsignDTO( result.data );
+                // get the existing
+                clientTemp.fullName = clientResult.fullName;
+
+                // change email
+                if ( isEmpty( client.firstname ) ) {
+                    clientTemp.firstname = clientResult.firstname;
+
+                }
+                if ( isEmpty( client.lastname ) ) {
+                    clientTemp.lastname = clientResult.lastname;
+
+                }
+                if ( isEmpty( client.birthdate ) ) {
+                    clientTemp.birthdate = clientResult.birthdate;
+
+                }
+                clientSelected.current = new ItemDTO( {
+                    value: clientTemp.email,
+                    label: clientTemp.email + ' - ' + clientTemp.fullName,
+                    isDefault: clientTemp.email
+                } );
+            } else {
+                clientSelected.current = newValue;
+            }
+            clientTemp.email = newValue.isDefault;
+            setClient( clientTemp );
+        } else {
+            clientSelected.current = null;
+            setClient( { ...client, email: null } );
+        }
+
+    };
     return (
         <Modal size="lg" isOpen={modalDisplay} toggle={toggle}>
             <ModalHeader toggle={toggle}
                          className="justify-content-center"
                          tag={`h4`}>
                 {label.etat.usignModalLabel} {' '}
-                <strong className="text-muted">{priceUsign}€</strong>
 
             </ModalHeader>
             <ModalBody>
@@ -246,14 +311,18 @@ export default function ModalUploadSignDocument( {
                                 </Label>
                                 <Col lg={9} md={9} sm={9}>
                                     <FormGroup>
-                                        <Input
+                                        <AsyncCreatableSelect
+                                            value={clientSelected.current}
+                                            className="react-select info"
+                                            classNamePrefix="react-select"
+                                            cacheOptions
+                                            isClearable={true}
                                             type="email"
                                             name="emailTo"
-                                            component="textarea"
-                                            className="form-control"
                                             placeholder={label.etat.fillinEmailUploadTo}
-                                            value={client.email}
-                                            onChange={( e ) => setClient( { ...client, email: e.target.value } )}
+                                            loadOptions={_loadClientOptions}
+                                            defaultOptions
+                                            onChange={_handleClientChange}
                                         />
                                     </FormGroup>
                                 </Col>
@@ -341,21 +410,24 @@ export default function ModalUploadSignDocument( {
                                         <>
                                             <Col className="text-align-center" lg={12} md={12} sm={12}>
                                                 <ButtonGroup>
-                                                    <Button color={sequenceMethod === 'parallel' ? 'primary': 'default'} onClick={() => setSequenceMethod( 'parallel' )}
+                                                    <Button color={sequenceMethod === 'parallel' ? 'primary' : 'default'}
+                                                            onClick={() => setSequenceMethod( 'parallel' )}
                                                             active={sequenceMethod === 'parallel'}>{label.usign.label1}</Button>
-                                                    <Button color={sequenceMethod === 'sequence' ? 'primary': 'default'} onClick={() => setSequenceMethod( 'sequence' )}
+                                                    <Button color={sequenceMethod === 'sequence' ? 'primary' : 'default'}
+                                                            onClick={() => setSequenceMethod( 'sequence' )}
                                                             active={sequenceMethod === 'sequence'}>{label.usign.label2}</Button>
                                                 </ButtonGroup>
                                             </Col>
                                             <Col lg={12} md={12} sm={12}>
                                                 <TableUsignSequence
+                                                    disabled={false}
                                                     removeRecipient={removeRecipient}
                                                     modifyIndexRecepient={modifyIndexRecepient}
                                                     sequenceMethod={sequenceMethod}
                                                     data={toRecipientEmail}
-                                                    count={size(toRecipientEmail)}
+                                                    count={size( toRecipientEmail )}
                                                     label={label}
-                                                    />
+                                                />
                                             </Col>
                                         </>
                                     )

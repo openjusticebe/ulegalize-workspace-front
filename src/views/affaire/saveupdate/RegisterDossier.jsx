@@ -1143,6 +1143,7 @@ export const RegisterDossier = ( props ) => {
                                             </FormGroup>
                                         </Col>
                                     </Row>
+
                                     <RegisterClientModal
                                         isCreate={isNil( clientModal )}
                                         userId={userId}

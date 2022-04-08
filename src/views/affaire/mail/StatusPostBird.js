@@ -41,7 +41,7 @@ export function getStatusPostBird(status, label) {
             return label.mail.status18;
         case '19':
             return label.mail.status19;
-        case '20':
+        case '99':
             return label.mail.status20;
         case '21':
             return label.mail.status21;

@@ -26,7 +26,6 @@ import { useAuth0 } from '@auth0/auth0-react';
 import PdfUpload from '../../../components/CustomUpload/PdfUpload';
 import {
     getBPostStatus,
-    getCosts,
     getCountryCodes,
     getDocumentById,
     getStatus,
@@ -50,11 +49,14 @@ import classnames from 'classnames';
 import AsyncSelect from 'react-select/async/dist/react-select.esm';
 import { getAffairesByVcUserIdAndSearchCriteria, getDossierById } from '../../../services/DossierService';
 import DossierDTO from '../../../model/affaire/DossierDTO';
+import { getClient, getClientById } from '../../../services/ClientService';
+import ContactSummary from '../../../model/client/ContactSummary';
+import AsyncCreatableSelect from 'react-select/async-creatable';
 
 const isNil = require( 'lodash/isNil' );
 const map = require( 'lodash/map' );
 const isEmpty = require( 'lodash/isEmpty' );
-const forEach = require( 'lodash/forEach' );
+const padStart = require( 'lodash/padStart' );
 const upperCase = require( 'lodash/upperCase' );
 
 export default function ModalMail( {
@@ -75,9 +77,11 @@ export default function ModalMail( {
     const [bpostStatus, setBpostStatus] = useState( 0 );
     const [horizontalTabs, setHorizontalTabs] = useState( 'document' );
     const [dossierItem, setDossierItem] = useState( null );
-    const [updateDossierDisable, setUpdateDossierDisable] = useState( true );
+    const [updateDossierDisable, setUpdateDossierDisable] = useState( false );
+    const dossierRef = useRef( null );
     // use for timer
     const documentIdRef = useRef( documentId );
+    const clientSelected = useRef( null );
 
     const { getAccessTokenSilently } = useAuth0();
 
@@ -92,6 +96,15 @@ export default function ModalMail( {
                     return new ItemDTO( { value: country.iso2, label: country.name } );
                 } );
                 setCountryList( countriesCode );
+            }
+
+            if ( !isNil( dossierId ) ) {
+                const resultDossier = await getDossierById( accessToken, dossierId, vckeySelected );
+                if ( !resultDossier.error ) {
+                    const dossierDTO = new DossierDTO( resultDossier.data );
+                    dossierRef.current = `${dossierDTO.year}/${padStart( dossierDTO.num, 4, '0' )}/`;
+                    setDossierItem( new ItemDTO( { value: dossierDTO.id, label: dossierDTO.label } ) );
+                }
             }
 
             // read the actual document id
@@ -113,11 +126,17 @@ export default function ModalMail( {
                     if ( !isNil( documentTmp.dossierId ) ) {
                         const resultDossier = await getDossierById( accessToken, documentTmp.dossierId, vckeySelected );
                         if ( !resultDossier.error ) {
-                            const dossier = new DossierDTO( resultDossier.data );
-                            setDossierItem( new ItemDTO( { value: dossier.id, label: dossier.label } ) );
+                            const dossierDTO = new DossierDTO( resultDossier.data );
+                            dossierRef.current = `${dossierDTO.year}/${padStart( dossierDTO.num, 4, '0' )}/`;
+                            setDossierItem( new ItemDTO( { value: dossierDTO.id, label: dossierDTO.label } ) );
                         }
 
                     }
+                    clientSelected.current = new ItemDTO( {
+                        value: documentTmp.recipientName,
+                        label:  documentTmp.recipientName,
+                        isDefault: documentTmp.recipientName
+                    } );
                     setDocument( documentTmp );
                 }
 
@@ -157,7 +176,11 @@ export default function ModalMail( {
             const documentTmp = new DocumentDTO( resultStatus.data );
 
             // get address info
-
+            clientSelected.current = new ItemDTO( {
+                value: documentTmp.recipientName,
+                label:  documentTmp.recipientName,
+                isDefault: documentTmp.recipientName
+            } );
             setDocument( documentTmp );
 
             _getCost( documentTmp );
@@ -175,6 +198,11 @@ export default function ModalMail( {
 
         if ( !result.error ) {
             const documentTmp = new DocumentDTO( result.data );
+            clientSelected.current = new ItemDTO( {
+                value: documentTmp.recipientName,
+                label:  documentTmp.recipientName,
+                isDefault: documentTmp.recipientName
+            } );
             setDocument( documentTmp );
             showMessage( label.mail.success3, 'primary' );
         } else {
@@ -199,7 +227,11 @@ export default function ModalMail( {
                     documentTmp.countryCodeItem = new ItemDTO( { value: country.name, label: country.label } );
                 }
             } );
-
+            clientSelected.current = new ItemDTO( {
+                value: documentTmp.recipientName,
+                label:  documentTmp.recipientName,
+                isDefault: documentTmp.recipientName
+            } );
             setDocument( documentTmp );
             showMessage( label.mail.success1, 'primary' );
             _getCost( documentTmp );
@@ -215,6 +247,11 @@ export default function ModalMail( {
 
         if ( result.data ) {
             const documentTmp = new DocumentDTO( result.data );
+            clientSelected.current = new ItemDTO( {
+                value: documentTmp.recipientName,
+                label:  documentTmp.recipientName,
+                isDefault: documentTmp.recipientName
+            } );
             setDocument( documentTmp );
             showMessage( label.mail.success2, 'primary' );
 
@@ -227,8 +264,11 @@ export default function ModalMail( {
         setIsLoading( true );
         let data = new FormData();
         data.append( 'files', file );
-        if ( !isNil( dossierId ) ) {
-            data.append( 'dossierId', dossierId );
+        if ( !isNil( dossierItem) ) {
+            data.append( 'dossierId', dossierItem.value );
+        }
+        if ( !isNil( dossierRef.current ) ) {
+            data.append( 'dossierPath', dossierRef.current );
         }
         const accessToken = await getAccessTokenSilently();
 
@@ -240,6 +280,11 @@ export default function ModalMail( {
         if ( result.data ) {
             const doc = new DocumentDTO( result.data );
             documentIdRef.current = doc.documentId;
+            clientSelected.current = new ItemDTO( {
+                value: doc.recipientName,
+                label:  doc.recipientName,
+                isDefault: doc.recipientName
+            } );
             setDocument( doc );
             // maybe use a timer to get the cost
             setTimeout( () => {
@@ -251,6 +296,7 @@ export default function ModalMail( {
                 }
                 , 1000 );
 
+            setUpdateDossierDisable( !updateDossierDisable );
         }
 
         setIsLoading( false );
@@ -282,8 +328,70 @@ export default function ModalMail( {
         }
     };
 
-    const _handleDossierChange = ( newValue ) => {
+    const _handleDossierChange = async ( newValue ) => {
         setDossierItem( newValue );
+
+        if ( !isNil( newValue ) ) {
+            const accessToken = await getAccessTokenSilently();
+            const resultDossier = await getDossierById( accessToken, newValue.value, vckeySelected );
+            if ( !resultDossier.error ) {
+                const dossierDTO = new DossierDTO( resultDossier.data );
+                dossierRef.current = `${dossierDTO.year}/${padStart( dossierDTO.num, 4, '0' )}/`;
+            }
+        }
+
+    };
+    const _loadClientOptions = async ( inputValue, callback ) => {
+        const accessToken = await getAccessTokenSilently();
+        let result = await getClient( accessToken, inputValue );
+
+        callback( map( result.data, data => {
+            if ( !isNil( data.email ) ) {
+                return new ItemDTO( {
+                    value: data.id,
+                    label: data.fullName,
+                    isDefault: data.email
+                } );
+            }
+        } ) );
+    };
+    const _handleRecipientChange = async ( newValue ) => {
+        clientSelected.current = newValue;
+
+        if ( !isNil( newValue ) ) {
+            let documentTmp = new DocumentDTO(document);
+            const accessToken = await getAccessTokenSilently();
+            let result = await getClientById( accessToken, newValue.value );
+            // retrieve client
+            if ( !isNil(result.data) && !isEmpty(result.data) ) {
+                let clientResult = new ContactSummary( result.data, label );
+                // get the existing
+                if ( isEmpty( document.streetAndNumber ) ) {
+                    documentTmp.streetAndNumber = clientResult.address;
+                }
+                if ( isEmpty( document.postalCode ) ) {
+                    documentTmp.postalCode = clientResult.cp;
+
+                }
+                if ( isEmpty( document.city ) ) {
+                    documentTmp.city = clientResult.city;
+                }
+                clientSelected.current = new ItemDTO( {
+                    value: clientResult.id,
+                    label:  clientResult.fullName,
+                    isDefault: clientResult.email
+                } );
+            } else {
+                clientSelected.current = newValue;
+            }
+            documentTmp.recipientName = newValue.label;
+            setDocument( documentTmp )
+        } else {
+            clientSelected.current = null;
+            setDocument( { ...document,
+                recipientName: null
+            } );
+        }
 
     };
     return (
@@ -300,13 +408,6 @@ export default function ModalMail( {
                     <Row>
                         <Col md={12}>
                             {isNil( documentId ) ? (
-                                <PdfUpload
-                                    isLoading={isLoading}
-                                    saveFile={_uploadDocument}
-                                    avatar={null}/>
-                            ) : null}
-                            {/* display once document is uploaded */}
-                            {!isNil( document ) && document.status ? (
                                 <>
                                     {isNil( dossierId ) ? (
                                         <Row>
@@ -330,50 +431,6 @@ export default function ModalMail( {
                                                             placeholder={label.mail.dossierPlaceholder}
                                                         />
                                                     </Col>
-                                                    <Col lg={4} md={4} sm={4}>
-                                                        <Button
-                                                            className={classnames( ' ', { 'btn-icon': updateDossierDisable } )}
-                                                            color="primary"
-                                                            type="button"
-                                                            size="sm"
-                                                            onClick={async () => {
-                                                                // if save clicked
-                                                                if ( !updateDossierDisable ) {
-                                                                    const accessToken = await getAccessTokenSilently();
-                                                                    const dossierId = !isNil( dossierItem ) ? dossierItem.value : null;
-
-                                                                    const result = await updateDossier( accessToken, documentIdRef.current, dossierId );
-                                                                    if ( result.data ) {
-                                                                        const documentTmp = new DocumentDTO( result.data );
-                                                                        setDocument( documentTmp );
-                                                                        showMessage( label.mail.success5, 'primary' );
-                                                                    }
-                                                                }
-                                                                setUpdateDossierDisable( !updateDossierDisable );
-                                                            }}
-                                                        >
-                                                            {updateDossierDisable ? (
-                                                                <i className="tim-icons icon-pencil"/>
-
-                                                            ) : (
-                                                                <>{label.common.save}</>
-                                                            )}
-                                                        </Button>
-                                                        {/*     cancel button */}
-                                                        {!updateDossierDisable ? (
-                                                            <Button
-                                                                className="margin-left-10"
-                                                                color="default"
-                                                                type="button"
-                                                                size="sm"
-                                                                onClick={async () => {
-                                                                    setUpdateDossierDisable( !updateDossierDisable );
-                                                                }}
-                                                            >
-                                                                <>{label.common.cancel}</>
-                                                            </Button>
-                                                        ) : null}
-                                                    </Col>
                                                 </FormGroup>
                                                 <FormText color="muted">
                                                     {label.common.optional}
@@ -382,6 +439,15 @@ export default function ModalMail( {
 
                                         </Row>
                                     ) : null}
+                                    <PdfUpload
+                                        isLoading={isLoading}
+                                        saveFile={_uploadDocument}
+                                        avatar={null}/>
+                                </>
+                            ) : null}
+                            {/* display once document is uploaded */}
+                            {!isNil( document ) && document.status ? (
+                                <>
                                     <Row>
                                         <Col md={10}>
                                             <Nav className="nav-pills-info" pills>
@@ -484,17 +550,17 @@ export default function ModalMail( {
 
                                                 <Col md={6}>
                                                     {/* GET COST */}
-                                                    { !isNil( document ) && document.status
+                                                    {!isNil( document ) && document.status
                                                     && parseInt( document.status ) >= 0 && parseInt( document.status ) < 11 ? (
                                                         <>
                                                             <h4>{label.mail.label22}</h4>
                                                             <strong>{totalCost.totalPriceExVat} € </strong>
                                                             {totalCost.totalPriceInVat ? (
-                                                                   <>
-                                                                       <h4>{label.mail.label23}</h4>
-                                                                       <strong>{totalCost.totalPriceInVat} € </strong>
-                                                                   </>
-                                                            ): null}
+                                                                <>
+                                                                    <h4>{label.mail.label23}</h4>
+                                                                    <strong>{totalCost.totalPriceInVat} € </strong>
+                                                                </>
+                                                            ) : null}
                                                         </>
                                                     ) : null}
                                                 </Col>
@@ -540,18 +606,20 @@ export default function ModalMail( {
                                                         <Label for="recipientName"
                                                                sm={4}>{label.mail.label19}</Label>
                                                         <Col sm={8} md={8} lg={8} xl={8}>
-                                                            <Input
-                                                                onChange={( e ) => setDocument( {
-                                                                    ...document,
-                                                                    recipientName: e.target.value
-                                                                } )}
-                                                                className="form-control"
-                                                                id="recipientName"
-                                                                disabled={parseInt( document.status ) >= 11}
-                                                                value={document.recipientName}
-                                                                name="recipientName"
-                                                                type="text"
+                                                            <AsyncCreatableSelect
+                                                                value={clientSelected.current}
+                                                                className="react-select info"
+                                                                classNamePrefix="react-select"
+                                                                cacheOptions
+                                                                isClearable={true}
+                                                                create
+                                                                type="email"
                                                                 placeholder={label.mail.label19}
+                                                                id="recipientName"
+                                                                name="recipientName"
+                                                                loadOptions={_loadClientOptions}
+                                                                defaultOptions
+                                                                onChange={_handleRecipientChange}
                                                             />
                                                         </Col>
                                                     </FormGroup>
@@ -791,7 +859,7 @@ export default function ModalMail( {
                                                 </Col>
                                                 <Col md={6}>
                                                     {/* GET COST */}
-                                                    { !isNil( document ) && document.status
+                                                    {!isNil( document ) && document.status
                                                     && parseInt( document.status ) >= 0 && parseInt( document.status ) < 11 ? (
                                                         <>
                                                             <h4>{label.mail.label22}</h4>

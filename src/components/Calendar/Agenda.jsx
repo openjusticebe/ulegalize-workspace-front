@@ -9,6 +9,8 @@ import {
     FormGroup,
     Input,
     Label,
+    Modal,
+    ModalBody,
     Popover,
     PopoverBody,
     Row,
@@ -20,7 +22,13 @@ import { Calendar, momentLocalizer } from 'react-big-calendar';
 import Select from 'react-select';
 import AppointmentModalPanel from './AppointmentModalPanel';
 import LawfirmCalendarEventDTO from '../../model/agenda/LawfirmCalendarEventDTO';
-import { countUnapprovedAgenda, getAgenda } from '../../services/AgendaService';
+import {
+    approvedEvent,
+    countUnapprovedAgenda,
+    createEvent,
+    getAgenda,
+    updateEvent
+} from '../../services/AgendaService';
 import { useAuth0 } from '@auth0/auth0-react';
 import { getCalendarEventType, getUserResponsableList } from '../../services/SearchService';
 import ItemDTO from '../../model/ItemDTO';
@@ -34,6 +42,8 @@ import fr from 'date-fns/locale/fr';
 import en from 'date-fns/locale/en-GB';
 import { getDateDetails } from '../../utils/DateUtils';
 import { CircularProgress } from '@material-ui/core';
+import { newEvent } from '../../utils/CalendarUtils';
+import Voicerecord from '../Navbars/Voicerecord';
 
 let moment = require( 'moment-timezone' );
 
@@ -46,13 +56,17 @@ const map = require( 'lodash/map' );
 const size = require( 'lodash/size' );
 const isNil = require( 'lodash/isNil' );
 const isEmpty = require( 'lodash/isEmpty' );
+const filter = require( 'lodash/filter' );
 
 export default function Agenda( {
                                     auth0,
                                     label,
+                                    history,
                                     vckeySelected,
                                     userId,
                                     language,
+                                    fullName,
+                                    currency,
                                     onlyDossier,
                                     dossierItem,
                                     dossierId,
@@ -75,7 +89,6 @@ export default function Agenda( {
     const notificationAlert = useRef( null );
     const isCreatedEvent = useRef( false );
     const localizer = useRef( momentLocalizer( moment ) );
-    //const localizer = useRef( momentLocalizer( moment.locale(language) ) );
     const startAgenda = useRef( moment().hours( 0 ).minutes( 0 ).toDate() );
     const endAgenda = useRef( moment().add( 7, 'days' ).toDate() );
     const selectedEventState = useRef( [] );
@@ -86,7 +99,7 @@ export default function Agenda( {
     const [events, setEvents] = useState( [] );
     const [eventsUnapprovedCount, setEventsUnapprovedCount] = useState( 0 );
     const [eventsUnapproved, setEventsUnapproved] = useState( 0 );
-    const [filter, setFilter] = useState( new FilterAgendaDTO() );
+    const [filterAgenda, setFilter] = useState( new FilterAgendaDTO() );
     const [userResponsableList, setUserResponsableList] = useState( [] );
     const { getAccessTokenSilently } = useAuth0();
     const [calendarTypeList, setCalendarTypeList] = useState( [] );
@@ -99,8 +112,8 @@ export default function Agenda( {
             let resultUser = await getUserResponsableList( accessToken, vckeySelected );
             let profiles = map( resultUser.data, data => {
                 if ( userId === data.value ) {
-                    filter.userIdItem = new ItemDTO( data );
-                    filter.userId = data.value;
+                    filterAgenda.userIdItem = new ItemDTO( data );
+                    filterAgenda.userId = data.value;
                 }
                 return new ItemDTO( data );
             } );
@@ -110,9 +123,9 @@ export default function Agenda( {
 
             let resultType = await getCalendarEventType( accessToken );
             if ( resultType.data ) {
-                const calendarTypeListTemp = map( resultType.data, type => {
+                const calendarTypeListTemp = filter( resultType.data, type => {
                     // select all calendar type
-                    filter.eventTypesSelected.push( type.value );
+                    filterAgenda.eventTypesSelected.push( type.value );
 
                     return new ItemEventDTO( type );
                 } );
@@ -120,16 +133,16 @@ export default function Agenda( {
             }
 
             if ( onlyDossier === true ) {
-                filter.dossierId = dossierId;
+                filterAgenda.dossierId = dossierId;
             }
 
-            const resultApproved = await countUnapprovedAgenda( accessToken, filter, vckeySelected );
+            const resultApproved = await countUnapprovedAgenda( accessToken, filterAgenda, vckeySelected );
             if ( !resultApproved.error ) {
                 setEventsUnapprovedCount( resultApproved.data.totalElements );
                 setEventsUnapproved( resultApproved.data.content );
             }
 
-            const result = await getAgenda( accessToken, startAgenda.current, endAgenda.current, filter );
+            const result = await getAgenda( accessToken, startAgenda.current, endAgenda.current, filterAgenda );
             if ( !result.error ) {
                 const eventsAgenda = map( result.data, event => {
                     return new LawfirmCalendarEventDTO( event );
@@ -167,7 +180,7 @@ export default function Agenda( {
         event.start = start.toDate();
         event.end = end.toDate();
 
-        const result = await getAgenda( accessToken, startAgenda.current, endAgenda.current, filter );
+        const result = await getAgenda( accessToken, startAgenda.current, endAgenda.current, filterAgenda );
         if ( !result.error ) {
             const eventsAgenda = map( result.data, event => {
                 event.start = new Date( event.start );
@@ -192,19 +205,13 @@ export default function Agenda( {
             notificationAlert.current.notificationAlert( getOptionNotification( label.unauthorized.label9, 'danger' ) );
             return;
         }
-        let event = new LawfirmCalendarEventDTO();
-        event.start = slotInfo.start;
-        event.end = slotInfo.end;
-        event.user_id = userId;
-        selectedEventState.current = event;
+        let newEv = newEvent( new LawfirmCalendarEventDTO(), slotInfo.start, slotInfo.end, userId, calendarTypeList, userResponsableList, dossierItem );
+        selectedEventState.current = newEv;
         isCreatedEvent.current = true;
-        event.userItem = userResponsableList.find( user => user.value === event.user_id );
-        event.eventTypeItem = calendarTypeList[ 0 ];
-        event.eventType = calendarTypeList[ 0 ].value;
 
         setModalAppointment( true );
     };
-    const onClickAddNewEventAlert = slotInfo => {
+    const onClickAddNewEventAlert = () => {
         // write calendar
         const right = [0, 35];
 
@@ -216,25 +223,14 @@ export default function Agenda( {
             notificationAlert.current.notificationAlert( getOptionNotification( label.unauthorized.label9, 'danger' ) );
             return;
         }
-        let event = new LawfirmCalendarEventDTO();
+
         const now = moment();
         // nearest 30 minutes to the start date
         const remainder = 30 - (now.minute() % 30);
         const start = now.add( remainder, 'minutes' );
 
-        event.start = start.toDate();
-        event.end = start.add( 30, 'minutes' ).toDate();
-        event.user_id = userId;
-        event.eventTypeItem = calendarTypeList[ 0 ];
-        event.eventType = calendarTypeList[ 0 ].value;
-
-        event.userItem = userResponsableList.find( user => user.value === event.user_id );
-        if ( !isNil( dossierItem ) ) {
-            event.dossier_id = dossierItem.value;
-            event.dossierItem = dossierItem;
-        }
-
-        selectedEventState.current = event;
+        let newEv = newEvent( new LawfirmCalendarEventDTO(), start.toDate(), start.add( 30, 'minutes' ).toDate(), userId, calendarTypeList, userResponsableList, dossierItem );
+        selectedEventState.current = newEv;
         isCreatedEvent.current = true;
         setModalAppointment( true );
     };
@@ -246,7 +242,7 @@ export default function Agenda( {
             const accessToken = await getAccessTokenSilently();
             setLoading( true );
 
-            const result = await getAgenda( accessToken, startAgenda.current, endAgenda.current, filter );
+            const result = await getAgenda( accessToken, startAgenda.current, endAgenda.current, filterAgenda );
             if ( !result.error ) {
                 const eventsAgenda = map( result.data, event => {
                     return new LawfirmCalendarEventDTO( event );
@@ -269,18 +265,18 @@ export default function Agenda( {
     };
     const onChangeCalendarType = async ( e, typeCode ) => {
         if ( e.target.checked === true ) {
-            filter.eventTypesSelected = [typeCode, ...filter.eventTypesSelected];
-            setFilter( { ...filter, eventTypesSelected: [typeCode, ...filter.eventTypesSelected] } );
+            filterAgenda.eventTypesSelected = [typeCode, ...filterAgenda.eventTypesSelected];
+            setFilter( { ...filterAgenda, eventTypesSelected: [typeCode, ...filterAgenda.eventTypesSelected] } );
 
         } else {
-            let eventsTypesCodes = filter.eventTypesSelected.filter( fileObject => fileObject !== typeCode );
-            filter.eventTypesSelected = eventsTypesCodes;
-            setFilter( { ...filter, eventTypesSelected: eventsTypesCodes } );
+            let eventsTypesCodes = filterAgenda.eventTypesSelected.filter( fileObject => fileObject !== typeCode );
+            filterAgenda.eventTypesSelected = eventsTypesCodes;
+            setFilter( { ...filterAgenda, eventTypesSelected: eventsTypesCodes } );
         }
         const accessToken = await getAccessTokenSilently();
         setLoading( true );
 
-        const result = await getAgenda( accessToken, startAgenda.current, endAgenda.current, filter );
+        const result = await getAgenda( accessToken, startAgenda.current, endAgenda.current, filterAgenda );
         if ( !result.error ) {
             const eventsAgenda = map( result.data, event => {
                 event.start = new Date( event.start );
@@ -294,14 +290,14 @@ export default function Agenda( {
 
     const onChangeAgenda = async ( value ) => {
         const accessToken = await getAccessTokenSilently();
-        filter.userId = value.value;
+        filterAgenda.userId = value.value;
         setFilter( {
-            ...filter,
+            ...filterAgenda,
             userIdItem: value,
             userId: value.value
         } );
         setLoading( true );
-        const result = await getAgenda( accessToken, startAgenda.current, endAgenda.current, filter );
+        const result = await getAgenda( accessToken, startAgenda.current, endAgenda.current, filterAgenda );
         if ( !result.error ) {
             const eventsAgenda = map( result.data, event => {
                 event.start = new Date( event.start );
@@ -317,6 +313,46 @@ export default function Agenda( {
         notificationAlert.current.notificationAlert( getOptionNotification( message, type ) );
         if ( savedEvent ) {
             savedEventRef.current = !savedEventRef.current;
+        }
+    };
+    const _saveEvent = async ( selectedEvent ) => {
+        // if UPDATE
+        if ( !isNil( selectedEvent.id ) ) {
+            const accessToken = await getAccessTokenSilently();
+
+            // save without approval
+            const result = await updateEvent( accessToken, selectedEvent.id, selectedEvent );
+
+            if ( approvedRef.current === true ) {
+                const resultApproved = await approvedEvent( accessToken, selectedEvent.id );
+
+                if ( !resultApproved.error ) {
+                    showMessageFromPopup( label.agenda.success2, 'success', true );
+                    toggleAppointment( true );
+                } else {
+                    showMessageFromPopup( label.agenda.error11, 'danger' );
+                    return;
+                }
+            } else {
+                if ( !result.error ) {
+                    showMessageFromPopup( label.agenda.success2, 'success', true );
+                    toggleAppointment( true );
+                } else {
+                    showMessageFromPopup( label.agenda.error8, 'danger' );
+                }
+            }
+
+        } else {
+            const accessToken = await getAccessTokenSilently();
+
+            const result = await createEvent( accessToken, selectedEvent );
+
+            if ( !result.error ) {
+                showMessageFromPopup( label.agenda.success1, 'success', true );
+                toggleAppointment( true );
+            } else {
+                showMessageFromPopup( label.agenda.error9, 'danger' );
+            }
         }
     };
 
@@ -367,23 +403,71 @@ export default function Agenda( {
         );
     }
 
+    const _toggleRecord = () => {
+        this.setState( {
+            recordVisible: !this.state.recordVisible
+        } );
+    };
+    const _toggleUnPaid = () => {
+        this.setState( {
+            modalNotPaidSignDocument: !this.state.modalNotPaidSignDocument
+        } );
+    };
+
+    // remove record from the list
+    const calendarTypeListTemp = filter( calendarTypeList, type => {
+        if ( type.value !== 'RECORD' ) {
+            return new ItemEventDTO( type );
+        }
+    } );
+
     return (
         <>
             {modalAppointment ? (
-                <AppointmentModalPanel toggleAppointment={toggleAppointment}
-                                       modal={modalAppointment}
-                                       showMessageFromPopup={showMessageFromPopup}
-                                       userResponsableList={userResponsableList}
-                                       auth0={auth0}
-                                       label={label}
-                                       userId={userId}
-                                       dossierId={dossierId}
-                                       language={language}
-                                       vckeySelected={vckeySelected}
-                                       approved={approvedRef.current}
-                                       isCreated={isCreatedEvent.current}
-                                       calendarTypeList={calendarTypeList}
-                                       selectedEvent={selectedEventState.current}/>) : null}
+                <Modal size="md" isOpen={modalAppointment} toggle={toggleAppointment}>
+
+                    <ModalBody>
+                        {/* if it's a task record */}
+                        {!isCreatedEvent.current && selectedEventState.current.eventType === 'RECORD' ? (
+                            <Voicerecord
+                                toggleUnPaid={_toggleUnPaid}
+                                toggleRecord={_toggleRecord}
+                                language={language}
+                                label={label}
+                                userId={userId}
+                                fullName={fullName}
+                                currency={currency}
+                                history={history}
+                                isCreated={isCreatedEvent.current}
+                                vckeySelected={vckeySelected}
+                                showMessage={showMessageFromPopup}
+                                calendarTypeList={calendarTypeList}
+                                selectedEventProps={selectedEventState.current}/>
+                        ) : (
+                            <AppointmentModalPanel toggleAppointment={toggleAppointment}
+                                                   saveEvent={_saveEvent}
+                                                   isLoadingSave={false}
+                                                   isModal={true}
+                                                   showMessageFromPopup={showMessageFromPopup}
+                                                   userResponsableList={userResponsableList}
+                                                   label={label}
+                                                   userId={userId}
+                                                   dossierId={dossierId}
+                                                   language={language}
+                                                   fullName={fullName}
+                                                   currency={currency}
+                                                   vckeySelected={vckeySelected}
+                                                   history={history}
+                                                   approved={approvedRef.current}
+                                                   isCreated={isCreatedEvent.current}
+                                                   calendarTypeList={calendarTypeListTemp}
+                                                   selectedEventProps={selectedEventState.current}/>
+                        )}
+
+                    </ModalBody>
+
+                </Modal>
+            ) : null}
             <div className="rna-container">
                 <NotificationAlert ref={notificationAlert}/>
             </div>
@@ -493,7 +577,7 @@ export default function Agenda( {
                                     <FormGroup>
                                         <Select
                                             menuPlacement="top"
-                                            value={filter.userIdItem}
+                                            value={filterAgenda.userIdItem}
                                             className="react-select info"
                                             classNamePrefix="react-select"
                                             name="singleSelect"
@@ -506,7 +590,7 @@ export default function Agenda( {
                             </Row>
                             {map( calendarTypeList, type => {
                                 return (
-                                    <Row>
+                                    <Row key={type.value}>
                                         <Col md="12">
                                             <FormGroup check>
                                                 <Label check>

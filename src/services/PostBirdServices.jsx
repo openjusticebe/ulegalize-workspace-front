@@ -34,10 +34,10 @@ export async function updateAddress( accessToken , documentId, document) {
     }
 
 }
-export async function updateDossier( accessToken , documentId, dossierId) {
+export async function updateDossier( accessToken , documentDTO ) {
     try {
-        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/postBird/${documentId}/dossier`,
-            dossierId ? dossierId +'' : null,
+        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/postBird/${documentDTO.documentId}/dossier`,
+            documentDTO,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,

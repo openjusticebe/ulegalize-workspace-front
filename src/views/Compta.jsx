@@ -14,12 +14,8 @@ import {
     InputGroupAddon,
     InputGroupText,
     Label,
-    PopoverBody,
-    PopoverHeader,
     Row,
     Spinner,
-    Table,
-    UncontrolledPopover,
 } from 'reactstrap';
 import classnames from 'classnames';
 import ComptaDTO from '../model/compta/ComptaDTO';
@@ -34,12 +30,12 @@ import { getInvoiceById, getInvoicesBySearchCriteria } from '../services/Invoice
 import { getOptionNotification } from '../utils/AlertUtils';
 import NotificationAlert from 'react-notification-alert';
 import ReactLoading from 'react-loading';
-import { getClient } from '../services/ClientService';
+import { getClient, getClientById } from '../services/ClientService';
 import DossierDTO from '../model/affaire/DossierDTO';
 import InvoiceDTO from '../model/invoice/InvoiceDTO';
 import { Link } from 'react-router-dom';
 import VisibilityIcon from '@material-ui/icons/Visibility';
-import ReactBSAlert from 'react-bootstrap-sweetalert';
+import { RegisterClientModal } from '../components/client/RegisterClientModal';
 
 const map = require( 'lodash/map' );
 const isNil = require( 'lodash/isNil' );
@@ -54,7 +50,13 @@ export const Compta = ( props ) => {
         location: { query },
         label,
         currency,
-        vckeySelected
+        vckeySelected,
+        enumRights,
+        history,
+        userId,
+        fullName,
+        language,
+        email
     } = props;
 
     const notificationAlert = useRef( null );
@@ -77,6 +79,8 @@ export const Compta = ( props ) => {
     const isComeFrais = useRef( !isNil( query ) && !isNil( query.frais ) ? query.frais : null );
     const isComeHonoraires = useRef( !isNil( query ) && !isNil( query.honoraires ) ? query.honoraires : null );
     const isComeTiers = useRef( !isNil( query ) && !isNil( query.tiers ) ? query.tiers : null );
+    const [clientModal, setClientModal] = useState( null );
+    const [openclientModal, setOpenclientModal] = useState( false );
 
     useEffect( () => {
         (async () => {
@@ -182,7 +186,7 @@ export const Compta = ( props ) => {
     }
 
     const _handleClientChange = ( newValue ) => {
-        setData( { ...data, idUser: newValue.value, idUserItem: newValue } );
+        setData( { ...data, idUser: newValue ? newValue.value : null, idUserItem: newValue } );
     };
 
     const _loadClientOptions = async ( inputValue, callback ) => {
@@ -213,18 +217,11 @@ export const Compta = ( props ) => {
     };
 
     const _handleDossierChange = async ( newValue ) => {
-        const accessToken = await getAccessTokenSilently();
-        let resultDossier = await getDossierById( accessToken, newValue.value, vckeySelected );
-
-        if ( !resultDossier.error && !isNil( resultDossier.data ) && !isEmpty( resultDossier.data ) ) {
-            const dossierDefault = new DossierDTO( resultDossier.data );
-            setData( {
-                ...data,
-                idDoss: newValue.value, idDossierItem: newValue,
-                idUser: isNil( data.idUser ) ? dossierDefault.idClient : data.idUser,
-                idUserItem: isNil( data.idUserItem ) ? dossierDefault.client : data.idUserItem
-            } );
-        }
+        setData( {
+            ...data,
+            idDoss: newValue ? newValue.value : null,
+            idDossierItem: newValue
+        } );
     };
 
     const _loadFactureOptions = async ( inputValue, callback ) => {
@@ -249,18 +246,26 @@ export const Compta = ( props ) => {
         //const inputValue = newValue.replace( /\W/g, '' );
         const accessToken = await getAccessTokenSilently();
 
-        const result = await getInvoiceById( accessToken, newValue.value, vckeySelected );
+        if ( !isNil( newValue ) ) {
+            const result = await getInvoiceById( accessToken, newValue.value, vckeySelected );
 
-        if ( !isNil( result.data ) && !isEmpty( result.data ) ) {
-            const invoiceSummary = new InvoiceDTO( result.data );
+            if ( !isNil( result.data ) && !isEmpty( result.data ) ) {
+                const invoiceSummary = new InvoiceDTO( result.data );
+                setData( {
+                    ...data,
+                    idFacture: newValue.value,
+                    idFactureItem: newValue,
+                    idDoss: isNil( data.idDoss ) && !isNil( invoiceSummary.dossierItem ) ? invoiceSummary.dossierItem.value : data.idDoss,
+                    idDossierItem: isNil( data.idDossierItem ) && !isNil( invoiceSummary.dossierItem ) ? invoiceSummary.dossierItem : data.idDossierItem,
+                    idUser: isNil( data.idUser ) ? invoiceSummary.clientId : data.idUser,
+                    idUserItem: isNil( data.idUserItem ) ? invoiceSummary.clientItem : data.idUserItem
+                } );
+            }
+        } else {
             setData( {
                 ...data,
-                idFacture: newValue.value,
-                idFactureItem: newValue,
-                idDoss: isNil( data.idDoss ) && !isNil( invoiceSummary.dossierItem ) ? invoiceSummary.dossierItem.value : data.idDoss,
-                idDossierItem: isNil( data.idDossierItem ) && !isNil( invoiceSummary.dossierItem ) ? invoiceSummary.dossierItem : data.idDossierItem,
-                idUser: isNil( data.idUser ) ? invoiceSummary.clientId : data.idUser,
-                idUserItem: isNil( data.idUserItem ) ? invoiceSummary.clientItem : data.idUserItem
+                idFacture: null,
+                idFactureItem: null,
             } );
         }
 
@@ -321,7 +326,47 @@ export const Compta = ( props ) => {
             montantHt: cost
         } );
     };
+    const _clientUpdated = async ( clientId ) => {
+        const accessToken = await getAccessTokenSilently();
 
+        if ( !isNil( data.idUser ) || !isEmpty( data.idUser ) ) {
+            let clientResult = await getClientById( accessToken, data.idUser );
+
+            data.idUserItem = new ItemDTO(
+                {
+                    value: clientResult.data.id,
+                    label: clientResult.data.fullName,
+                    isDefault: clientResult.data.email
+                } );
+        }
+
+        setData( { ...data } );
+        setClientModal( null );
+        setOpenclientModal( false );
+        notificationAlert.current.notificationAlert( getOptionNotification( label.ajout_client.toastrSuccessPUpdate, 'primary' ) );
+    };
+    const _clientCreated = async ( client ) => {
+        const accessToken = await getAccessTokenSilently();
+
+        let clientResult = await getClientById( accessToken, client.id );
+
+        data.idUser = client.id;
+        data.idUserItem = new ItemDTO(
+            {
+                value: clientResult.data.id,
+                label: clientResult.data.fullName,
+                isDefault: clientResult.data.email
+            } );
+
+        setData( { ...data } );
+        setClientModal( null );
+        setOpenclientModal( false );
+        notificationAlert.current.notificationAlert( getOptionNotification( label.ajout_client.toastrSuccessPInsert, 'primary' ) );
+    };
+    const _toggleClient = () => {
+        setClientModal( null );
+        setOpenclientModal( false );
+    };
     return (
         <>
             <div className="content">
@@ -492,92 +537,6 @@ export const Compta = ( props ) => {
                                         </Col>
                                     </Row>
                                     <Row>
-                                        <Col lg="3">
-                                            <Label>{props.label.compta.ratio}</Label>
-                                            <InputGroup className={classnames( {
-                                                'input-group-focus': focusPercent
-                                            } )}>
-                                                <InputGroupAddon addonType="prepend">
-                                                    <InputGroupText><i className="fas fa-percent"></i></InputGroupText>
-                                                </InputGroupAddon>
-                                                <Input
-                                                    type="text"
-                                                    value={data.ratio}
-                                                    onChange={( e ) => {
-                                                        // new value e.target.value
-                                                        setData( {
-                                                            ...data,
-                                                            ratio: e.target.value
-                                                        } );
-                                                    }}
-                                                    placeholder="Ratio de déductibilité"
-                                                    onFocus={e => setFocusPercent( true )}
-                                                    onBlur={e => setFocusPercent( false )}
-                                                />
-                                            </InputGroup>
-                                        </Col>
-                                        <Col lg="3">
-                                            <Label>{props.label.compta.gridId}</Label>
-                                            <FormGroup className={classnames( {
-                                                'input-group-focus': focusGrid
-                                            } )}>
-
-                                                <Input
-                                                    type="text"
-                                                    value={data.gridId}
-                                                    onChange={( e ) => {
-                                                        // new value e.target.value
-                                                        setData( {
-                                                            ...data,
-                                                            gridId: e.target.value
-                                                        } );
-                                                    }}
-                                                    placeholder="Numéro de grille"
-                                                    onFocus={e => setFocusGrid( true )}
-                                                    onBlur={e => setFocusGrid( false )}
-                                                />
-                                            </FormGroup>
-                                        </Col>
-                                        <Col lg="2">
-                                            <Button id="PopoverGrid"
-                                                    type="button"
-
-                                            >
-                                                {props.label.compta.gridNumber}
-                                            </Button>
-                                            <UncontrolledPopover trigger="focus" placement="right"
-                                                                 target="PopoverGrid"
-                                            >
-                                                <PopoverHeader>Numéro de grille</PopoverHeader>
-                                                <PopoverBody>
-                                                    {!isNil( dataGrids ) && !isEmpty( dataGrids ) ?
-                                                        (
-                                                            <div style={{ overflowY: 'scroll', height: '500px' }}>
-                                                                <Table>
-                                                                    {
-                                                                        map( dataGrids, grid => {
-                                                                            return (
-                                                                                <tr>
-                                                                                    <td>
-                                                                                        {grid.value}
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        {grid.label}
-                                                                                    </td>
-                                                                                </tr>
-                                                                            );
-                                                                        } )
-                                                                    }
-
-                                                                </Table>
-                                                            </div>)
-                                                        : null}
-
-                                                </PopoverBody>
-                                            </UncontrolledPopover>
-                                        </Col>
-                                    </Row>
-                                    <Row>
                                         <Col lg="4">
                                             <Label>{props.label.compta.refPost}</Label>
                                             <FormGroup>
@@ -595,20 +554,73 @@ export const Compta = ( props ) => {
                                                 />
                                             </FormGroup>
                                         </Col>
-                                        <Col lg="6">
+                                        <Col lg="4">
                                             <Label>{props.label.compta.customer}</Label>
-                                            <FormGroup>
-                                                <AsyncSelect
-                                                    value={data.idUserItem}
-                                                    className="react-select info"
-                                                    classNamePrefix="react-select"
-                                                    cacheOptions
-                                                    isClearable={true}
-                                                    loadOptions={_loadClientOptions}
-                                                    defaultOptions
-                                                    onChange={_handleClientChange}
-                                                    placeholder={props.label.compta.customer}
-                                                />
+                                            <FormGroup row>
+                                                <Col lg="8">
+                                                    <AsyncSelect
+                                                        value={data.idUserItem}
+                                                        className="react-select info"
+                                                        classNamePrefix="react-select"
+                                                        cacheOptions
+                                                        isClearable={true}
+                                                        loadOptions={_loadClientOptions}
+                                                        defaultOptions
+                                                        onChange={_handleClientChange}
+                                                        placeholder={props.label.compta.customer}
+                                                    />
+                                                </Col>
+                                                <Col md={3}>
+                                                    {data.idUser ? (
+                                                        <Button
+                                                            className="btn-icon float-right"
+                                                            color="primary"
+                                                            type="button"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                // write client
+                                                                const right = [0, 22];
+
+                                                                let rightsFound;
+                                                                if ( enumRights ) {
+                                                                    rightsFound = enumRights.filter( element => right.includes( element ) );
+                                                                }
+                                                                if ( !isNil( rightsFound ) && isEmpty( rightsFound ) ) {
+                                                                    notificationAlert.current.notificationAlert( getOptionNotification( label.unauthorized.label9, 'danger' ) );
+                                                                    return;
+                                                                }
+                                                                setClientModal( data.idUser );
+                                                                setOpenclientModal( !openclientModal );
+                                                            }}
+                                                        >
+                                                            <i className="tim-icons icon-pencil"/>
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            className="float-right"
+                                                            color="primary"
+                                                            type="button"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                // write client
+                                                                const right = [0, 22];
+
+                                                                let rightsFound;
+                                                                if ( enumRights ) {
+                                                                    rightsFound = enumRights.filter( element => right.includes( element ) );
+                                                                }
+                                                                if ( !isNil( rightsFound ) && isEmpty( rightsFound ) ) {
+                                                                    notificationAlert.current.notificationAlert( getOptionNotification( label.unauthorized.label9, 'danger' ) );
+                                                                    return;
+                                                                }
+                                                                setClientModal( null );
+                                                                setOpenclientModal( !openclientModal );
+                                                            }}
+                                                        >
+                                                            <i className="tim-icons  icon-simple-add padding-icon-text"/> {label.common.create}
+                                                        </Button>
+                                                    )}
+                                                </Col>
                                             </FormGroup>
                                         </Col>
                                     </Row>
@@ -622,6 +634,7 @@ export const Compta = ( props ) => {
                                                 props.label.compta.file}</Label>
                                             <FormGroup>
                                                 <AsyncSelect
+                                                    isClearable={true}
                                                     value={data.idDossierItem}
                                                     className="react-select info"
                                                     classNamePrefix="react-select"
@@ -642,6 +655,7 @@ export const Compta = ( props ) => {
                                                 props.label.compta.bill}</Label>
                                             <FormGroup>
                                                 <AsyncSelect
+                                                    isClearable={true}
                                                     value={data.idFactureItem}
                                                     className="react-select info"
                                                     id="invoiceComptaId"
@@ -679,6 +693,24 @@ export const Compta = ( props ) => {
                 </Card>
 
             </div>
+            {openclientModal ? (
+                <RegisterClientModal
+                    isCreate={isNil( clientModal )}
+                    userId={userId}
+                    label={label}
+                    history={history}
+                    idClient={clientModal}
+                    vckeySelected={vckeySelected}
+                    fullName={fullName}
+                    language={language}
+                    clientUpdated={_clientUpdated}
+                    clientCreated={_clientCreated}
+                    toggleClient={_toggleClient}
+                    modal={openclientModal}
+                    emailUserConnected={email}
+                    enumRights={enumRights}
+                />
+            ) : null}
 
         </>
     );

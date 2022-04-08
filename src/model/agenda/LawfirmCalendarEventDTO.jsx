@@ -21,6 +21,10 @@ export default class LawfirmCalendarEventDTO {
     userItem;
     color = "";
     participantsEmail;
+    pathFile;
+    microText;
+    audioText;
+    speechToTextActivated = false;
     // use in v1
     contact;
     dossier;
@@ -45,6 +49,10 @@ export default class LawfirmCalendarEventDTO {
             this.color = data.color;
             this.participantsEmail = data.participantsEmail;
             this.participantsEmailItem = data.participantsEmailItem;
+            this.pathFile = data.pathFile;
+            this.microText = data.microText;
+            this.audioText = data.audioText;
+            this.speechToTextActivated = data.speechToTextActivated;
             this.start = moment(data.start).toDate();
             this.end = moment(data.end).toDate();
         }

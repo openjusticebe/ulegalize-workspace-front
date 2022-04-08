@@ -68,3 +68,37 @@ export async function getEmailPaymentPrice( accessToken ) {
 
 }
 
+export async function getRecordingPrice( accessToken ) {
+    try {
+        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/price/record`,
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            } )
+        .catch( () => {
+            return { data: false, error: true };
+        } );
+    } catch ( e ) {
+        return { error: true };
+    }
+
+}
+
+export async function getRecordingSpeechPrice( accessToken ) {
+    try {
+        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/price/speechToText`,
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            } )
+        .catch( () => {
+            return { data: false, error: true };
+        } );
+    } catch ( e ) {
+        return { error: true };
+    }
+
+}
+

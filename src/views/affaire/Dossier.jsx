@@ -81,7 +81,7 @@ export default function Dossier( props ) {
     const notificationAlert = useRef( null );
 
     const {
-        match: { params }, label, currency, location,
+        match: { params }, label, currency, location,fullName,
         history,
         userId,
         language, email, enumRights,
@@ -792,6 +792,8 @@ export default function Dossier( props ) {
                                                 auth0={props.auth0}
                                                 dossierId={affaireId}
                                                 history={history}
+                                                fullName={fullName}
+                                                currency={currency}
                                                 userId={userId}
                                                 vckeySelected={vckeySelected}
                                                 language={language}

@@ -19,6 +19,7 @@ import {
 import NotFound from './views/NotFound';
 import label from './data/label';
 import Dropbox from './Dropbox';
+import Verify from "./Verify";
 
 let moment = require( 'moment-timezone' );
 
@@ -133,6 +134,7 @@ class App extends Component {
 
         let route = (
             <Switch>
+                <Route exact path='/verify' component={(props)=> <Verify labelProps={labelDefault} {...props}/>}/>
                 <Login {...this.props}/>
             </Switch>
         );
@@ -142,6 +144,7 @@ class App extends Component {
             route = (
                 <Switch>
                     <Route exact path='/callback' component={Callback}/>
+                    <Route exact path='/verify' component={(props)=> <Verify labelProps={labelDefault} {...props}/>}/>
                     <Route exact path='/dropbox' component={Dropbox}/>
                     <PrivateRoute path="/auth" render={props => <AuthLayout {...props} />}/>
                     <PrivateRoute path="/admin" render={( props ) => {

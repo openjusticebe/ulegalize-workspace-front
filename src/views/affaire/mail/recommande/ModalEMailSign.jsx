@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Button,
     Col,
-    FormGroup, FormText,
+    FormGroup,
+    FormText,
     Input,
     Label,
     Modal,
@@ -32,6 +33,7 @@ import AsyncSelect from 'react-select/async/dist/react-select.esm';
 const isNil = require( 'lodash/isNil' );
 const isEmpty = require( 'lodash/isEmpty' );
 const map = require( 'lodash/map' );
+const padStart = require( 'lodash/padStart' );
 
 export default function ModalEMailSign( {
                                             showMessagePopup,
@@ -58,20 +60,22 @@ export default function ModalEMailSign( {
     const [subject, setSubject] = useState( '' );
     const [emailContent, setEmailContent] = useState( '' );
     const [priceUsign, setPriceUsign] = useState( 0 );
+    const dossierRef = useRef( null );
     const { getAccessTokenSilently } = useAuth0();
 
     // transparency
     useEffect( () => {
         (async () => {
             const accessToken = await getAccessTokenSilently();
-            const dossierId = !isNil( dossierId ) ? dossierId : null;
             // if dossier does not exist get the user email
             if ( !isNil( dossierId ) ) {
                 const resultDossier = await getDossierById( accessToken, dossierId, vckeySelected );
                 if ( !resultDossier.error ) {
-                    const dossier = new DossierDTO( resultDossier.data );
+                    const dossierDTO = new DossierDTO( resultDossier.data );
+                    dossierRef.current = `${dossierDTO.year}/${padStart( dossierDTO.num, 4, '0' )}/`;
+                    setDossierItem( new ItemDTO( { value: dossierDTO.id, label: dossierDTO.label } ) );
                     let clientTemp = new ClientUsignDTO( null );
-                    clientTemp.email = dossier.client ? dossier.client.isDefault : null;
+                    clientTemp.email = dossierDTO.client ? dossierDTO.client.isDefault : null;
 
                     if ( !isNil( clientTemp.email ) ) {
                         setClient( clientTemp );
@@ -136,13 +140,15 @@ export default function ModalEMailSign( {
             formData.append( 'files', value );
         } );
         const emailDto = new EmailDTO();
-        emailDto.dossierId = isNil(dossierId) && !isNil(dossierItem)? dossierItem.value : dossierId;
+        emailDto.dossierId =  !isNil( dossierItem ) ? dossierItem.value : null;
         emailDto.message_body = emailContent;
         emailDto.sender_email = mailFrom.label;
         emailDto.recipient_email = client.email;
         emailDto.subject = subject;
         emailDto.sender_real_name = client.email;
         emailDto.recipient_language = 'fr';
+        // this is within a dossier
+        emailDto.pathFolder = !isNil( dossierRef.current ) ? dossierRef.current : '';
 
         formData.append( 'emailDto', JSON.stringify( emailDto ) );
 
@@ -186,8 +192,17 @@ export default function ModalEMailSign( {
         }
     };
 
-    const _handleDossierChange = ( newValue ) => {
+    const _handleDossierChange = async ( newValue ) => {
         setDossierItem( newValue );
+
+        if ( !isNil( newValue ) ) {
+            const accessToken = await getAccessTokenSilently();
+            const resultDossier = await getDossierById( accessToken, newValue.value, vckeySelected );
+            if ( !resultDossier.error ) {
+                const dossierDTO = new DossierDTO( resultDossier.data );
+                dossierRef.current = `${dossierDTO.year}/${padStart( dossierDTO.num, 4, '0' )}/`;
+            }
+        }
 
     };
     return (
@@ -248,8 +263,8 @@ export default function ModalEMailSign( {
                                 <Label md="3">
                                     {label.mail.dossier}
                                 </Label>
-                                    <Col lg={9} md={9} sm={9}>
-                                <FormGroup>
+                                <Col lg={9} md={9} sm={9}>
+                                    <FormGroup>
                                         <AsyncSelect
                                             value={dossierItem}
                                             isClearable={true}
@@ -261,11 +276,11 @@ export default function ModalEMailSign( {
                                             onChange={_handleDossierChange}
                                             placeholder={label.mail.dossierPlaceholder}
                                         />
-                                    <FormText color="muted">
-                                        {label.common.optional}
-                                    </FormText>
-                                </FormGroup>
-                                    </Col>
+                                        <FormText color="muted">
+                                            {label.common.optional}
+                                        </FormText>
+                                    </FormGroup>
+                                </Col>
                             </Row>
                         ) : null}
 

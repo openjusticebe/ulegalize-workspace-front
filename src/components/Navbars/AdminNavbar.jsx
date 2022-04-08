@@ -30,7 +30,9 @@ import NotificationAlert from 'react-notification-alert';
 import { openMeeting } from '../../services/JitsiService';
 import ReactBSAlert from 'react-bootstrap-sweetalert';
 import { RegisterFraisModal } from '../Affaire/RegisterFraisModal';
-import { getOptionNotification } from '../../utils/AlertUtils';
+import Voicerecord from './Voicerecord';
+import ModalNoActivePayment from '../../views/affaire/popup/ModalNoActivePayment';
+import { checkPaymentActivated } from '../../services/PaymentServices';
 
 const map = require( 'lodash/map' );
 const isNil = require( 'lodash/isNil' );
@@ -45,6 +47,8 @@ class AdminNavbar extends React.Component {
             togglePopupCreateCab: false,
             togglePopupClient: false,
             chronoVisible: false,
+            recordVisible: false,
+            modalNotPaidSignDocument: false,
             collapseOpen: false,
             modalSearch: false,
             meetingLink: '',
@@ -63,7 +67,7 @@ class AdminNavbar extends React.Component {
 
         const result = await getLawfirmList( accessToken, userId );
 
-        if ( isNil(result.error) || !result.error ) {
+        if ( isNil( result.error ) || !result.error ) {
             this.setState( { vcKeys: result.data } );
         }
 
@@ -74,7 +78,7 @@ class AdminNavbar extends React.Component {
     }
 
     // function that adds color white/transparent to the navbar on resize (this is for the collapse)
-    _showMessage = (message, type) => {
+    _showMessage = ( message, type ) => {
         let options = {};
         options = {
             place: 'tc',
@@ -84,10 +88,20 @@ class AdminNavbar extends React.Component {
             autoDismiss: 7
         };
         this.refs.notificationGeneralAlert.notificationAlert( options );
-    }
+    };
 
+    _toggleRecord = () => {
+        this.setState( {
+            recordVisible: !this.state.recordVisible
+        } );
+    };
+    _toggleUnPaid = () => {
+        this.setState( {
+            modalNotPaidSignDocument: !this.state.modalNotPaidSignDocument
+        } );
+    };
 
-    _refreshVckeys = async() => {
+    _refreshVckeys = async () => {
         const {
             userId,
         } = this.props;
@@ -96,10 +110,10 @@ class AdminNavbar extends React.Component {
 
         const result = await getLawfirmList( accessToken, userId );
 
-        if ( isNil(result.error) || !result.error ) {
+        if ( isNil( result.error ) || !result.error ) {
             this.setState( { vcKeys: result.data } );
         }
-    }
+    };
     updateColor = () => {
         if ( window.innerWidth < 993 && this.state.collapseOpen ) {
             this.setState( {
@@ -136,9 +150,9 @@ class AdminNavbar extends React.Component {
     _openMeeting = async () => {
         const { getAccessTokenSilently } = this.props.auth0;
         const accessToken = await getAccessTokenSilently();
-        const resultLink = await openMeeting(accessToken);
+        const resultLink = await openMeeting( accessToken );
 
-        if(!resultLink.error) {
+        if ( !resultLink.error ) {
             window.open(
                 resultLink.data,
                 '_blank' // <- This is what makes it open in a new window.
@@ -155,12 +169,12 @@ class AdminNavbar extends React.Component {
         } );
     };
     // this function is to open the Search modal
-    togglePopupCreatePrestation = (e, message, type) => {
+    togglePopupCreatePrestation = ( e, message, type ) => {
         this.setState( {
             togglePopupCreatePrest: !this.state.togglePopupCreatePrest
         } );
         if ( message && type ) {
-            this._showMessage(message, type);
+            this._showMessage( message, type );
         }
     };
     // this function is to open the Search modal
@@ -176,9 +190,9 @@ class AdminNavbar extends React.Component {
             togglePopupClient: !this.state.togglePopupClient
         } );
     };
-     _clientCreated = async ( ) => {
-         this.togglePopupClient();
-         this.props.clientCreated();
+    _clientCreated = async () => {
+        this.togglePopupClient();
+        this.props.clientCreated();
     };
 
     render() {
@@ -200,10 +214,12 @@ class AdminNavbar extends React.Component {
             logout
         } = this.props.auth0;
 
-        const { togglePopupCreatePrest ,togglePopupCreateCab,
+        const {
+            togglePopupCreatePrest, togglePopupCreateCab,
             vcKeys,
             color,
-            collapseOpen } = this.state;
+            collapseOpen
+        } = this.state;
 
         return (
             <>
@@ -288,25 +304,69 @@ class AdminNavbar extends React.Component {
                                             <DropdownItem tag={Link}
                                                           to="/admin/create/affaire">{label.header.label2}</DropdownItem>
                                             <DropdownItem
-                                                          onClick={this.togglePopupCreatePrestation}>{label.header.label10}</DropdownItem>
+                                                onClick={this.togglePopupCreatePrestation}>{label.header.label10}</DropdownItem>
                                             <DropdownItem tag={Link}
                                                           to="/admin/create/compta">{label.header.label3}</DropdownItem>
                                             <DropdownItem tag={Link}
                                                           to="/admin/create/invoice">{label.header.label4}</DropdownItem>
                                             <DropdownItem
-                                                          onClick={this.togglePopupClient}>{label.header.label5}</DropdownItem>
+                                                onClick={this.togglePopupClient}>{label.header.label5}</DropdownItem>
                                             <DropdownItem
-                                                          onClick={this.togglePopupCreateCab}>{label.header.label6}</DropdownItem>
+                                                onClick={this.togglePopupCreateCab}>{label.header.label6}</DropdownItem>
                                         </DropdownMenu>
                                     </UncontrolledDropdown>
+                                </InputGroup>
+                                <InputGroup className="search-bar" tag="li">
+                                    <Button
+                                        id="Popover3"
+                                        color="link"
+                                        className="border-outline-primary"
+                                        data-target="#showRecord"
+                                        onClick={this._toggleRecord}
+                                    >
+                                        <i className="fas fa-microphone  padding-icon-text"/>
+                                        Record
+                                    </Button>
+                                    <Popover
+                                        placement="left"
+                                        isOpen={this.state.recordVisible}
+                                        target="Popover3"
+                                        className="popover-lg popover-secondary"
+                                    >
+                                        <div className="popover-header">{label.record.title}
+                                            <Button
+                                                style={{ top: -10 }}
+                                                onClick={this._toggleRecord}
+                                                color="primary"
+                                                className="btn btn-link btn-icon float-right">
+                                                <i className="fa fa-times"/>
+                                            </Button></div>
+
+                                        <PopoverBody>
+                                            <Voicerecord
+                                                selectedEventProps={null}
+                                                toggleUnPaid={this._toggleUnPaid}
+                                                toggleRecord={this._toggleRecord}
+                                                fullName={fullName}
+                                                currency={currency}
+                                                language={language}
+                                                label={label}
+                                                history={history}
+                                                isCreated={true}
+                                                userId={this.props.userId}
+                                                vckeySelected={vckeySelected}
+                                                showMessage={this._showMessage}/>
+                                        </PopoverBody>
+                                    </Popover>
                                 </InputGroup>
                                 <InputGroup className="search-bar" tag="li">
                                     <Button
                                         id="Popover2"
                                         color="link"
                                         data-target="#showMeeting"
-                                        onClick={()=>{
-                                            this.setState({deleteAlert: (
+                                        onClick={() => {
+                                            this.setState( {
+                                                deleteAlert: (
                                                     <ReactBSAlert
                                                         info
                                                         style={{ display: 'block', marginTop: '100px' }}
@@ -315,7 +375,7 @@ class AdminNavbar extends React.Component {
                                                             this._openMeeting();
                                                             this.setState( { deleteAlert: null } );
                                                         }}
-                                                        onCancel={() => { this.setState( { deleteAlert: null } ) }}
+                                                        onCancel={() => { this.setState( { deleteAlert: null } ); }}
                                                         confirmBtnBsStyle="success"
                                                         cancelBtnBsStyle="danger"
                                                         confirmBtnText={label.common.label2}
@@ -324,7 +384,8 @@ class AdminNavbar extends React.Component {
                                                         btnSize=""
                                                     >
                                                     </ReactBSAlert>
-                                                )})
+                                                )
+                                            } );
 
                                         }}
                                         className="border-outline-primary"
@@ -349,14 +410,14 @@ class AdminNavbar extends React.Component {
                                         target="Popover1"
                                         className="popover-secondary"
                                     >
-                                        <div className="popover-header" >Chrono
+                                        <div className="popover-header">Chrono
                                             <Button
-                                                style={{top:-10}}
+                                                style={{ top: -10 }}
                                                 onClick={this.toggleChrono}
-                                            color="primary"
-                                            className="btn btn-link btn-icon float-right">
-                                            <i className="fa fa-times"/>
-                                        </Button></div>
+                                                color="primary"
+                                                className="btn btn-link btn-icon float-right">
+                                                <i className="fa fa-times"/>
+                                            </Button></div>
                                         <PopoverBody>
                                             <PrestationChrono
                                                 history={history}
@@ -385,16 +446,17 @@ class AdminNavbar extends React.Component {
                                             </DropdownItem>
                                         </NavLink>
                                         <DropdownItem divider tag="li"/>
-                                        {vcKeys ?  map(vcKeys, lawfirm =>
-                                        {
-                                           return (
-                                               <NavLink key={lawfirm.vckey} tag="li">
-                                                   <DropdownItem onClick={() => this.props.switchLawfirm(lawfirm.vckey)} className="nav-item">
-                                                       {lawfirm.vckey}
-                                                   </DropdownItem>
-                                               </NavLink>
-                                            )
-                                        })  : null}
+                                        {vcKeys ? map( vcKeys, lawfirm => {
+                                            return (
+                                                <NavLink key={lawfirm.vckey} tag="li">
+                                                    <DropdownItem
+                                                        onClick={() => this.props.switchLawfirm( lawfirm.vckey )}
+                                                        className="nav-item">
+                                                        {lawfirm.vckey}
+                                                    </DropdownItem>
+                                                </NavLink>
+                                            );
+                                        } ) : null}
                                     </DropdownMenu>
                                 </UncontrolledDropdown>
                                 <UncontrolledDropdown nav>
@@ -412,7 +474,8 @@ class AdminNavbar extends React.Component {
                                     </DropdownToggle>
                                     <DropdownMenu className="dropdown-navbar" right tag="ul">
                                         <NavLink tag="li">
-                                            <DropdownItem tag={Link} to="/admin/profile">{label.header.label7}</DropdownItem>
+                                            <DropdownItem tag={Link}
+                                                          to="/admin/profile">{label.header.label7}</DropdownItem>
 
                                         </NavLink>
                                         <DropdownItem divider tag="li"/>
@@ -478,6 +541,13 @@ class AdminNavbar extends React.Component {
                         />
                     ) : null}
                 {this.state.deleteAlert}
+                {/* POPUP PAYMENT NOT REGISTERED */}
+                {this.state.modalNotPaidSignDocument ? (
+                    <ModalNoActivePayment
+                        label={label}
+                        toggleModalDetails={this._toggleUnPaid}
+                        modalDisplay={this.state.modalNotPaidSignDocument}/>
+                ) : null}
             </>
         );
     }

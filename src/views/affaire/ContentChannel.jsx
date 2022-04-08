@@ -253,11 +253,11 @@ export default function ContentChannel( {
     const sizeFile = size( channelContent.filesStored );
     const filesTemp = orderBy( channelContent.filesStored, ['recDate'] );
 
-    if ( MAX_ATTACHED >= size( channelContent.filesStored ) - 1 ) {
-        filesList = slice( filesTemp, 0, sizeFile - 1 );
+    if ( MAX_ATTACHED >= size( channelContent.filesStored ) ) {
+        filesList = slice( filesTemp, 0, sizeFile  );
     } else {
-        filesList = slice( filesTemp, sizeFile - MAX_ATTACHED - 1, sizeFile );
-        filesListOld = slice( filesTemp, 0, sizeFile - MAX_ATTACHED - 1 );
+        filesList = slice( filesTemp, sizeFile - MAX_ATTACHED, sizeFile );
+        filesListOld = slice( filesTemp, 0, sizeFile - MAX_ATTACHED );
         filesListOldComponents = map( filesListOld, file => {
             let statusGlyph = (<Col sm={1} md={1}>
                 <Button
@@ -721,9 +721,6 @@ export default function ContentChannel( {
                                     </li>
                                 );
                             } ) : null}
-                            {/*    <ListGroup>*/}
-                            {/*        {filesTemp}*/}
-                            {/*    </ListGroup>*/}
                         </Col>
                     </Row>
                     <Row>
@@ -732,7 +729,7 @@ export default function ContentChannel( {
                         <Col lg={10} md={10} sm={10}>
                             <Input
                                 name="comment"
-                                componentClass="textarea"
+                                type ="textarea"
                                 rows={4}
                                 placeholder="Ajouter une réponse"
                                 onChange={_updateCommentCas}

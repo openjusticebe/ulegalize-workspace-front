@@ -58,6 +58,7 @@ import ModalUpdateCase from './popup/cases/ModalUpdateCase';
 import ModalEMailRegistered from './affaire/mail/recommande/ModalEMailRegistered';
 import ChannelDTO from '../model/affaire/ChannelDTO';
 import ModalEMailRegisteredStatus from './affaire/mail/recommande/ModalEMailRegisteredStatus';
+import ModalUploadSignDocumentReadOnly from './affaire/popup/ModalUploadSignDocumentReadOnly';
 
 const isNil = require( 'lodash/isNil' );
 const isEmpty = require( 'lodash/isEmpty' );
@@ -66,7 +67,7 @@ const join = require( 'lodash/join' );
 
 export const Dashboard = ( props ) => {
     const {
-        label, userId, language, email, history,
+        label, userId, language, email, history,currency,fullName,
         enumRights, auth0, vckeySelected, driveType
     } = props;
     const notificationAlert = useRef( null );
@@ -92,9 +93,11 @@ export const Dashboard = ( props ) => {
     const emailRef = useRef( true );
     const documentIdRef = useRef( true );
     const payment = useRef( false );
+    const usignIdRef = useRef( null );
     const [modalEmailDisplay, setModalEmailDisplay] = useState( false );
     const [modalPostMailDisplay, setModalPostMailDisplay] = useState( false );
     const [modalUsignlDisplay, setModalUsignlDisplay] = useState( false );
+    const [modalUsignlDisplayReadOnly, setModalUsignlDisplayReadOnly] = useState( false );
     const [modalNotPaidSignDocument, setModalNotPaidSignDocument] = useState( false );
 
     const toggleModalLargeInvoice = () => {
@@ -145,18 +148,6 @@ export const Dashboard = ( props ) => {
             _showMessage( message, type );
         }
         setCheckTokenDrive( !checkTokenDrive );
-    };
-    const _handleDownloadFile = async ( usignId, filename ) => {
-        const accessToken = await getAccessTokenSilently();
-
-        const result = await downloadFileAttachedUsign( accessToken, usignId );
-        //const name = fileContent.name;
-        //const arrn = name.split( '/' );
-        if ( result.error ) {
-            notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.error1, 'danger' ) );
-        } else {
-            downloadWithName( result.data, filename );
-        }
     };
 
     const toggleUpdateCase = ( caseId ) => {
@@ -543,16 +534,15 @@ export const Dashboard = ( props ) => {
                     }
                     return <Row>
                         {statusGlyph}
-                        <Col sm={1} md={1}>
+
                             <Button
-                                size="sm"
-                                color="primary"
-                                disabled={row.row.original.status === 'WAITING'}
-                                className="btn-icon"
-                                onClick={() => _handleDownloadFile( row.row.original.usignId, row.row.original.documentName )}>
-                                <GetApp/>
+                                className="btn-icon btn-link margin-left-10"
+                                onClick={() => {
+                                    _openUsignReadOnly( row.value );
+                                }}
+                                color="primary" size="sm">
+                                <i className="fa fa-paper-plane "/>
                             </Button>
-                        </Col>
                         {` `}
                     </Row>;
                 }
@@ -594,6 +584,20 @@ export const Dashboard = ( props ) => {
             payment.current = resultPayment.data;
             if ( payment.current === true ) {
                 setModalUsignlDisplay( !modalUsignlDisplay );
+            } else {
+                setModalNotPaidSignDocument( !modalNotPaidSignDocument );
+            }
+        }
+    };
+    const _openUsignReadOnly = async (usignId) => {
+        usignIdRef.current = usignId;
+        const accessToken = await getAccessTokenSilently();
+
+        let resultPayment = await checkPaymentActivated( accessToken );
+        if ( !isNil( resultPayment ) ) {
+            payment.current = resultPayment.data;
+            if ( payment.current === true ) {
+                setModalUsignlDisplayReadOnly( !modalUsignlDisplayReadOnly );
             } else {
                 setModalNotPaidSignDocument( !modalNotPaidSignDocument );
             }
@@ -730,7 +734,7 @@ export const Dashboard = ( props ) => {
                 <Row>
                     {/* RECENT AFFAIRE */}
                     <Col lg="4" sm={6}>
-                        <Card style={{ height: '400px' }}>
+                        <Card style={{ height: '400px', overflow: 'auto' }}>
                             <CardHeader>
                                 <Row>
                                     <Col md={10}>
@@ -960,6 +964,8 @@ export const Dashboard = ( props ) => {
                             onlyDossier={false}
                             auth0={auth0}
                             userId={userId}
+                            currency={currency}
+                            fullName={fullName}
                             history={history}
                             email={email}
                             enumRights={enumRights}
@@ -1063,6 +1069,15 @@ export const Dashboard = ( props ) => {
                     toggleModalDetails={_openUsign}
                     attachEsignDocument={_attachEsignDocument}
                     modalDisplay={modalUsignlDisplay}/>
+            ) : null}
+            {/* POPUP USIGN Read only*/}
+            {modalUsignlDisplayReadOnly ? (
+                <ModalUploadSignDocumentReadOnly
+                    usignId={usignIdRef.current}
+                    label={label}
+                    showMessagePopup={_showMessage}
+                    toggleModalDetails={_openUsignReadOnly}
+                    modalDisplay={modalUsignlDisplayReadOnly}/>
             ) : null}
             {/* POPUP PAYMENT NOT REGISTERED */}
             {modalNotPaidSignDocument ? (

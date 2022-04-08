@@ -20,6 +20,7 @@ import Payment from './views/Payment';
 import EmailsList from './views/list/EmailsList';
 import MailRouteList from './views/affaire/mail/MailRouteList';
 import UsignList from './views/list/UsignList';
+import Verify from "./Verify";
 
 function routes (label) {
     return [
@@ -275,6 +276,16 @@ function routes (label) {
             icon: 'tim-icons icon-settings-gear-63',
             component: CancelPayment,
             layout: '/admin',
+            invisible: true
+        },
+        {
+            path: '/verify',
+            name: 'Verify',
+            mini: 'Verify',
+            rtlName: 'لوحة القيادة',
+            icon: 'tim-icons icon-settings-gear-63',
+            component: Verify,
+            layout: '/',
             invisible: true
         },
         {

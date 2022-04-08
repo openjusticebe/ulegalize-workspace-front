@@ -6,12 +6,14 @@ https://ulegalize.atlassian.net/wiki/spaces/UC/pages/793378817/Open+source
 Don't hesitate to create PR in order to change something in the project
 
 #### Run in a terminal
-`
+```
 yarn install
-`  
-change the file p`ackage-scripts.example.yml` to `package-scripts.yml`
-
+``` 
+copy(create) the file `package-scripts.example.yml` to `package-scripts.yml`  
+copy(create) the file `.env.development` to `.env.developement-local`  
 ### variables
+these variables have to be added to the `.env.developement-local`  
+
 REACT_APP_AUTH0_DOMAIN=
 REACT_APP_AUTH_AUDIENCE=
 REACT_APP_AUTH_CLIENT_ID=
@@ -23,6 +25,7 @@ REACT_APP_STRIPE=
 REACT_APP_CONFLUENCE=
 REACT_APP_CONDITIONS=https://www.ulegalize.com/wp-content/uploads/2021/09/Conditions-dutilisation.pdf
 REACT_APP_PRIVACY=https://www.ulegalize.com/wp-content/uploads/2021/09/politique_de_confidentialite.pdf
+
 
 ## Labels
 You can create issue in our repository  

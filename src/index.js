@@ -9,12 +9,12 @@ import 'react-notification-alert/dist/animate.css';
 
 import App from './App';
 import CssBaseline from '@material-ui/core/CssBaseline';
-import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
+import { createTheme, ThemeProvider } from '@material-ui/core/styles';
 import { purple, red } from '@material-ui/core/colors';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
-const theme = createMuiTheme( {
+const theme = createTheme( {
     palette: {
         primary: purple, // Purple and green play nicely together.
         error: red,

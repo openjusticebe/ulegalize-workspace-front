@@ -9,9 +9,12 @@ import { ItemTypes } from '../../../components/Mail/ItemTypes';
 const ceil = require( 'lodash/ceil' );
 const size = require( 'lodash/size' );
 const range = require( 'lodash/range' );
+const isNil = require( 'lodash/isNil' );
 const PAGE_SIZE = 10;
 
-export default function TableUsignSequence( { removeRecipient,
+export default function TableUsignSequence( {
+                                                disabled,
+                                                removeRecipient,
                                                 modifyIndexRecepient,
                                                 label, sequenceMethod, data, count } ) {
 
@@ -41,12 +44,17 @@ export default function TableUsignSequence( { removeRecipient,
             {
                 Header: 'birthdate',
                 accessor: 'birthdate',
+                Cell: row => {
+                    // sequentially === 2
+                    return !isNil(row.value) ? row.value : '';
+                }
             },
             {
                 Header: '#',
                 Cell: row => {
                     return <div>
                         <Button
+                            disabled={disabled}
                             color="primary"
                             className="btn-icon btn-link"
                             onClick={() => removeRecipient( row.row.original.sequence )}>
@@ -171,6 +179,7 @@ export default function TableUsignSequence( { removeRecipient,
                                 <RowIndex
                                     sequenceMethod={sequenceMethod}
                                     index={index}
+                                    disabled={disabled}
                                     row={row}
                                     moveRow={moveRow}
                                     {...row.getRowProps()}
@@ -199,7 +208,7 @@ export default function TableUsignSequence( { removeRecipient,
 }
 const DND_ITEM_TYPE = 'row'
 
-const RowIndex = ({ row, index, moveRow, sequenceMethod }) => {
+const RowIndex = ({ row, index, moveRow, sequenceMethod, disabled }) => {
     const dropRef = React.useRef(null)
     const dragRef = React.useRef(null)
 
@@ -260,7 +269,7 @@ const RowIndex = ({ row, index, moveRow, sequenceMethod }) => {
 
     return (
         <tr ref={dropRef} style={{ opacity }}>
-            {sequenceMethod === 'sequence' ? (
+            {sequenceMethod === 'sequence' && disabled === false ? (
                 <td ref={dragRef}><i className="fas fa-arrows-alt"/></td>
             ): null}
             {row.cells.map(cell => {

@@ -6,6 +6,3 @@ export function getDate(dateString) {
 export function getDateDetails(dateString) {
     return moment( dateString ).tz( 'Europe/Brussels' ).format( 'YYYY-MM-DD HH:mm' );
 }
-//export function getDateToDate(dateString) {
-//    return getDate(dateString).toDate();
-//}

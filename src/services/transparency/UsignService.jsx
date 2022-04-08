@@ -16,6 +16,21 @@ export async function getUsignByVcKey( accessToken, offset, limit ) {
         return { error: true, data: [] };
     }
 }
+export async function getUsignById( accessToken, usignId) {
+    try {
+
+        return axios.get( `${process.env.REACT_APP_TRANSPARENCY_SERVER}v2/usign/${usignId}`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`
+            }
+        } )
+        .catch( () => {
+            return { data: [] };
+        } );
+    } catch ( e ) {
+        return { error: true, data: [] };
+    }
+}
 
 export async function attachEsignDocumentByVcKey( accessToken, files ) {
     try {

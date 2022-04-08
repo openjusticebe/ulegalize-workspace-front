@@ -12,7 +12,7 @@ import { b64toBlob, downloadBlob } from '../../../../utils/TableUtils';
 const isEmpty = require( 'lodash/isEmpty' );
 const map = require( 'lodash/map' );
 
-const ModalEMailRegistered = ( { showMessage, label, isOpen, toggle, id } ) => {
+const ModalEMailRegistered = ( { showMessage, originalPath, label, isOpen, toggle, id } ) => {
     const { getAccessTokenSilently } = useAuth0();
     const [listFiles, setListFiles] = useState( [] );
     const [thisIsMyCopy, setthisIsMyCopy] = useState( null );
@@ -36,7 +36,7 @@ const ModalEMailRegistered = ( { showMessage, label, isOpen, toggle, id } ) => {
                 emailTmp = new EmailDTO( result.data );
                 email.current = emailTmp;
 
-                const resultDrive = await getDossierFilesList( accessToken, emailTmp.pathFolder );
+                const resultDrive = await getDossierFilesList( accessToken, originalPath + emailTmp.pathFolder );
                 if ( !resultDrive.error ) {
                     let drivesList = map( resultDrive.data, prest => {
                         return new ObjectResponseDTO( prest );

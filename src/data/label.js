@@ -1,7 +1,7 @@
 const label =
     {
         'fr': {
-            'routes':{
+            'routes': {
                 'label1':'Dashboard',
                 'label2':'Liste',
                 'label3':'Contacts',
@@ -16,7 +16,20 @@ const label =
                 'label12':'Courriers',
                 'label14':'Actes-Usign',
             },
-            'mail':{
+            'record': {
+                'title':'Record',
+                'stop':'Stop microphone',
+                'start':'Start microphone',
+                'label1':'Désirez-vous activer la restranscription de l\'audio vers du texte?',
+                'label2':'Oui',
+                'label3':'Non',
+                'label4':'Le cout d\'une dictée est de ',
+                'label5':'Le montant est prévelevé dès le chargement d\'un audio ou l\'activation de la retranscription',
+                'label6':'Le cout de la retranscription est un supplément de ',
+                'label7':'Le chargement du fichier audio permet de traduire l\'audio en texte.',
+                'label8':'Dès que la tache est enregistrée , vous la retrouverez dans l\'agenda.',
+            },
+            'mail': {
                 'bpostStatus': 'Statut Bpost',
                 'choice1':'Sélectionnez cette option pour ajouter une page supplémentaire avec l\'adresse imprimée',
                 'choice2':'Sélectionnez cette option pour remplacer l\'adresse de votre document pdf (l\'encart de votre document réservé à la fenêtre de l\'enveloppe sera remplacé).',
@@ -109,7 +122,7 @@ const label =
                 "dossierPlaceholder": "Numero dossier ou année",
 
             },
-            'createdossier':{
+            'createdossier': {
                 'label1':'Création d\'un dossier automatiquement',
                 'label2':'Voulez-vous créer un dossier à partir du cas juridique?',
             },
@@ -138,7 +151,7 @@ const label =
                 'pay': 'Paiement',
                 'activateCard': 'Paiement',
                 'amount': 'Montant',
-                'amountHt': 'Montant HTVA',
+                'amountHt': 'Montant HT',
                 'status': 'Statut',
                 'invoiceStripeId': 'Facture',
                 'workflow': 'Objet',
@@ -206,7 +219,7 @@ const label =
                 "error1" : "Alias authorisé lettres, chiffres et tirets",
                 "alias-explanation" : "(Votre nom tel qu'il apparait dans l'url de votre page publique)"
             },
-            'vats':{
+            'vats': {
                 'label1': 'Libellé',
                 'label2': 'Ajouter',
                 'label4': 'Merci d\'entrer le Libellé',
@@ -283,11 +296,11 @@ const label =
                 "filterYear": "Année de la facture",
                 "filterNumber": "Numéro de facture",
                 'label10': 'Factures',
-                'label100': 'Montant HTVA',
+                'label100': 'Montant HT',
                 'label101': 'Taux',
                 'label102': 'Montant TVAC',
                 'label103': 'Total TVA',
-                'label104': 'Total HTVA',
+                'label104': 'Total HT',
                 'label105': 'Total TTC',
                 'label106': 'Prévisualiser',
                 'label107': 'Facture',
@@ -329,7 +342,7 @@ const label =
                 'alert104': 'Le montant de la facture ne peut pas être à zéro',
                 'error100': 'Erreur facture non supprimée',
             },
-            'common':{
+            'common': {
                 "clear": "Enlever",
                 "list": "retour liste",
                 'optional': 'Ce champs est optionnel',
@@ -348,6 +361,8 @@ const label =
                 'next': 'Suivant',
                 'send': 'Envoyer',
                 'refresh': 'Refresh',
+                'validate': 'Valider',
+                'htva': 'HT',
                 'success1': 'Enregistré avec succès',
                 'success2': 'Suppression avec succès',
                 "success3": "Merci, téléchargement du fichier réussi!",
@@ -367,6 +382,10 @@ const label =
                 "label11": "Oui, supprimez-le!",
                 "label12": "Vous ne pourrez pas récupérer après suppression!",
                 "label14": "Tapez quelque chose....",
+                "label15": "Êtes-vous sûre de vouloir activer la retranscription ?",
+                "label16": "L'activation est directement facturée avec un cout supplémentaire de ",
+                "label17": "Ce service est payant, êtes-vous sûre de vouloir activer la dictée ?",
+                "label18": "L'activation est directement facturée avec un cout de ",
             },
             'comptalist': {
                 'label1': 'Poste',
@@ -415,10 +434,10 @@ const label =
                 'label3': 'Frais administratifs',
                 'label4': 'Débours',
                 'label5': 'Collaboration',
-                'label6': 'Balance dossier (à facturer HTVA)',
+                'label6': 'Balance dossier (à facturer HT)',
                 'label7': 'Compte tiers',
-                'label8': 'Total honoraire HTVA',
-                'label9': 'Total factures émises HTVA',
+                'label8': 'Total honoraire HT',
+                'label9': 'Total factures émises HT',
             },
             'appointmentmodalpanel': {
                 'label1': 'Remarques',
@@ -440,8 +459,9 @@ const label =
                 "label18": "Oui, supprimez-le!",
                 "label19": "Vous ne pourrez pas récupérer cet évènement!",
                 "label20": "Responsable (participant)",
+                "label21": "Créer une prestation",
             },
-            'benefits':{
+            'benefits': {
                 'label1': 'Libellé',
                 'label2': 'Ajouter',
                 'label3': 'Voir archives',
@@ -459,7 +479,7 @@ const label =
                 'label101': "Libellé désarchivé avec succes",
                 'label102': 'Libellé ajouté avec succes',
             },
-            'administrativeexpenses':{
+            'administrativeexpenses': {
                 'label1': 'Libellé',
                 'label2': 'Prix unit',
                 'label3': 'Voir archives',
@@ -534,7 +554,7 @@ const label =
                 'error4': 'Le groupe possède des utilisateurs. Veuillez les supprimer.',
                 'error5': 'Impossible de supprimer , un utilisateur restant.',
             },
-            'items':{
+            'items': {
                 'label1': 'Libellé',
                 'label2': 'Ajouter',
                 'label3': 'Voir archives',
@@ -548,7 +568,7 @@ const label =
                 'label16':  'Frais Collaboration',
                 'label17':  'Facturable',
             },
-            'bankaccounts':{
+            'bankaccounts': {
                 'label1': 'Compte no.',
                 'label2': 'Description du compte.',
                 'label3': 'Ajouter',
@@ -568,7 +588,7 @@ const label =
                 'label101': "Compte désarchivé avec succes",
                 'label102': 'Compte ajouté avec succes',
             },
-            'models':{
+            'models': {
                 'label1': 'Sélectionner le contexte',
                 'label2': 'Sélectionner le format',
                 'label3': 'Nom',
@@ -1020,6 +1040,10 @@ const label =
                 'terms': "J'ai lu et j'accepte les  ",
                 'conditions': "Conditions d'utilisation ",
                 'privacy': "Politique de confidentialité",
+                'unverifiedUser': "Avant de valider, veuillez vérifier votre adresse email !",
+                'verificationTrue': "Votre adresse email est bien verifiée!",
+                'verificationFalse': "Aucun email ne peut être vérifié pour le moment!",
+                'redirect': "Redirection dans ",
             },
             'newLawfirm': {
                 'label1': 'Nouveau workspace',
@@ -1032,16 +1056,16 @@ const label =
                 'account': 'Compte',
                 'dateValue': 'Date',
                 'amountIncVAT': 'Montant TTC',
-                'amountExVAT': 'Montant HTVA',
+                'amountExVAT': 'Montant HT',
                 'transactionType': 'Type de transaction',
                 'ratio': 'Ratio',
                 'gridId': 'Numéro de grille',
                 'gridNumber': 'Numéro de grille',
                 'refPost': 'Réf du poste',
-                'customer': 'Client',
+                'customer': 'Tiers',
                 'file': 'Dossier',
-                'bill': 'Facture',
-                'note': 'Note',
+                'bill': 'Facture vente',
+                'note': 'Communication',
                 'save': 'Enregistrer',
                 'dataBeforeMod': 'Données avant modification',
                 'success1': 'Entrée modifié avec succès',
@@ -1080,7 +1104,7 @@ const label =
                 'refreshDrive': 'Votre drive est lié avec succès',
                 'errorRefreshDrive': 'Erreur pendant que vous essayez de lier votre lecteur. Si le problème persiste, veuillez contacter le support',
             },
-            'generalInfo':{
+            'generalInfo': {
                 'label1': 'Infos',
                 'label2': 'Général',
                 'label3': 'Adresse',
@@ -1102,17 +1126,17 @@ const label =
                 'postalCode': 'Code postal',
                 'country': 'Pays',
 
-                'telephone':{
+                'telephone': {
                     'label1': 'Téléphone',
                     'placeholder': 'Ex : +32 2 777 888'
                 },
-                'fax':{
+                'fax': {
                     'label1': 'Fax',
                     'placeholder': 'Ex : +32 2 777 888'
                 },
                 'website': 'Site web',
 
-                'coutHoraire':{
+                'coutHoraire': {
                     'label1': 'Coût horaire',
                     'placeholder': 'Coût horaire'
                 },
@@ -1138,7 +1162,7 @@ const label =
 
         },
         'en': {
-            'routes':{
+            'routes': {
                 'label1':'Dashboard',
                 'label2':'List',
                 'label3':'Contacts',
@@ -1153,7 +1177,20 @@ const label =
                 'label12':'Mails',
                 'label14':'Actes-Usign',
             },
-            'mail':{
+            'record': {
+                'title':'Record',
+                'stop':'Stop microphone',
+                'start':'Start microphone',
+                'label1':'Would you like to activate the speech to text recognition?',
+                'label2':'Yes',
+                'label3':'No',
+                'label4': 'The cost of a dictation is',
+                'label5': 'The amount is deducted from the loading of an audio or the start of the dictaphone',
+                'label6': 'The cost of the transcription is a supplement of',
+                'label7': 'Loading the audio file translates the audio into text.',
+                'label8': 'As soon as the task is saved, you will find it in the diary.',
+            },
+            'mail': {
                 'bpostStatus': 'Bpost Status',
                 'choice1': 'Select this option to add an additional page with the address printed',
                 'choice2': 'Select this option to replace the address of your pdf document (the insert of your document reserved for the envelope window will be replaced).',
@@ -1341,7 +1378,7 @@ const label =
                 "error1" : "Alias authorized letters, digits and dash",
                 "specialities" : "Specialities"
             },
-            'vats':{
+            'vats': {
                 'label1': 'Label',
                 'label2': 'Add',
                 'label3': 'View archives',
@@ -1465,7 +1502,7 @@ const label =
                 'alert104': 'The amount of the invoice cannot be zero',
                 'error100': 'Error invoice not removed',
             },
-            'common':{
+            'common': {
                 "clear": "Clear",
                 "list": "back list",
                 'optional': 'This field is optional',
@@ -1479,11 +1516,13 @@ const label =
                 'update': 'Update',
                 'close': 'Close',
                 'go': 'Go',
+                'htva': 'Excl.vat',
                 'generate': 'Generate',
                 'preview': 'Preview',
                 'next': 'Next',
                 'send': 'Send',
                 'refresh': 'Refresh',
+                'Validate': 'Validate',
                 'error1': 'Error while saving',
                 'error2': 'Error while updating',
                 'error3': 'Error while deleting',
@@ -1503,6 +1542,8 @@ const label =
                 "label11": "Yes, delete it!",
                 "label12": "You will not be able to recover this!",
                 "label14": "Type something and press enter...",
+                "label15": "Are you sure you want to activate transcription?",
+                "label16": "Activation is billed directly with an additional cost of",
             },
             'agenda': {
                 'label1': 'Calendar ',
@@ -1576,8 +1617,9 @@ const label =
                 "label18": "Yes, delete it!",
                 "label19": "You will not be able to recover this event!",
                 "label20": "Owner (participant)",
+                "label21": "Create a benefit",
             },
-            'benefits':{
+            'benefits': {
                 'label1': 'Label',
                 'label2': 'Add',
                 'label3': 'View archives',
@@ -1595,7 +1637,7 @@ const label =
                 'label101': "Label successfully unarchived",
                 'label102': 'Label added successfully',
             },
-            'administrativeexpenses':{
+            'administrativeexpenses': {
                 'label1': 'Label',
                 'label2': 'Price unit',
                 'label3': 'View archives',
@@ -1670,7 +1712,7 @@ const label =
                 'error4': 'The group has users. Please delete them before',
                 'error5': 'Unable to delete, one remaining user.',
             },
-            'items':{
+            'items': {
                 'label1': 'Label',
                 'label2': 'Add',
                 'label3': 'View archives',
@@ -1684,7 +1726,7 @@ const label =
                 'label16': 'Collaboration fees',
                 'label17': 'Billable',
             },
-            'bankaccounts':{
+            'bankaccounts': {
                 'label1': 'Account no.',
                 'label2': 'Description of the account.',
                 'label3': 'Add',
@@ -1704,7 +1746,7 @@ const label =
                 'label101': "Account successfully unarchived",
                 'label102': "Account successfully added",
             },
-            'models':{
+            'models': {
                 'label1': 'Select the context',
                 'label2': 'Select the format',
                 'label3': 'Name',
@@ -2153,6 +2195,10 @@ const label =
                 'terms': "I have read and accept the",
                 'conditions': "Terms of use",
                 'privacy': "Privacy policy",
+                'unverifiedUser': "Before validating, please verify your email address!",
+                'verificationTrue': "Your email address is verified!",
+                'verificationFalse': "No email can be verified at the moment!",
+                'redirect': "Redirect in ",
             },
             'newLawfirm': {
                 'label1': 'New workspace',
@@ -2171,10 +2217,10 @@ const label =
                 'gridId': 'Grid number',
                 'gridNumber': 'Grid number',
                 'refPost': 'Post ref',
-                'customer': 'Customer',
+                'customer': 'Third',
                 'file': 'File',
-                'bill': 'Bill',
-                'note': 'Note',
+                'bill': 'Sell Bill',
+                'note': 'Communication',
                 'save': 'Save',
                 'dataBeforeMod': 'Data before update avant modification',
                 'success1': 'Account created successfully',
@@ -2213,7 +2259,7 @@ const label =
                 'refreshDrive': 'Your drive is linked successfully',
                 'errorRefreshDrive': 'Error while you try to link your drive. If the problem persist please contact the support',
             },
-            'generalInfo':{
+            'generalInfo': {
                 'label1': 'Info',
                 'label2': 'General',
                 'label3': 'Address',
@@ -2235,17 +2281,17 @@ const label =
                 'postalCode': 'PostalCode',
                 'country': 'Country',
 
-                'telephone':{
+                'telephone': {
                     'label1': 'Telephone',
                     'placeholder': 'Ex : +32 2 777 888'
                 },
-                'fax':{
+                'fax': {
                     'label1': 'Fax',
                     'placeholder': 'Ex : +32 2 777 888'
                 },
                 'website': 'Website',
 
-                'coutHoraire':{
+                'coutHoraire': {
                     'label1': 'Hourly rate',
                     'placeholder': 'Hourly rate'
                 },
@@ -2285,7 +2331,20 @@ const label =
                 'label12':'Mails',
                 'label14':'Actes-Usign',
             },
-            'mail':{
+            'record': {
+                'title':'Record',
+                'stop': 'Stop microfoon',
+                'start': 'Start microfoon',
+                'label1':'Wilt u de spraak-naar-tekstherkenning activeren?',
+                'label2':'Ja',
+                'label3':'Nee',
+                'label4': 'De kosten van een dictaat zijn',
+                'label5': 'Het bedrag is afkomstig van het laden van een audio of het starten van de dictafoon',
+                'label6': 'De kosten van de transcriptie zijn een supplement van',
+                'label7': 'Het laden van het audiobestand vertaalt de audio naar tekst.',
+                'label8': 'Zodra de taak is opgeslagen, vind je deze in de agenda.',
+            },
+            'mail': {
                 'bpostStatus': 'Bpost-Status',
                 'choice1': 'Selecteer deze optie om een extra pagina met het afgedrukte adres toe te voegen',
                 'choice2': 'Selecteer deze optie om het adres van uw pdf-document te vervangen (de invoeging van uw document gereserveerd voor het envelopvenster wordt vervangen).',
@@ -2406,7 +2465,7 @@ const label =
                 'pay':'Betaling',
                 'activateCard': 'Paiement',
                 'amount': 'Bedrag',
-                'amountHt': 'Bedrag HTVA',
+                'amountHt': 'Bedrag Excl. vat',
                 'invoiceStripeId': 'Factuur',
                 'status': 'Status',
                 'workflow': 'Object',
@@ -2472,7 +2531,7 @@ const label =
                 "error1": "Alias toegestaan letters, cijfers en streepjes",
                 "specialities": "Specialiteiten"
             },
-            'vats':{
+            'vats': {
                 'label1': 'Label',
                 'label2': 'Toevoegen',
                 'label3': 'Bekijk archieven',
@@ -2596,7 +2655,7 @@ const label =
                 'alert104': 'Het bedrag van de factuur mag niet nul zijn',
                 'error100': 'Fout factuur niet verwijderd',
             },
-            'common':{
+            'common': {
                 "clear": "Clear",
                 "list": "lijst terug",
                 'optional': 'Dit veld is optioneel',
@@ -2610,11 +2669,13 @@ const label =
                 'update': 'Bewerken',
                 'close': 'Sluiten',
                 'go': 'Go',
+                'htva': 'excl. vat',
                 'generate': 'genereerima',
                 'preview': 'Preview',
                 'next': 'Volgende',
                 'send': 'Sturen',
                 'refresh': 'Refresh',
+                'validate': 'Valideer',
                 'success1': 'Succesvolle registratie',
                 'success2': 'Succesvolle verwijderen',
                 "success3": "Bedankt, bestand downloaden succesvol!",
@@ -2634,6 +2695,8 @@ const label =
                 "label11": "Ja, verwijder het!",
                 "label12": "U kunt dit denkbeeldige niet herstellen!",
                 "label14": "Typ iets en druk op Enter ...",
+                "label15": "Weet u zeker dat u transcriptie wilt activeren?",
+                "label16": "Activering wordt direct gefactureerd met een meerprijs van",
             },
             'agenda': {
                 'label1': 'Agenda ',
@@ -2707,8 +2770,9 @@ const label =
                 "label18": "Ja, verwijder het!",
                 "label19": "U kunt dit denkbeeldige Evenement niet herstellen!",
                 "label20": "Verantwoordelijke (deelnemer)",
+                "label21": "Maak een dienst",
             },
-            'benefits':{
+            'benefits': {
                 'label1': 'Label',
                 'label2': 'Toevoegen',
                 'label3': 'Bekijk archieven',
@@ -2726,7 +2790,7 @@ const label =
                 'label101': "Label succesvol uit archief gehaald",
                 'label102': 'Label succesvol toegevoegd',
             },
-            'administrativeexpenses':{
+            'administrativeexpenses': {
                 'label1': 'Label',
                 'label2': 'Eenheidsprijs',
                 'label3': 'Bekijk archieven',
@@ -2801,7 +2865,7 @@ const label =
                 'error4': 'De groep heeft gebruikers. Verwijder ze eerst',
                 'error5': 'Kan niet verwijderen, één overgebleven gebruiker.',
             },
-            'items':{
+            'items': {
                 'label1': 'Label',
                 'label2': 'Toevoegen',
                 'label3': 'Bekijk archieven',
@@ -2815,7 +2879,7 @@ const label =
                 'label16': 'Collaboration fees',
                 'label17': 'Factureerbaar',
             },
-            'bankaccounts':{
+            'bankaccounts': {
                 'label1': 'Account nr.',
                 'label2': 'Beschrijving van het account.',
                 'label3': 'Toevoegen',
@@ -3285,6 +3349,10 @@ const label =
                 'terms': "Ik heb gelezen en accepteer de",
                 'conditions': "Gebruiksvoorwaarden",
                 'privacy': "Privacybeleid",
+                'unverifiedUser': "Controleer uw e-mailadres voordat u valideert!",
+                'verificationTrue': "Uw e-mailadres is geverifieerd!",
+                'verificationFalse': "Er kan momenteel geen e-mail worden geverifieerd!",
+                'redirect': "Omleiding naar binnen ",
             },
             'newLawfirm': {
                 'label1': 'Niew kantoor',
@@ -3345,7 +3413,7 @@ const label =
                 'refreshDrive': 'Uw schijf is succesvol gekoppeld',
                 'errorRefreshDrive': 'Fout bij het koppelen van uw schijf. Als het probleem aanhoudt, neem dan contact op met de ondersteuning ',
             },
-            'generalInfo':{
+            'generalInfo': {
                 'label1': 'Info',
                 'label2': 'Algemeen',
                 'label3': 'Adres',
@@ -3367,17 +3435,17 @@ const label =
                 'postalCode': 'Postcode',
                 'country': 'Land',
 
-                'telephone':{
+                'telephone': {
                     'label1': 'Telefoon',
                     'placeholder': 'Ex : +32 2 777 888'
                 },
-                'fax':{
+                'fax': {
                     'label1': 'Fax',
                     'placeholder': 'Ex : +32 2 777 888'
                 },
                 'website': 'Website',
 
-                'coutHoraire':{
+                'coutHoraire': {
                     'label1': 'Uurtarief',
                     'placeholder': 'Uurtarief'
                 },

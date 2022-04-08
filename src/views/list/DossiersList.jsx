@@ -354,7 +354,7 @@ export default function DossiersList( props ) {
             if ( !result.error ) {
                 skipPageResetRef.current = true;
                 setCount( result.data.totalElements );
-                setData( result.data.content );
+                setData( result.data.content ? result.data.content : [] );
             }
         })();
     }, [pageIndex, pageSize, filtered] );

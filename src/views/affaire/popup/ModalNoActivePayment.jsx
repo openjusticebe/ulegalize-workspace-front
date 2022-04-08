@@ -30,8 +30,8 @@ class ModalNoActivePayment extends Component {
                     </p>
                 </ModalBody>
                 <ModalFooter>
-                    <Button bsStyle="default" onClick={this.toggle}>{label.common.close}</Button>
-                    <Link to={`/admin/payment`} className="btn btn-primary" >{label.common.go}</Link>{' '}
+                    <Button color="default" onClick={this.toggle}>{label.common.close}</Button>
+                    <Link to={`/admin/payment`} onClick={this.toggle} className="btn btn-primary" >{label.common.go}</Link>{' '}
                 </ModalFooter>
             </Modal>
         );

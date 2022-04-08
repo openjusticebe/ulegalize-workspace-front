@@ -1,6 +1,11 @@
 .popover {
   border: 0;
 }
+.popover-lg {
+  border: 0;
+  max-width: 650px;
+  width: 650px;
+}
 
 .popover-header {
   font-weight: $font-weight-bold;

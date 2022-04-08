@@ -59,12 +59,12 @@ export default function ModalReportPrestation( { openDialog, toggle, label, show
         const accessToken = await getAccessTokenSilently();
         setIsLoading(true);
         let result;
+        const responsableId = !isNil(responsable) ? responsable.value : null;
 
         if(!isNil(dossierId)) {
-           result = await generateReportPrestationByDossier( accessToken, start, end , dossierId);
+           result = await generateReportPrestationByDossier( accessToken, start, end , dossierId, responsableId);
         } else {
             const clientId = !isNil(client) ? client.value : null;
-            const responsableId = !isNil(responsable) ? responsable.value : null;
             result= await generateReportPrestation( accessToken, start, end , isShareDossier, clientId, responsableId);
         }
         if ( !result.error ) {

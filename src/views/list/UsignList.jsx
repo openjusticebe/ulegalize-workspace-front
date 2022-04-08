@@ -28,6 +28,8 @@ import { getOptionNotification } from '../../utils/AlertUtils';
 import { downloadWithName } from '../../utils/TableUtils';
 import { attachEsignDocumentByVcKey, getUsignByVcKey } from '../../services/transparency/UsignService';
 import SignatureDTO from '../../model/usign/SignatureDTO';
+import ModalNoActivePayment from '../affaire/popup/ModalNoActivePayment';
+import ModalUploadSignDocumentReadOnly from '../affaire/popup/ModalUploadSignDocumentReadOnly';
 
 const ceil = require( 'lodash/ceil' );
 const range = require( 'lodash/range' );
@@ -50,9 +52,10 @@ export default function UsignList( {
     const skipPageResetRef = useRef();
     const notificationAlert = useRef( null );
     const payment = useRef( false );
+    const usignIdRef = useRef( null );
     const [modalUsignlDisplay, setModalUsignlDisplay] = useState( false );
     const [modalNotPaidSignDocument, setModalNotPaidSignDocument] = useState( false );
-
+    const [modalUsignlDisplayReadOnly, setModalUsignlDisplayReadOnly] = useState( false );
 
     const _handleDownloadFile = async ( usignId, filename ) => {
         const accessToken = await getAccessTokenSilently();
@@ -67,6 +70,21 @@ export default function UsignList( {
         }
     };
 
+
+    const _openUsignReadOnly = async (usignId) => {
+        usignIdRef.current = usignId;
+        const accessToken = await getAccessTokenSilently();
+
+        let resultPayment = await checkPaymentActivated( accessToken );
+        if ( !isNil( resultPayment ) ) {
+            payment.current = resultPayment.data;
+            if ( payment.current === true ) {
+                setModalUsignlDisplayReadOnly( !modalUsignlDisplayReadOnly );
+            } else {
+                setModalNotPaidSignDocument( !modalNotPaidSignDocument );
+            }
+        }
+    };
 
     const columns = React.useMemo(
         () => [
@@ -157,16 +175,14 @@ export default function UsignList( {
                     }
                     return <Row>
                         {statusGlyph}
-                        <Col sm={1} md={1}>
-                            <Button
-                                size="sm"
-                                color="primary"
-                                disabled={row.row.original.status === 'WAITING'}
-                                className="btn-icon"
-                                onClick={() => _handleDownloadFile( row.row.original.usignId, row.row.original.documentName )}>
-                                <GetApp/>
-                            </Button>
-                        </Col>
+                        <Button
+                            className="btn-icon btn-link margin-left-10"
+                            onClick={() => {
+                                _openUsignReadOnly( row.value );
+                            }}
+                            color="primary" size="sm">
+                            <i className="fa fa-paper-plane "/>
+                        </Button>
                         {` `}
                     </Row>;
                 }
@@ -306,11 +322,13 @@ export default function UsignList( {
             if ( payment.current === true ) {
                 setModalUsignlDisplay( !modalUsignlDisplay );
             } else {
-                setModalNotPaidSignDocument( !modalNotPaidSignDocument );
+                _toggleUnPaid();
             }
         }
     };
-
+    const _toggleUnPaid = () => {
+        setModalNotPaidSignDocument( !modalNotPaidSignDocument );
+    };
     const _attachEsignDocument = async ( file ) => {
         const accessToken = await getAccessTokenSilently();
 
@@ -447,6 +465,22 @@ export default function UsignList( {
                     toggleModalDetails={_openUsign}
                     attachEsignDocument={_attachEsignDocument}
                     modalDisplay={modalUsignlDisplay}/>
+            ) : null}
+            {/* POPUP PAYMENT NOT REGISTERED */}
+            {modalNotPaidSignDocument ? (
+                <ModalNoActivePayment
+                    label={label}
+                    toggleModalDetails={_toggleUnPaid}
+                    modalDisplay={modalNotPaidSignDocument}/>
+            ) : null}
+            {/* POPUP USIGN Read only*/}
+            {modalUsignlDisplayReadOnly ? (
+                <ModalUploadSignDocumentReadOnly
+                    usignId={usignIdRef.current}
+                    label={label}
+                    showMessagePopup={showMessage}
+                    toggleModalDetails={_openUsignReadOnly}
+                    modalDisplay={modalUsignlDisplayReadOnly}/>
             ) : null}
         </>
     );

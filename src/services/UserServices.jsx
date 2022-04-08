@@ -5,31 +5,32 @@ import axios from 'axios';
  * @param accessToken
  * @returns {Promise<{error: boolean}|AxiosResponse<any>>}
  */
-export async function getUsers( accessToken ) {
+export async function getUsers(accessToken) {
     try {
-        return await axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/login/user`, {
+        return await axios.get(`${process.env.REACT_APP_LAWFIRM_SERVER}v2/login/user`, {
             headers: {
                 Authorization: `Bearer ${accessToken}`
             }
-        } ).catch( () => {
-            return { data: {}, error: true };
-        } );
-    } catch ( e ) {
-        return { error: true };
+        }).catch(() => {
+            return {data: {}, error: true};
+        });
+    } catch (e) {
+        return {error: true};
     }
 
 }
-export async function getLightUsers( accessToken ) {
+
+export async function getLightUsers(accessToken) {
     try {
-        return await axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/login/light/user`, {
+        return await axios.get(`${process.env.REACT_APP_LAWFIRM_SERVER}v2/login/light/user`, {
             headers: {
                 Authorization: `Bearer ${accessToken}`
             }
-        } ).catch( () => {
-            return { data: {}, error: true };
-        } );
-    } catch ( e ) {
-        return { error: true };
+        }).catch(() => {
+            return {data: {}, error: true};
+        });
+    } catch (e) {
+        return {error: true};
     }
 
 }
@@ -39,15 +40,15 @@ export async function getLightUsers( accessToken ) {
  * @param accessToken
  * @returns {Promise<{error: boolean}|AxiosResponse<any>>}
  */
-export async function registerUser( accessToken) {
+export async function registerUser(accessToken) {
     try {
-        return await axios.post( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/login/user`, {}, {
+        return await axios.post(`${process.env.REACT_APP_LAWFIRM_SERVER}v2/login/user`, {}, {
             headers: {
                 Authorization: `Bearer ${accessToken}`
             }
-        } );
-    } catch ( e ) {
-        return { error: true };
+        });
+    } catch (e) {
+        return {error: true};
     }
 
 }
@@ -58,19 +59,33 @@ export async function registerUser( accessToken) {
  * @param newVckey
  * @returns {Promise<{error: boolean}|AxiosResponse<any>>}
  */
-export async function validateUser( accessToken, defaultLawfirmDTO ) {
+export async function validateUser(accessToken, defaultLawfirmDTO) {
     try {
-        return await axios.post( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/login/validate/user`,
+        return await axios.post(`${process.env.REACT_APP_LAWFIRM_SERVER}v2/login/validate/user`,
             defaultLawfirmDTO,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
                 }
-            } ).catch( () => {
-            return { data: {}, error: true };
-        } );
-    } catch ( e ) {
-        return { error: true };
+            }).catch(() => {
+            return {data: {}, error: true};
+        });
+    } catch (e) {
+        return {error: true};
     }
+}
 
+export async function verifyUser(email, hashkey) {
+    try {
+        return await axios.get(`${process.env.REACT_APP_LAWFIRM_SERVER}v2/login/verifyUser`, {
+            params: {
+                email: email,
+                key: hashkey
+            }
+        }).catch(() => {
+            return {data: false};
+        });
+    } catch (e) {
+        return {data: false};
+    }
 }
