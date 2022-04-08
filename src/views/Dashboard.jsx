@@ -37,28 +37,27 @@ import { getStatusEmailRegistered } from './affaire/mail/recommande/StatusEmailR
 import ReactBSAlert from 'react-bootstrap-sweetalert';
 import EmailDTO from '../model/affaire/email/EmailDTO';
 import DocumentDTO from '../model/postbird/DocumentDTO';
-import { getStatusPostBird } from './affaire/mail/StatusPostBird';
+import { getFrenchStatus, getStatusPostBird } from './affaire/mail/StatusPostBird';
 import MailPostBirdGenerator from './affaire/mail/MailPostBirdGenerator';
 import { checkPaymentActivated } from '../services/PaymentServices';
 import ModalNoActivePayment from './affaire/popup/ModalNoActivePayment';
-import ModalMail from './affaire/mail/ModalMail';
 import { getDocumentsMail } from '../services/PostBirdServices';
 import ModalEMailSign from './affaire/mail/recommande/ModalEMailSign';
 import { getEMailRegisteredList } from '../services/EmailRegisteredService';
 import SignatureDTO from '../model/usign/SignatureDTO';
 import ModalUploadSignDocument from './affaire/popup/ModalUploadSignDocument';
-import { attachFileCase, downloadFileAttached, downloadFileAttachedUsign } from '../services/transparency/CaseService';
+import { attachFileCase, downloadFileAttached } from '../services/transparency/CaseService';
 import { attachEsignDocumentByVcKey, getUsignByVcKey } from '../services/transparency/UsignService';
 import ErrorOutlineOutlinedIcon from '@material-ui/icons/ErrorOutlineOutlined';
 import { CustomPopover } from './affaire/StatusQuestionPopup';
 import CreateIcon from '@material-ui/icons/Create';
-import GetApp from '@material-ui/icons/GetApp';
 import { downloadWithName } from '../utils/TableUtils';
 import ModalUpdateCase from './popup/cases/ModalUpdateCase';
 import ModalEMailRegistered from './affaire/mail/recommande/ModalEMailRegistered';
 import ChannelDTO from '../model/affaire/ChannelDTO';
 import ModalEMailRegisteredStatus from './affaire/mail/recommande/ModalEMailRegisteredStatus';
 import ModalUploadSignDocumentReadOnly from './affaire/popup/ModalUploadSignDocumentReadOnly';
+import ModalDetectMail from './affaire/mail/ModalDetectMail';
 
 const isNil = require( 'lodash/isNil' );
 const isEmpty = require( 'lodash/isEmpty' );
@@ -67,7 +66,7 @@ const join = require( 'lodash/join' );
 
 export const Dashboard = ( props ) => {
     const {
-        label, userId, language, email, history,currency,fullName,
+        label, userId, language, email, history, currency, fullName,
         enumRights, auth0, vckeySelected, driveType
     } = props;
     const notificationAlert = useRef( null );
@@ -91,11 +90,12 @@ export const Dashboard = ( props ) => {
     const [showEMail, setShowEMail] = useState( false );
     const [showEMailStatus, setShowEMailStatus] = useState( false );
     const emailRef = useRef( true );
+    const countryCodeRef = useRef( true );
     const documentIdRef = useRef( true );
     const payment = useRef( false );
     const usignIdRef = useRef( null );
     const [modalEmailDisplay, setModalEmailDisplay] = useState( false );
-    const [modalPostMailDisplay, setModalPostMailDisplay] = useState( false );
+    const [modalDetectMail, setModalDetectMail] = useState( false );
     const [modalUsignlDisplay, setModalUsignlDisplay] = useState( false );
     const [modalUsignlDisplayReadOnly, setModalUsignlDisplayReadOnly] = useState( false );
     const [modalNotPaidSignDocument, setModalNotPaidSignDocument] = useState( false );
@@ -308,16 +308,16 @@ export const Dashboard = ( props ) => {
                 Cell: row => {
                     return (
                         <Button
-                            style={{whiteSpace:'break-spaces', width:'160px', textAlign:'left'}}
+                            style={{ whiteSpace: 'break-spaces', width: '160px', textAlign: 'left' }}
                             className="btn-link"
                             size="sm"
                             onClick={() => {
                                 openEMailRegisteredStatus( row.row.original.id );
                             }}
-                            color="primary" >
+                            color="primary">
                             {getStatusEmailRegistered( row.value, label )}
                         </Button>
-                    )
+                    );
                 }
             },
             {
@@ -348,7 +348,7 @@ export const Dashboard = ( props ) => {
                         <Button
                             className="btn-icon btn-link margin-left-10"
                             onClick={() => {
-                                _openPostMail( row.value );
+                                _toggleMail( row.row.original.countryPost, row.value );
                             }}
                             color="primary" size="sm">
                             <i className="fa fa-paper-plane "/>
@@ -362,10 +362,20 @@ export const Dashboard = ( props ) => {
                 accessor: 'documentName'
             },
             {
+                Header: label.mail.label36,
+                accessor: 'countryPost'
+            },
+            {
                 Header: label.mail.label11,
                 accessor: 'status',
                 Cell: row => {
-                    return getStatusPostBird( row.value, label );
+                    if ( row.row.original.countryPost === 'FR' ) {
+                        return getFrenchStatus( row.value, label );
+
+                    } else {
+                        return getStatusPostBird( row.value, label );
+
+                    }
                 }
             },
             {
@@ -535,14 +545,14 @@ export const Dashboard = ( props ) => {
                     return <Row>
                         {statusGlyph}
 
-                            <Button
-                                className="btn-icon btn-link margin-left-10"
-                                onClick={() => {
-                                    _openUsignReadOnly( row.value );
-                                }}
-                                color="primary" size="sm">
-                                <i className="fa fa-paper-plane "/>
-                            </Button>
+                        <Button
+                            className="btn-icon btn-link margin-left-10"
+                            onClick={() => {
+                                _openUsignReadOnly( row.value );
+                            }}
+                            color="primary" size="sm">
+                            <i className="fa fa-paper-plane "/>
+                        </Button>
                         {` `}
                     </Row>;
                 }
@@ -561,19 +571,11 @@ export const Dashboard = ( props ) => {
         ],
 
         [] );
-    const _openPostMail = async ( documentId ) => {
-        documentIdRef.current = documentId;
-        const accessToken = await getAccessTokenSilently();
 
-        let resultPayment = await checkPaymentActivated( accessToken );
-        if ( !isNil( resultPayment ) ) {
-            payment.current = resultPayment.data;
-            if ( payment.current === true ) {
-                setModalPostMailDisplay( !modalPostMailDisplay );
-            } else {
-                setModalNotPaidSignDocument( !modalNotPaidSignDocument );
-            }
-        }
+    const _toggleMail = async ( country, documentId ) => {
+        documentIdRef.current = documentId;
+        countryCodeRef.current = country;
+        setModalDetectMail( !modalDetectMail );
     };
 
     const _openUsign = async () => {
@@ -589,7 +591,7 @@ export const Dashboard = ( props ) => {
             }
         }
     };
-    const _openUsignReadOnly = async (usignId) => {
+    const _openUsignReadOnly = async ( usignId ) => {
         usignIdRef.current = usignId;
         const accessToken = await getAccessTokenSilently();
 
@@ -652,7 +654,7 @@ export const Dashboard = ( props ) => {
         setShowEMail( !showEMail );
     };
 
-    const openEMailRegisteredStatus = (id) => {
+    const openEMailRegisteredStatus = ( id ) => {
         emailRef.current = id;
         setShowEMailStatus( !showEMailStatus );
     };
@@ -828,7 +830,7 @@ export const Dashboard = ( props ) => {
                                     </Col>
                                     <Col md={2}>
                                         <Button
-                                            onClick={() => _openPostMail()}
+                                            onClick={() => _toggleMail()}
                                             className="float-right"
                                             color="primary"
                                             data-placement="bottom"
@@ -1030,14 +1032,14 @@ export const Dashboard = ( props ) => {
             ) : null}
 
             {/* POPUP CREATE MAIL BPOST */}
-            {modalPostMailDisplay ? (
-                <ModalMail
+            {modalDetectMail ? (
+                <ModalDetectMail
                     vckeySelected={vckeySelected}
                     dossierId={null}
-                    label={label}
                     documentId={documentIdRef.current}
-                    modalPostMailDisplay={modalPostMailDisplay}
-                    openPostMail={_openPostMail}
+                    countryCode={countryCodeRef.current}
+                    label={label}
+                    openPostMail={_toggleMail}
                     showMessage={_showMessage}
                     updateList={_updateMailList}
                 />

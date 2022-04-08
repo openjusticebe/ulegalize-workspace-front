@@ -27,6 +27,11 @@ export default function DeboursAffaireTable( props ) {
     const columns = React.useMemo(
         () => [
             {
+                Header: label.comptalist.label2,
+                accessor: 'dateValue',
+                disableFilters: true
+            },
+            {
                 Header: 'Poste',
                 accessor: 'poste.label'
             },
@@ -38,6 +43,10 @@ export default function DeboursAffaireTable( props ) {
                 Header: 'Montant',
                 accessor: 'montant',
                 width: 50
+            },
+            {
+                Header: 'type',
+                accessor: row => (row && row.idType === 1 ? label.comptalist.label8 : label.comptalist.label9),
             },
             {
                 Header: '#',

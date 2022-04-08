@@ -34,7 +34,6 @@ const PAGE_SIZE = 5;
 
 export default function EmailsList( {
                                         label,
-                                        updateList,
                                         showMessage,
                                         email,
                                         userId,
@@ -47,6 +46,7 @@ export default function EmailsList( {
     const [count, setCount] = useState( 0 );
     const [deleteAlert, setDeleteAlert] = useState( null );
     const [showEMail, setShowEMail] = useState( false );
+    const [updateList, setUpdateList] = useState( false );
     const [showEMailStatus, setShowEMailStatus] = useState( false );
     const { getAccessTokenSilently } = useAuth0();
     const loadRef = useRef( true );
@@ -65,6 +65,10 @@ export default function EmailsList( {
     const openEMailRegisteredStatus = (id) => {
         emailRef.current = id;
         setShowEMailStatus( !showEMailStatus );
+    };
+
+    const _updateList = () => {
+        setUpdateList( !updateList );
     };
 
     const columns = React.useMemo(
@@ -89,6 +93,7 @@ export default function EmailsList( {
                                 className="btn-icon btn-link margin-left-10"
                                 onClick={() => {
                                     deleteEMailRegistered( row.value );
+                                    _updateList();
                                 }}
                                 color="primary" size="sm">
                                 <i className="fa fa-trash"/>
@@ -151,7 +156,7 @@ export default function EmailsList( {
             }
         ],
 
-        [] );
+        [label] );
 
     const {
         getTableProps,
@@ -284,7 +289,6 @@ export default function EmailsList( {
 
     const _deleteEMailRegistered = async ( ) => {
         showMessage( label.common.success2, 'primary' );
-
     };
 
     const _openEmail = async () => {

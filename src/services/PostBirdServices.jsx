@@ -34,23 +34,6 @@ export async function updateAddress( accessToken , documentId, document) {
     }
 
 }
-export async function updateDossier( accessToken , documentDTO ) {
-    try {
-        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/postBird/${documentDTO.documentId}/dossier`,
-            documentDTO,
-            {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    'Content-Type': 'text/plain'
-                }
-            } ).catch( () => {
-            return { data: false, error: true };
-        } );
-    } catch ( e ) {
-        return { error: true };
-    }
-
-}
 export async function updateSendingOptions( accessToken , documentId, document) {
     try {
         return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/postBird/sendOption/${documentId}`,

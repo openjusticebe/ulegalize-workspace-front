@@ -29,6 +29,11 @@ export default function HonoraireAffaireTable( props ) {
     const columns = React.useMemo(
         () => [
             {
+                Header: label.comptalist.label2,
+                accessor: 'dateValue',
+                disableFilters: true
+            },
+            {
                 Header: 'Tiers',
                 accessor: 'tiersFullname'
             },
@@ -50,6 +55,10 @@ export default function HonoraireAffaireTable( props ) {
                         <>{row.value} {currency}</>
                     );
                 },
+            },
+            {
+                Header: 'type',
+                accessor: row => (row && row.idType === 1 ? label.comptalist.label8 : label.comptalist.label9),
             },
             {
                 Header: label.invoice.label107,

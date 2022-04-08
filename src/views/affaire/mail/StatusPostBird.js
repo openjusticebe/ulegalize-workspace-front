@@ -49,3 +49,22 @@ export function getStatusPostBird(status, label) {
             return 'NA';
     }
 }
+
+export function getFrenchStatus(status, label) {
+    switch(status) {
+        case 'DRAFT':
+            return label.mail.french.status0;
+        case 'PENDING':
+            return label.mail.french.status1;
+        case 'ACCEPTED':
+            return label.mail.french.status2;
+        case 'REJECTED':
+            return label.mail.french.status3;
+        case 'PROCESSED':
+            return label.mail.french.status4;
+        case 'PROCESSED_WITH_ERRORS':
+            return label.mail.french.status5;
+        default:
+            return 'NA';
+    }
+}

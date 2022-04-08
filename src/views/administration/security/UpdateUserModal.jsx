@@ -1,14 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Col, FormGroup, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader, Row } from 'reactstrap';
+import {
+    Button,
+    Col,
+    FormGroup,
+    Input,
+    Label,
+    Modal,
+    ModalBody,
+    ModalFooter,
+    ModalHeader,
+    Row,
+    Spinner
+} from 'reactstrap';
 import { useAuth0 } from '@auth0/auth0-react';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import AsyncCreatableSelect from 'react-select/async-creatable';
 import ItemDTO from '../../../model/ItemDTO';
 import Select from 'react-select';
 import { getFunctions } from '../../../services/SearchService';
-import {
-    updateIsActiveLawfirmUsers
-} from '../../../services/AdminService';
+import { shareUserFolder, updateIsActiveLawfirmUsers } from '../../../services/AdminService';
 import { updateRoleLawfirmUser } from '../../../services/LawfirmsService';
 import { getOptionNotification } from '../../../utils/AlertUtils';
 import NotificationAlert from 'react-notification-alert';
@@ -17,17 +27,17 @@ const isNil = require( 'lodash/isNil' );
 const map = require( 'lodash/map' );
 
 const UpdateUserModal = ( {
-                           modal,
-                           toggleIn,
-                           item,
-                           label,
-                           handleshowAlert
-                       } ) => {
+                              modal,
+                              toggleIn,
+                              item,
+                              label,
+                              handleshowAlert
+                          } ) => {
     const { getAccessTokenSilently } = useAuth0();
     const [data, setData] = useState( item );
     const [loading, setLoading] = useState( false );
     const [functionIdItems, setFunctionIdItems] = useState( [] );
-    const notificationAlert = useRef(null);
+    const notificationAlert = useRef( null );
 
     useEffect( () => {
         (async () => {
@@ -50,13 +60,13 @@ const UpdateUserModal = ( {
     }, [getAccessTokenSilently] );
 
     const handleSave = async () => {
-        setLoading(true)
-        if(isNil(data.functionId)) {
-            handleshowAlert(label.users.error2, 'danger');
+        setLoading( true );
+        if ( isNil( data.functionId ) ) {
+            handleshowAlert( label.users.error2, 'danger' );
             return;
         }
-        if(isNil(data.email)) {
-            handleshowAlert(label.users.error3, 'danger');
+        if ( isNil( data.email ) ) {
+            handleshowAlert( label.users.error3, 'danger' );
             return;
         }
         const accessToken = await getAccessTokenSilently();
@@ -64,15 +74,13 @@ const UpdateUserModal = ( {
         let result = await updateRoleLawfirmUser( accessToken, data );
         // save as lawyer to transparency
 
-        if(!result.error) {
-            handleshowAlert(label.users.success100, 'primary');
+        if ( !result.error ) {
+            handleshowAlert( label.users.success100, 'primary' );
             toggleIn();
         } else {
-            handleshowAlert(label.users.error1, 'danger');
-            setLoading(false)
+            handleshowAlert( label.users.error1, 'danger' );
+            setLoading( false );
         }
-
-
 
     };
 
@@ -84,35 +92,45 @@ const UpdateUserModal = ( {
             let message = isActive === true ? label.users.label100 : label.users.label101; //props.label.public.label102 : props.label.public.label103;
             notificationAlert.current.notificationAlert( getOptionNotification( message, 'primary' ) );
         }
-        setData({
+        setData( {
             ...data,
-            active : isActive
-        });
+            active: isActive
+        } );
+    };
+    const _shareUserFolder = async () => {
+        setLoading( true );
+        const accessToken = await getAccessTokenSilently();
+
+        const result = await shareUserFolder( accessToken );
+        if ( !result.error ) {
+            notificationAlert.current.notificationAlert( getOptionNotification( label.users.label103, 'primary' ) );
+        }
+        setLoading( false );
     };
 
     return (
         <>
             <div className="rna-container">
-                <NotificationAlert ref={notificationAlert} />
+                <NotificationAlert ref={notificationAlert}/>
             </div>
             <Modal size="md" isOpen={modal} toggle={toggleIn}>
                 <ModalHeader toggle={toggleIn}>
-                    <h4>{label.users.label1}</h4>
+                    <h4>{label.users.label0}</h4>
                 </ModalHeader>
                 <ModalBody>
                     <Row>
                         <Col md="10">
                             <Label>{label.users.label10}</Label>
                             <FormGroup>
-                                    <AsyncCreatableSelect
-                                        isDisabled={true}
-                                        value={data.userEmailItem}
-                                        className="react-select info"
-                                        classNamePrefix="react-select"
-                                        cacheOptions
-                                        defaultOptions
-                                        placeholder={label.common.label14}
-                                    />
+                                <AsyncCreatableSelect
+                                    isDisabled={true}
+                                    value={data.userEmailItem}
+                                    className="react-select info"
+                                    classNamePrefix="react-select"
+                                    cacheOptions
+                                    defaultOptions
+                                    placeholder={label.common.label14}
+                                />
                             </FormGroup>
                         </Col>
                     </Row>
@@ -145,26 +163,55 @@ const UpdateUserModal = ( {
                         </Col>
                     </Row>
                     <Row>
-                        <FormGroup check>
-                            <Label check>
-                                <Input
-                                    defaultChecked={data.active}
-                                    type="checkbox"
-                                    onChange={( e ) => _updateIsActiceUser( data.id, !data.active )}
-                                />
-                                <span className="form-check-sign">
+                        <Col>
+                            <FormGroup check>
+                                <Label check>
+                                    <Input
+                                        defaultChecked={data.active}
+                                        type="checkbox"
+                                        onChange={( e ) => _updateIsActiceUser( data.id, !data.active )}
+                                    />
+                                    <span className="form-check-sign">
                                     <span className="check">{label.users.label102}</span>
                                 </span>
-                            </Label>
-                        </FormGroup>
+                                </Label>
+                            </FormGroup>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <Label></Label>
+                            <FormGroup>
+                                <Button color="primary"
+                                        disabled={loading}
+                                        onClick={() => {
+                                            _shareUserFolder();
+                                        }}>
+                                    {loading ? (
+                                        <Spinner
+                                            size="sm"
+                                            color="secondary"
+                                        />
+                                    ) : null}
+                                    {' '}
+                                    {label.users.label9}
+                                </Button>
+                            </FormGroup>
+                        </Col>
                     </Row>
                 </ModalBody>
                 <ModalFooter>
                     <Button color="secondary" onClick={() => toggleIn()}>
                         {label.common.cancel}
                     </Button>
-                    {loading && <CircularProgress color="primary" size={35}/>}
                     <Button color="primary" onClick={handleSave} disable={loading}>
+                        {loading ? (
+                            <Spinner
+                                size="sm"
+                                color="secondary"
+                            />
+                        ) : null}
+                        {' '}
                         {label.common.save}
                     </Button>
                 </ModalFooter>

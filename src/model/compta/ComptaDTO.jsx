@@ -34,6 +34,7 @@ export default class ComptaDTO {
             this.idType = data.idType;
             this.idTypeItem = data.idTypeItem;
             this.idCompte = data.idCompte;
+            this.compte = data.compte;
             this.dateValue = data.dateValue;
             this.montant = data.montant;
             this.montantHt = data.montantHt;

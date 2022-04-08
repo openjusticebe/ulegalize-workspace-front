@@ -142,7 +142,7 @@ export default function ContactsList( props ) {
             },
 
         ],
-        [] );
+        [props.label] );
 
     const delClient = async ( clientId ) => {
 

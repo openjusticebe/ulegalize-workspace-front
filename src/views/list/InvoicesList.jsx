@@ -168,7 +168,7 @@ export default function InvoicesList( props ) {
             },
 
         ],
-        [] );
+        [props.label] );
 
     const {
         getTableProps,

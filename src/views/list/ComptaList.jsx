@@ -17,31 +17,35 @@ import ComptaDTO from '../../model/compta/ComptaDTO';
 import { getComptaByDossierList } from '../../services/ComptaServices';
 import { getOptionNotification } from '../../utils/AlertUtils';
 import NotificationAlert from 'react-notification-alert';
-import { getPostes } from '../../services/SearchService';
+import { getComptaTypes, getPostes, getTiers } from '../../services/SearchService';
 import ItemDTO from '../../model/ItemDTO';
 import ModalReportCompta from '../popup/reports/ModalReportCompta';
+import ModalReportCompteTiers from '../popup/reports/ModalReportCompteTiers';
 
-const ceil = require( 'lodash/ceil');
+const ceil = require( 'lodash/ceil' );
 const map = require( 'lodash/map' );
 const range = require( 'lodash/range' );
 const size = require( 'lodash/size' );
 const PAGE_SIZE = 10;
 
-export default function ComptaList ({label, vckeySelected}) {
-    const loadRef = useRef(true);
+export default function ComptaList( { label, vckeySelected } ) {
+    const loadRef = useRef( true );
     const skipPageResetRef = useRef();
     const notificationAlert = useRef( null );
 
     const [openDialogCompta, setOpenDialogCompta] = useState( false );
-    const [filtered, setFiltered] = useState( { client: null, number: null, year: null, poste: ''} );
+    const [openDialogCompteTiers, setOpenDialogCompteTiers] = useState( false );
+    const filteredRef = useRef( { client: null, number: null, year: null, poste: '', typeCompta: '', compte: '' } );
 
     const [filteredClient, setFilteredClient] = useState( '' );
     const [filteredNumber, setFilteredNumber] = useState( null );
     const [filteredYear, setFilteredYear] = useState( null );
     const [filteredPoste, setFilteredPoste] = useState( null );
+    const [filteredCompte, setFilteredCompte] = useState( null );
+    const [filteredType, setFilteredType] = useState( null );
 
     const [data, setData] = useState( [] );
-    const [count, setCount] = useState(0);
+    const [count, setCount] = useState( 0 );
 
     const { getAccessTokenSilently } = useAuth0();
 
@@ -53,10 +57,11 @@ export default function ComptaList ({label, vckeySelected}) {
                 Cell: row => {
                     return (
                         <div>
-                            <Link to={`/admin/compta/${row ? row.value :0}`}
-                                    size="sm">  <i className="tim-icons icon-pencil " /></Link>
+                            <Link to={`/admin/compta/${row ? row.value : 0}`}
+                                  size="sm"> <i className="tim-icons icon-pencil "/></Link>
                         </div>
-                    )},
+                    );
+                },
                 disableFilters: true
             },
             {
@@ -70,7 +75,8 @@ export default function ComptaList ({label, vckeySelected}) {
                                       size="sm">{row.row.original.idDossierItem.label}</Link>
                             ) : null}
                         </div>
-                    )},
+                    );
+                },
                 filter: 'fuzzyText',
                 Filter: DossierColumnFilter,
                 width: 150
@@ -80,6 +86,12 @@ export default function ComptaList ({label, vckeySelected}) {
                 accessor: 'poste.label',
                 filter: 'fuzzyText',
                 Filter: PosteColumnFilter,
+            },
+            {
+                Header: label.comptalist.label10,
+                accessor: 'compte.label',
+                filter: 'fuzzyText',
+                Filter: CompteColumnFilter,
             },
             {
                 Header: label.comptalist.label3,
@@ -94,21 +106,19 @@ export default function ComptaList ({label, vckeySelected}) {
                 disableFilters: true
             },
             {
+                Header: 'type',
+                accessor: row => (row && row.idType === 1 ? label.comptalist.label8 : label.comptalist.label9),
+                Filter: TypeColumnFilter,
+            },
+            {
                 Header: label.comptalist.label4,
-                //accessor: 'montantHt',
-                accessor: row => (row && row.idType === 1 ? row.montantHt : ""),
+                accessor: row => (row && row.idType === 1 ? row.montantHt : ''),
                 disableFilters: true
 
-                //Cell: row => {
-                //    return (
-                //        <div>
-                //            {row.idType}
-                //        </div>
-                //    )}
             },
             {
                 Header: label.comptalist.label5,
-                accessor: row => (row && row.idType === 2 ? row.montantHt : ""),
+                accessor: row => (row && row.idType === 2 ? row.montantHt : ''),
                 disableFilters: true
             },
             //{
@@ -117,30 +127,38 @@ export default function ComptaList ({label, vckeySelected}) {
             //}
         ],
 
-        [] );
+        [label] );
 
     const _onChangeClientFilter = async ( value ) => {
+        filteredRef.current = { ...filteredRef.current, client: value } ;
         setFilteredClient( value );
-        setFiltered( { ...filtered, client: value } );
     };
     const _onChangeYearFilter = async ( value ) => {
-
+        filteredRef.current = { ...filteredRef.current, year: value } ;
         setFilteredYear( value );
-        setFiltered( { ...filtered, year: value } );
     };
     const _onChangeNumberFilter = async ( value ) => {
-
+        filteredRef.current = { ...filteredRef.current, number: value } ;
         setFilteredNumber( value );
-        setFiltered( { ...filtered, number: value } );
     };
 
     const _onChangePosteFilter = async ( value ) => {
+        filteredRef.current = { ...filteredRef.current, poste: value } ;
         setFilteredPoste( value );
-        setFiltered( { ...filtered, poste: value } );
     };
+    const _onChangeCompteFilter = async ( value ) => {
+        filteredRef.current = { ...filteredRef.current, compte: value } ;
+        setFilteredCompte( value );
+    };
+
+    const _onChangeTypeFilter = async ( value ) => {
+        filteredRef.current = { ...filteredRef.current, typeCompta: value } ;
+        setFilteredType( value );
+    };
+
     function PosteColumnFilter( {
-                                      column: { filterValue, setFilter, preFilteredRows, id },
-                                  } ) {
+                                    column: { filterValue, setFilter, preFilteredRows, id },
+                                } ) {
         const [postes, setPostes] = useState( [] );
 
         useEffect( () => {
@@ -167,8 +185,86 @@ export default function ComptaList ({label, vckeySelected}) {
                         setFilter( e.target.value || undefined );
                     }}
             >
-                <option value="">All</option>
+                <option value="">{label.common.label19}</option>
                 {postes.map( ( option, i ) => (
+                    <option key={i} value={option.value}>
+                        {option.label}
+                    </option>
+                ) )}
+            </select>
+        );
+    }
+
+    function CompteColumnFilter( {
+                                    column: { filterValue, setFilter, preFilteredRows, id },
+                                } ) {
+        const [tiers, setTiers] = useState( [] );
+
+        useEffect( () => {
+            (async () => {
+                try {
+                    const accessToken = await getAccessTokenSilently();
+                    let resultCompte = await getTiers( accessToken);
+
+                    let tiersData = map( resultCompte.data, tier => {
+                        return new ItemDTO( tier );
+                    } );
+                    setTiers( tiersData );
+                } catch ( e ) {
+                    // doesn't work
+                }
+            })();
+        }, [getAccessTokenSilently] );
+
+        return (
+            <select className="form-control"
+                    value={filterValue}
+                    onChange={e => {
+                        _onChangeCompteFilter( e.target.value );
+                        setFilter( e.target.value || undefined );
+                    }}
+            >
+                <option value="">{label.common.label19}</option>
+                {tiers.map( ( option, i ) => (
+                    <option key={i} value={option.value}>
+                        {option.label}
+                    </option>
+                ) )}
+            </select>
+        );
+    }
+
+    function TypeColumnFilter( {
+                                   column: { filterValue, setFilter, preFilteredRows, id },
+                               } ) {
+        const [typeCompta, setTypeCompta] = useState( [] );
+
+        useEffect( () => {
+            (async () => {
+                try {
+                    const accessToken = await getAccessTokenSilently();
+
+                    let resultType = await getComptaTypes( accessToken );
+                    let typeData = map( resultType.data, typeCompt => {
+                        return new ItemDTO( typeCompt );
+                    } );
+                    setTypeCompta( typeData );
+                } catch ( e ) {
+                    // doesn't work
+                }
+            })();
+        }, [getAccessTokenSilently] );
+
+        return (
+            <select className="form-control"
+                    value={filterValue}
+                    onChange={e => {
+                        _onChangeTypeFilter( e.target.value );
+                        setFilter( e.target.value || undefined );
+                    }}
+            >
+                <option value="">{label.common.label19}</option>
+                {typeCompta.map( ( option, i ) => (
                     <option key={i} value={option.value}>
                         {option.label}
                     </option>
@@ -183,7 +279,7 @@ export default function ComptaList ({label, vckeySelected}) {
                 id="custom-select"
                 type="text"
                 placeholder={label.affaire.filterClient}
-                value={filtered.client}
+                value={filteredRef.current.client}
                 onChange={( e ) => {
                     _onChangeClientFilter( e.target.value );
                     setFilter( e.target.value || undefined );
@@ -195,7 +291,7 @@ export default function ComptaList ({label, vckeySelected}) {
 
     function DossierColumnFilter( { column: { filterValue, setFilter, preFilteredRows, id } } ) {
         return (
-            <Row style={{width:'160px'}}>
+            <Row style={{ width: '160px' }}>
                 <Col style={{ padding: '0 4px 0 0' }}>
                     <Input
                         placeholder={label.affaire.filterYearDossier}
@@ -237,6 +333,7 @@ export default function ComptaList ({label, vckeySelected}) {
             </Row>
         );
     }
+
 // Define a default UI for filtering
     function DefaultColumnFilter( {
                                       column: { filterValue, preFilteredRows, setFilter },
@@ -253,6 +350,7 @@ export default function ComptaList ({label, vckeySelected}) {
             />
         );
     }
+
     const defaultColumn = React.useMemo(
         () => ({
             //width: 100,
@@ -268,6 +366,7 @@ export default function ComptaList ({label, vckeySelected}) {
         getTableBodyProps,
         headerGroups,
         page,
+        state,
         prepareRow,
         // Instead of using 'rows', we'll use page,
         // which has only the rows for the active page
@@ -289,7 +388,7 @@ export default function ComptaList ({label, vckeySelected}) {
                 pageIndex: 0,
             },
             manualPagination: true,
-            pageCount: ceil(count / PAGE_SIZE),
+            pageCount: ceil( count / PAGE_SIZE ),
             autoResetPage: !skipPageResetRef.current,
             autoResetExpanded: !skipPageResetRef.current,
             autoResetGroupBy: !skipPageResetRef.current,
@@ -302,40 +401,38 @@ export default function ComptaList ({label, vckeySelected}) {
         usePagination
     );
 
-
     useEffect( () => {
         (async () => {
             const accessToken = await getAccessTokenSilently();
 
             const offset = pageIndex * pageSize;
 
-            let result = await getComptaByDossierList( accessToken, offset, pageSize, filteredClient,filteredNumber,filteredYear, filteredPoste);
+            let result = await getComptaByDossierList( accessToken, offset, pageSize, filteredClient, filteredNumber, filteredYear, filteredPoste, filteredType, filteredCompte );
             loadRef.current = false;
 
             if ( !result.error ) {
                 skipPageResetRef.current = true;
-                const dataList = map(result.data.content, frais =>{
-                    return new ComptaDTO(frais);
-                })
+                const dataList = map( result.data.content, frais => {
+                    return new ComptaDTO( frais );
+                } );
                 setCount( result.data.totalElements );
-                setData( dataList );
+                setData( result.data.content ? dataList : []);
             }
         })();
-    }, [pageIndex, pageSize, filtered] );
+    }, [pageIndex, pageSize, filteredRef.current] );
 
     useEffect( () => {
         skipPageResetRef.current = false;
     } );
-    let pagination ;
+    let pagination;
     let reste = count % pageSize !== 0 ? 1 : 0;
 
-
-    let nums = range(Math.floor(count / pageSize) + reste);
-    if(count > 1 ) {
+    let nums = range( Math.floor( count / pageSize ) + reste );
+    if ( count > 1 ) {
         // case 1 : less than 10
         // case 2 more than 10 , start page : current - 5 end page : current + 5 or max
         // total page < = 10
-        if ( size(nums) <= 10 ) {
+        if ( size( nums ) <= 10 ) {
 
             pagination = nums.map( num => {
                 return (
@@ -354,11 +451,11 @@ export default function ComptaList ({label, vckeySelected}) {
             // current
             if ( pageIndex <= 6 ) {
                 nums = range( endPage );
-            } else if ( pageIndex + 4 >= size(nums) ) {
+            } else if ( pageIndex + 4 >= size( nums ) ) {
 
-                startPage = size(nums) - 9;
+                startPage = size( nums ) - 9;
 
-                endPage = size(nums);
+                endPage = size( nums );
                 nums = range( startPage, endPage );
 
             } else {
@@ -382,7 +479,7 @@ export default function ComptaList ({label, vckeySelected}) {
         }
 
     } else {
-        pagination =  <PaginationItem active>
+        pagination = <PaginationItem active>
             <PaginationLink href="#">
                 0
             </PaginationLink>
@@ -390,7 +487,12 @@ export default function ComptaList ({label, vckeySelected}) {
     }
 
     const toggleModalCompta = () => {
+        state.filters
         setOpenDialogCompta( !openDialogCompta );
+    };
+    const toggleModalCompteTiers = () => {
+        state.filters
+        setOpenDialogCompteTiers( !openDialogCompteTiers );
     };
 
     const showMessagePopup = ( message, type ) => {
@@ -400,102 +502,121 @@ export default function ComptaList ({label, vckeySelected}) {
     };
 
     return (
-            <>
-                <div className="content">
-                    <div className="rna-container">
-                        <NotificationAlert ref={notificationAlert}/>
-                    </div>
-                    <Row>
-                        <Col lg="12" sm={12}>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>
-                                        <h4>{label.comptalist.label7}
-                                            <Button
-                                                onClick={toggleModalCompta}
-                                                className="btn-icon float-right"
-                                                color="info"
-                                                data-placement="bottom"
-                                                id="tooltip811118933"
-                                                type="button"
-                                                size="sm"
-                                            >
-                                                <i className="tim-icons icon-paper"/>
-                                            </Button>
-                                        </h4>
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardBody>
-                                    {loadRef.current === false ? (
-                                        <Row>
-                                            <Col md="12">
-                                                <>
-                                                    <Table responsive
-                                                           className="-striped -highlight primary-pagination"
-                                                           {...getTableProps()}>
-                                                        <thead>
-                                                        {headerGroups.map( headerGroup => (
-                                                            <tr {...headerGroup.getHeaderGroupProps()}>
-                                                                {headerGroup.headers.map( column => (
-                                                                    <th {...column.getHeaderProps()}>{column.render( 'Header' )}
-                                                                        {/* Render the columns filter UI */}
-                                                                        <div>{column.canFilter ? column.render( 'Filter' ) : null}</div>
-
-                                                                    </th>
-                                                                ) )}
-                                                            </tr>
-                                                        ) )}
-                                                        </thead>
-                                                        <tbody {...getTableBodyProps()}>
-                                                        {page.map( ( row, i ) => {
-                                                            prepareRow( row );
-                                                            return (
-                                                                <tr {...row.getRowProps()}>
-                                                                    {row.cells.map( cell => {
-                                                                        return <td {...cell.getCellProps()}>{cell.render( 'Cell' )}</td>;
-                                                                    } )}
-                                                                </tr>
-                                                            );
-                                                        } )}
-                                                        </tbody>
-                                                    </Table>
-                                                    <Pagination>
-                                                        <PaginationItem disabled={!canPreviousPage}>
-                                                            <PaginationLink  onClick={() => previousPage()}>
-                                                                {label.common.preview}
-                                                            </PaginationLink>
-                                                        </PaginationItem>
-                                                        {pagination}
-
-                                                        <PaginationItem disabled={!canNextPage}>
-                                                            <PaginationLink onClick={() => nextPage()}  >
-                                                                {label.common.next}
-                                                            </PaginationLink>
-                                                        </PaginationItem>
-                                                    </Pagination>
-                                                </>
-
-                                            </Col>
-                                        </Row>
-                                    ) : (
-                                        <ReactLoading className="loading" height={'20%'} width={'20%'}/>
-                                    )}
-
-                                </CardBody>
-                            </Card>
-                        </Col>
-
-                    </Row>
+        <>
+            <div className="content">
+                <div className="rna-container">
+                    <NotificationAlert ref={notificationAlert}/>
                 </div>
-                {openDialogCompta ? (
-                    <ModalReportCompta
-                        filtered={filtered}
-                        vckeySelected={vckeySelected}
-                        showMessage={showMessagePopup}
-                        label={label}
-                        openDialog={openDialogCompta}
-                        toggle={toggleModalCompta}/>
-                ) : null}
-            </>
-        );
+                <Row>
+                    <Col lg="12" sm={12}>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>
+                                    <h4>{label.comptalist.label7}
+                                        <Button
+                                            onClick={toggleModalCompteTiers}
+                                            className="float-right"
+                                            color="info"
+                                            data-placement="bottom"
+                                            id="tooltip811118933"
+                                            type="button"
+                                            size="sm"
+                                        >
+                                            <i className="tim-icons icon-paper"/> {` compte tiers`}
+                                        </Button>
+                                        <Button
+                                            onClick={toggleModalCompta}
+                                            className="btn-icon float-right"
+                                            color="info"
+                                            data-placement="bottom"
+                                            id="tooltip811118933"
+                                            type="button"
+                                            size="sm"
+                                        >
+                                            <i className="tim-icons icon-paper"/>
+                                        </Button>
+                                    </h4>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardBody>
+                                {loadRef.current === false ? (
+                                    <Row>
+                                        <Col md="12">
+                                            <>
+                                                <Table responsive
+                                                       className="-striped -highlight primary-pagination"
+                                                       {...getTableProps()}>
+                                                    <thead>
+                                                    {headerGroups.map( headerGroup => (
+                                                        <tr {...headerGroup.getHeaderGroupProps()}>
+                                                            {headerGroup.headers.map( column => (
+                                                                <th {...column.getHeaderProps()}>{column.render( 'Header' )}
+                                                                    {/* Render the columns filter UI */}
+                                                                    <div>{column.canFilter ? column.render( 'Filter' ) : null}</div>
+
+                                                                </th>
+                                                            ) )}
+                                                        </tr>
+                                                    ) )}
+                                                    </thead>
+                                                    <tbody {...getTableBodyProps()}>
+                                                    {page.map( ( row, i ) => {
+                                                        prepareRow( row );
+                                                        return (
+                                                            <tr {...row.getRowProps()}>
+                                                                {row.cells.map( cell => {
+                                                                    return <td {...cell.getCellProps()}>{cell.render( 'Cell' )}</td>;
+                                                                } )}
+                                                            </tr>
+                                                        );
+                                                    } )}
+                                                    </tbody>
+                                                </Table>
+                                                <Pagination>
+                                                    <PaginationItem disabled={!canPreviousPage}>
+                                                        <PaginationLink onClick={() => previousPage()}>
+                                                            {label.common.preview}
+                                                        </PaginationLink>
+                                                    </PaginationItem>
+                                                    {pagination}
+
+                                                    <PaginationItem disabled={!canNextPage}>
+                                                        <PaginationLink onClick={() => nextPage()}>
+                                                            {label.common.next}
+                                                        </PaginationLink>
+                                                    </PaginationItem>
+                                                </Pagination>
+                                            </>
+
+                                        </Col>
+                                    </Row>
+                                ) : (
+                                    <ReactLoading className="loading" height={'20%'} width={'20%'}/>
+                                )}
+
+                            </CardBody>
+                        </Card>
+                    </Col>
+
+                </Row>
+            </div>
+            {openDialogCompta ? (
+                <ModalReportCompta
+                    filtered={filteredRef.current}
+                    vckeySelected={vckeySelected}
+                    showMessage={showMessagePopup}
+                    label={label}
+                    openDialog={openDialogCompta}
+                    toggle={toggleModalCompta}/>
+            ) : null}
+            {openDialogCompteTiers ? (
+                <ModalReportCompteTiers
+                    vckeySelected={vckeySelected}
+                    showMessage={showMessagePopup}
+                    label={label}
+                    openDialog={openDialogCompteTiers}
+                    toggle={toggleModalCompteTiers}/>
+            ) : null}
+        </>
+    );
 }

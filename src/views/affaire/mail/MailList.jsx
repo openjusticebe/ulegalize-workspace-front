@@ -17,29 +17,24 @@ import {
     Table
 } from 'reactstrap';
 import { useAuth0 } from '@auth0/auth0-react';
-import { getDocumentsMail, } from '../../../services/PostBirdServices';
+import { deleteDocumentById, getDocumentsMail, } from '../../../services/PostBirdServices';
 import { usePagination, useTable } from 'react-table';
 import ReactLoading from 'react-loading';
 import MailPostBirdGenerator from './MailPostBirdGenerator';
 import { getOptionNotification } from '../../../utils/AlertUtils';
 import NotificationAlert from 'react-notification-alert';
-import { getStatusPostBird } from './StatusPostBird';
+import { getFrenchStatus, getStatusPostBird } from './StatusPostBird';
 import { getDateDetails } from '../../../utils/DateUtils';
-import { checkPaymentActivated } from '../../../services/PaymentServices';
-import ModalMail from './ModalMail';
-import ModalNoActivePayment from '../popup/ModalNoActivePayment';
+import ModalDetectMail from './ModalDetectMail';
+import ReactBSAlert from 'react-bootstrap-sweetalert';
 
 const ceil = require( 'lodash/ceil' );
 const range = require( 'lodash/range' );
-const isNil = require( 'lodash/isNil' );
 const PAGE_SIZE = 5;
 
 export default function MailList( {
                                       dossierId,
                                       label,
-                                      updateList,
-                                      openPostMail,
-                                      deletePostMail,
                                       vckeySelected
                                   } ) {
 
@@ -52,12 +47,36 @@ export default function MailList( {
     const [showMail, setShowMail] = useState( false );
     const notificationAlert = useRef( null );
     const documentIdRef = useRef( true );
-    const payment = useRef( false );
-    const [modalPostMailDisplay, setModalPostMailDisplay] = useState( false );
-    const [modalNotPaidSignDocument, setModalNotPaidSignDocument] = useState( false );
+    const [modalDetectMail, setModalDetectMail] = useState( false );
+    const [updateList, setUpdateList] = useState( false );
+    const [deleteAlert, setDeleteAlert] = useState( null );
+    const countryCodeRef = useRef( true );
+
+    const _updateList = () => {
+        setUpdateList( !updateList );
+    };
 
     const showMailFun = () => {
         setShowMail( !showMail );
+    };
+
+
+    const _deletePostMail = async ( documentId ) => {
+        documentIdRef.current = documentId;
+
+        const accessToken = await getAccessTokenSilently();
+
+        const result = await deleteDocumentById( accessToken, documentIdRef.current );
+
+        setDeleteAlert( null );
+        if ( result.data ) {
+            _updateList();
+
+            showMessage( label.common.success2, 'primary' );
+        } else {
+            showMessage( label.common.error3, 'danger' );
+        }
+
     };
     const columns = React.useMemo(
         () => [
@@ -78,18 +97,34 @@ export default function MailList( {
                         <Button
                             className="btn-icon btn-link margin-left-10"
                             onClick={() => {
-                                openPostMail(row.value);
+                                _toggleMail( row.row.original.countryPost, row.value );
                             }}
                             color="primary" size="sm">
                             <i className="fa fa-paper-plane "/>
                         </Button>
                         {` `}
                         {/* payment ok => cannot be deleted */}
-                        {parseInt(row.row.original.status) < 8 ? (
+                        {(row.row.original.countryPost === 'BE' && parseInt(row.row.original.status) < 8) || (row.row.original.countryPost === 'FR' && row.row.original.status === 'DRAFT') ? (
                             <Button
                                 className="btn-icon btn-link margin-left-10"
                                 onClick={() => {
-                                    deletePostMail(row.value);
+                                    setDeleteAlert( <ReactBSAlert
+                                        warning
+                                        style={{ display: 'block', marginTop: '30px' }}
+                                        title={label.common.label10}
+                                        onConfirm={() => {
+                                            _deletePostMail( row.value );
+                                        }}
+                                        onCancel={() => { setDeleteAlert( null ); }}
+                                        confirmBtnBsStyle="success"
+                                        cancelBtnBsStyle="danger"
+                                        confirmBtnText={label.common.label11}
+                                        cancelBtnText={label.common.cancel}
+                                        showCancel
+                                        btnSize=""
+                                    >
+                                        {label.common.label12}
+                                    </ReactBSAlert> );
                                 }}
                                 color="primary" size="sm">
                                 <i className="fa fa-trash"/>
@@ -104,10 +139,20 @@ export default function MailList( {
                 accessor: 'documentName'
             },
             {
+                Header: label.mail.label36,
+                accessor: 'countryPost'
+            },
+            {
                 Header: label.mail.label11,
                 accessor: 'status',
                 Cell: row => {
-                    return getStatusPostBird( row.value, label );
+                    if ( row.row.original.countryPost === 'FR' ) {
+                        return getFrenchStatus( row.value, label );
+
+                    } else {
+                        return getStatusPostBird( row.value, label );
+
+                    }
                 }
             },
             {
@@ -200,24 +245,13 @@ export default function MailList( {
         }
     };
 
-    const _openPostMail = async ( documentId ) => {
+
+    const _toggleMail = async ( country, documentId ) => {
         documentIdRef.current = documentId;
-        const accessToken = await getAccessTokenSilently();
-
-        let resultPayment = await checkPaymentActivated( accessToken );
-        if ( !isNil( resultPayment ) ) {
-            payment.current = resultPayment.data;
-            if ( payment.current === true ) {
-                setModalPostMailDisplay( !modalPostMailDisplay );
-            } else {
-                _toggleUnPaid();
-            }
-        }
+        countryCodeRef.current = country;
+        setModalDetectMail( !modalDetectMail );
     };
 
-    const _toggleUnPaid = () => {
-        setModalNotPaidSignDocument( !modalNotPaidSignDocument );
-    };
     return (
         <>
             <div className="content">
@@ -237,7 +271,7 @@ export default function MailList( {
                                     </Col>
                                     <Col md={2}>
                                         <Button
-                                            onClick={() => _openPostMail()}
+                                            onClick={() => _toggleMail()}
                                             className="float-right"
                                             color="primary"
                                             data-placement="bottom"
@@ -332,26 +366,19 @@ export default function MailList( {
                     </ModalFooter>
                 </Modal>) : null}
 
-            {/* POPUP CREATE MAIL BPOST */}
-            {modalPostMailDisplay ? (
-                <ModalMail
+            {modalDetectMail ? (
+                <ModalDetectMail
                     vckeySelected={vckeySelected}
                     dossierId={dossierId}
-                    label={label}
                     documentId={documentIdRef.current}
-                    modalPostMailDisplay={modalPostMailDisplay}
-                    openPostMail={_openPostMail}
+                    countryCode={countryCodeRef.current}
+                    openPostMail={_toggleMail}
+                    label={label}
                     showMessage={showMessage}
-                    updateList={updateList}
+                    updateList={_updateList}
                 />
             ) : null}
-            {/* POPUP PAYMENT NOT REGISTERED */}
-            {modalNotPaidSignDocument ? (
-                <ModalNoActivePayment
-                    label={label}
-                    toggleModalDetails={_toggleUnPaid}
-                    modalDisplay={modalNotPaidSignDocument}/>
-            ) : null}
+            {deleteAlert}
         </>
     );
 }

@@ -180,7 +180,7 @@ This file was modified entirely by Creative Tim for React-Select v2.0.0
       }
       .react-select__indicator {
         padding: 0;
-        display: inline-block;
+        display: inherit;
       }
       .react-select__dropdown-indicator {
         &:after {

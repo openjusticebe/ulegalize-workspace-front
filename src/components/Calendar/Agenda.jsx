@@ -44,9 +44,9 @@ import { getDateDetails } from '../../utils/DateUtils';
 import { CircularProgress } from '@material-ui/core';
 import { newEvent } from '../../utils/CalendarUtils';
 import Voicerecord from '../Navbars/Voicerecord';
+import { validateEmail } from '../../utils/Utils';
 
 let moment = require( 'moment-timezone' );
-
 moment.tz.setDefault( 'Europe/Brussels' );
 registerLocale( 'fr', fr );
 registerLocale( 'en', en );
@@ -57,6 +57,7 @@ const size = require( 'lodash/size' );
 const isNil = require( 'lodash/isNil' );
 const isEmpty = require( 'lodash/isEmpty' );
 const filter = require( 'lodash/filter' );
+const forEach = require( 'lodash/forEach' );
 
 export default function Agenda( {
                                     auth0,
@@ -90,16 +91,17 @@ export default function Agenda( {
     const isCreatedEvent = useRef( false );
     const localizer = useRef( momentLocalizer( moment ) );
     const startAgenda = useRef( moment().hours( 0 ).minutes( 0 ).toDate() );
-    const endAgenda = useRef( moment().add( 7, 'days' ).toDate() );
+    const endAgenda = useRef( moment().add( 30, 'days' ).toDate() );
     const selectedEventState = useRef( [] );
     const approvedRef = useRef( false );
-    const savedEventRef = useRef( false );
+    const [savedEventState, setsavedEventState] = useState( false );
+    const languageRef = useRef( false );
     const [loading, setLoading] = useState( false );
     const [modalAppointment, setModalAppointment] = useState( false );
     const [events, setEvents] = useState( [] );
     const [eventsUnapprovedCount, setEventsUnapprovedCount] = useState( 0 );
     const [eventsUnapproved, setEventsUnapproved] = useState( 0 );
-    const [filterAgenda, setFilter] = useState( new FilterAgendaDTO() );
+    const [filterAgenda, setFilterAgenda] = useState( new FilterAgendaDTO() );
     const [userResponsableList, setUserResponsableList] = useState( [] );
     const { getAccessTokenSilently } = useAuth0();
     const [calendarTypeList, setCalendarTypeList] = useState( [] );
@@ -152,7 +154,13 @@ export default function Agenda( {
             }
             setLoading( false );
         })();
-    }, [getAccessTokenSilently, savedEventRef.current] );
+    }, [getAccessTokenSilently, savedEventState] );
+
+    useEffect( () => {
+        (async () => {
+            setsavedEventState( !savedEventState );
+        })();
+    }, [language] );
 
     /*************/
     /* CALENDAR */
@@ -161,6 +169,9 @@ export default function Agenda( {
         isCreatedEvent.current = false;
         setModalAppointment( true );
         selectedEventState.current = new LawfirmCalendarEventDTO( event );
+        if ( event.eventType === 'RDV' && selectedEventState.current.approved === false ) {
+            approvedRef.current = true;
+        }
     };
     const _onRangeChange = async ( event ) => {
         const accessToken = await getAccessTokenSilently();
@@ -266,12 +277,12 @@ export default function Agenda( {
     const onChangeCalendarType = async ( e, typeCode ) => {
         if ( e.target.checked === true ) {
             filterAgenda.eventTypesSelected = [typeCode, ...filterAgenda.eventTypesSelected];
-            setFilter( { ...filterAgenda, eventTypesSelected: [typeCode, ...filterAgenda.eventTypesSelected] } );
+            setFilterAgenda( { ...filterAgenda, eventTypesSelected: [typeCode, ...filterAgenda.eventTypesSelected] } );
 
         } else {
             let eventsTypesCodes = filterAgenda.eventTypesSelected.filter( fileObject => fileObject !== typeCode );
             filterAgenda.eventTypesSelected = eventsTypesCodes;
-            setFilter( { ...filterAgenda, eventTypesSelected: eventsTypesCodes } );
+            setFilterAgenda( { ...filterAgenda, eventTypesSelected: eventsTypesCodes } );
         }
         const accessToken = await getAccessTokenSilently();
         setLoading( true );
@@ -290,14 +301,16 @@ export default function Agenda( {
 
     const onChangeAgenda = async ( value ) => {
         const accessToken = await getAccessTokenSilently();
-        filterAgenda.userId = value.value;
-        setFilter( {
+        const filterTemp = {
             ...filterAgenda,
             userIdItem: value,
             userId: value.value
-        } );
+        };
+
+        setFilterAgenda( filterTemp );
+        console.log( filterTemp.userIdItem );
         setLoading( true );
-        const result = await getAgenda( accessToken, startAgenda.current, endAgenda.current, filterAgenda );
+        const result = await getAgenda( accessToken, startAgenda.current, endAgenda.current, filterTemp );
         if ( !result.error ) {
             const eventsAgenda = map( result.data, event => {
                 event.start = new Date( event.start );
@@ -312,12 +325,38 @@ export default function Agenda( {
     const showMessageFromPopup = ( message, type, savedEvent ) => {
         notificationAlert.current.notificationAlert( getOptionNotification( message, type ) );
         if ( savedEvent ) {
-            savedEventRef.current = !savedEventRef.current;
+            setsavedEventState( !savedEventState );
         }
     };
     const _saveEvent = async ( selectedEvent ) => {
         // if UPDATE
+
+        let emailInvalid;
+        let testValidation;
+
+        if ( !isNil( selectedEvent.participantsEmail ) ) {
+
+            forEach( selectedEvent.participantsEmail, function ( value ) {
+                if ( !validateEmail( value ) ) {
+                    emailInvalid = value;
+                    testValidation = false;
+                    showMessageFromPopup( `${label.agenda.errorEmailInvalid} ${emailInvalid}`, 'danger' );
+                    return false;
+                }
+            } );
+        }
+
+        if ( testValidation === false ) {
+            return;
+        }
+
         if ( !isNil( selectedEvent.id ) ) {
+
+            if ( (isNil( selectedEvent.participantsEmail ) || (selectedEvent.participantsEmail.length === 0)) && (selectedEvent.eventType === 'RDV') ) {
+                showMessageFromPopup( label.agenda.errorRdvWithoutParticipant, 'danger' );
+                return;
+            }
+
             const accessToken = await getAccessTokenSilently();
 
             // save without approval
@@ -368,11 +407,28 @@ export default function Agenda( {
         );
     }
 
-    function EventMonthAgenda( { event } ) {
+    function EventWeekAgenda( { event } ) {
         return (
             <div onClick={() => selectedEvent( event )}>
-                <em className={'white'}>{event.eventTypeItem.label}</em>
-                <p>{moment( event.start ).locale( language ).format( 'LT' )} {event.title && event.title !== '' ? event.title : event.note}</p>
+                <em className={'white'}>{event.eventTypeItem.label} {event.dossier ? (
+                    <span>- {event.dossier.label.toString().substring( 0, 9 )}</span>) : null}</em>
+                {event.location && (<p>{label.appointmentmodalpanel.label9} : {event.location}</p>)}
+                {event.title ? (<p>{event.title}</p>) : (<p>{event.note}</p>)}
+            </div>
+        );
+    }
+
+    function EventMonthAgenda( { event } ) {
+        const end = event.eventType !== 'TASK' ? ' - ' + moment( event.end ).locale( language ).format( 'LT' ) : '';
+
+        return (
+
+            <div onClick={() => selectedEvent( event )}>
+                <p>{moment( event.start ).locale( language ).format( 'LT' )} {end}</p>
+                <em className={'white'}>{event.eventTypeItem.label} {event.dossier ? (
+                    <span>- {event.dossier.label.toString().substring( 0, 9 )}</span>) : null}</em>
+                {event.title && (<p>{event.title}</p>)}
+                {event.location && (<p>{label.appointmentmodalpanel.label9} : {event.location}</p>)}
             </div>
         );
     }
@@ -380,14 +436,15 @@ export default function Agenda( {
     function EventAgenda( event, color ) {
         return (
             <div onClick={() => selectedEvent( event )}>
-                <em className={color}>{event.eventTypeItem.label}</em>
+                <em className={color}>{event.eventTypeItem.label} {event.dossier ? (
+                    <span>- {event.dossier.label}</span>) : null} {event.eventType === 'RDV' && event.approved === false ? (
+                    <span>{label.agenda.approved}</span>) : ''}</em>
                 {event.eventType === 'RDV' ? (
                     <p>{event.title && event.title !== '' ? event.title : event.note}</p>
                 ) : (
                     <>
-                        {event.note ? (<p>{event.note}</p>) : null}
-                        {event.dossier ? (<p>{label.appointmentmodalpanel.label11} : {event.dossier.label}</p>) : null}
-                        {event.location ? (<p>{label.appointmentmodalpanel.label9} : {event.location}</p>) : ''}
+                        {event.title ? (<p>{event.title}</p>) : (<p>{event.note}</p>)}
+                        {event.location && (<p>{label.appointmentmodalpanel.label9} : {event.location}</p>)}
                     </>
                 )}
             </div>
@@ -536,7 +593,23 @@ export default function Agenda( {
                     <Row>
                         <Col lg={9} sm={12}>
                             <Calendar
-                                messages={{ noEventsInRange: label.agenda.label2 }}
+                                messages={{
+                                    noEventsInRange: label.agenda.label2,
+                                    previous: label.common.preview,
+                                    next: label.common.next,
+                                    today: label.agenda.today,
+                                    date: label.agenda.date,
+                                    time: label.agenda.time,
+                                    event: label.agenda.event,
+                                    allDay: label.agenda.allDay,
+                                    week: label.agenda.week,
+                                    work_week: label.agenda.workWeek,
+                                    day: label.agenda.day,
+                                    month: label.agenda.month,
+                                    yesterday: label.agenda.yesterday,
+                                    tomorrow: label.agenda.tomorrow,
+                                    agenda: label.agenda.agenda,
+                                }}
                                 selectable
                                 localizer={localizer.current}
                                 events={events}
@@ -554,11 +627,10 @@ export default function Agenda( {
                                         event: EventOtherAgenda,
                                     },
                                     day: {
-                                        time: TimeAgenda,
                                         event: EventDayAgenda,
                                     },
                                     week: {
-                                        event: EventDayAgenda,
+                                        event: EventWeekAgenda,
                                     },
                                     month: {
                                         event: EventMonthAgenda,
@@ -567,9 +639,7 @@ export default function Agenda( {
                             />
                         </Col>
                         {/* agenda content */}
-                        {loading ? (
-                            <CircularProgress color="primary" size={35}/>
-                        ) : null}
+
                         {/* agenda filter */}
                         <Col lg={3} sm={12}>
                             <Row>
@@ -608,6 +678,9 @@ export default function Agenda( {
                                     </Row>
                                 );
                             } )}
+                            {loading ? (
+                                <CircularProgress color="primary" size={35}/>
+                            ) : null}
                         </Col>
 
                     </Row>

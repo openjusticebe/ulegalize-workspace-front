@@ -57,7 +57,7 @@ export default function AppointmentModalPanel( {
                                                    selectedEventProps,
                                                    showMessageFromPopup,
                                                    vckeySelected,
-                                                   approved
+                                                   approved,
                                                } ) {
     const userResponsableRef = useRef( userResponsableList );
 
@@ -462,7 +462,7 @@ export default function AppointmentModalPanel( {
         );
     };
     const _togglePopupCreatePrestation = ( e, message, type ) => {
-        settogglePopupCreatePrest(!togglePopupCreatePrest);
+        settogglePopupCreatePrest( !togglePopupCreatePrest );
         if ( message && type ) {
             showMessageFromPopup( message, type );
         }
@@ -494,11 +494,11 @@ export default function AppointmentModalPanel( {
                 {/* if it's record don't show the type */}
                 {selectedEvent.eventType !== 'RECORD' ? (
                     <Row>
-                        <Col lg="12">
+                        <Col lg="6">
                             <Label>{label.appointmentmodalpanel.label5}</Label>
                             <FormGroup>
                                 <Select
-                                    isDisabled={approved === true}
+                                    isDisabled={!isCreated}
                                     onChange={handleEventTypeChange}
                                     className="basic-single color-primary"
                                     classNamePrefix="react-select"
@@ -508,11 +508,24 @@ export default function AppointmentModalPanel( {
                                 />
                             </FormGroup>
                         </Col>
+                        <Col lg="6">
+                            <Label>{label.appointmentmodalpanel.label20}</Label>
+                            <FormGroup>
+                                <Select value={selectedEvent.userItem}
+                                        options={optionsUsers}
+                                        placeholder={`${label.appointmentmodalpanel.label20}...`}
+                                        onChange={handleSelectUser}
+                                        backspaceRemovesValue
+                                        isSearchable
+                                />
+                            </FormGroup>
+                        </Col>
                     </Row>
                 ) : null}
                 {selectedEvent.start ?
                     <Row>
-                        <Col lg="12">
+                        <Col
+                            lg={selectedEvent.end && selectedEvent.eventType !== 'TASK' && selectedEvent.eventType !== 'RECORD' ? 6 : 12}>
                             <Label>{startLabel}</Label>
                             <FormGroup>
                                 <DatePicker
@@ -528,29 +541,28 @@ export default function AppointmentModalPanel( {
                                 />
                             </FormGroup>
                         </Col>
+                        {selectedEvent.end && selectedEvent.eventType !== 'TASK' && selectedEvent.eventType !== 'RECORD' ?
+                            <Col lg="6">
+                                <Label>{label.appointmentmodalpanel.label7}</Label>
+                                <FormGroup>
+                                    <DatePicker
+                                        selected={new Date( selectedEvent.end )}
+                                        minDate={selectedEvent.start}
+                                        onChange={handleEndDatePickerChange}
+                                        showTimeSelect
+                                        locale="fr"
+                                        timeFormat="HH:mm"
+                                        timeIntervals={30}
+                                        timeCaption="time"
+                                        dateFormat="dd MMMM yyyy, HH:mm"
+                                        className="form-control color-primary"
+                                    />
+                                </FormGroup>
+                            </Col>
+                            : ''}
                     </Row>
                     : ''}
-                {selectedEvent.end && selectedEvent.eventType !== 'TASK' && selectedEvent.eventType !== 'RECORD' ?
-                    <Row>
-                        <Col lg="12">
-                            <Label>{label.appointmentmodalpanel.label7}</Label>
-                            <FormGroup>
-                                <DatePicker
-                                    selected={new Date( selectedEvent.end )}
-                                    minDate={selectedEvent.start}
-                                    onChange={handleEndDatePickerChange}
-                                    showTimeSelect
-                                    locale="fr"
-                                    timeFormat="HH:mm"
-                                    timeIntervals={30}
-                                    timeCaption="time"
-                                    dateFormat="dd MMMM yyyy, HH:mm"
-                                    className="form-control color-primary"
-                                />
-                            </FormGroup>
-                        </Col>
-                    </Row>
-                    : ''}
+
                 {selectedEvent.eventType === 'AUD' ? panelAudience() : ''}
                 {selectedEvent.eventType === 'PERM' ? panelOnduty() : ''}
                 {selectedEvent.eventType === 'RDV' ? panelRendezVous() : ''}
@@ -589,20 +601,6 @@ export default function AppointmentModalPanel( {
                                 isMulti
                                 onChange={handleParticipants}
                                 placeholder={label.common.label14}
-                            />
-                        </FormGroup>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col lg="12">
-                        <Label>{label.appointmentmodalpanel.label20}</Label>
-                        <FormGroup>
-                            <Select value={selectedEvent.userItem}
-                                    options={optionsUsers}
-                                    placeholder={`${label.appointmentmodalpanel.label20}...`}
-                                    onChange={handleSelectUser}
-                                    backspaceRemovesValue
-                                    isSearchable
                             />
                         </FormGroup>
                     </Col>

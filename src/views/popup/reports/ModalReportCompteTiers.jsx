@@ -17,10 +17,11 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { b64toBlob, downloadBlob } from '../../../utils/TableUtils';
 import { Document, Page } from 'react-pdf';
 import ReactLoading from 'react-loading';
-import { generateReportCompta } from '../../../services/ComptaServices';
+import { generateReportCompteTiers } from '../../../services/ComptaServices';
 import DatePicker from 'react-datepicker';
+import Select from 'react-select';
 
-export default function ModalReportCompta( { openDialog, toggle, label, showMessage, filtered, vckeySelected } ) {
+export default function ModalReportCompteTiers( { openDialog, toggle, label, showMessage, vckeySelected } ) {
     const tempStart = moment( moment().startOf( 'year' ).format( 'YYYY-MM-DD' ) ).toDate();
     const tempEnd = moment( moment().endOf( 'year' ).format( 'YYYY-MM-DD' ) ).toDate();
     const { getAccessTokenSilently } = useAuth0();
@@ -28,6 +29,7 @@ export default function ModalReportCompta( { openDialog, toggle, label, showMess
     const [isLoading, setIsLoading] = useState( false );
     const [start, setStart] = useState( tempStart );
     const [end, setEnd] = useState( tempEnd );
+    const [balanceZero, setBalanceZero] = useState( [{ value: null, label: label.common.label19 }] );
 
     const [numPages, setNumPages] = useState( null );
     const [pageNumber, setPageNumber] = useState( 1 );
@@ -35,13 +37,14 @@ export default function ModalReportCompta( { openDialog, toggle, label, showMess
     const _generate = async () => {
         const accessToken = await getAccessTokenSilently();
         setIsLoading( true );
-        let result = await generateReportCompta( accessToken,  start, end , vckeySelected, filtered.number, filtered.year, filtered.client, filtered.poste, filtered.typeCompta, filtered.compte );
+        let result = await generateReportCompteTiers( accessToken, start, end, vckeySelected, balanceZero );
         if ( !result.error ) {
             let pdf = b64toBlob( result.data, '' );
             setPageNumber( 1 );
             setFile( pdf );
             setIsLoading( false );
         } else {
+            setIsLoading( false );
             showMessage( label.affaire.error20, 'danger' );
         }
     };
@@ -67,7 +70,7 @@ export default function ModalReportCompta( { openDialog, toggle, label, showMess
         <Modal isOpen={openDialog} toggle={toggle}
                size="lg" modalClassName="modal-black">
             <ModalHeader className="justify-content-center" toggle={toggle}>
-                {label.compta.report}
+                {label.compta.label1}
             </ModalHeader>
             <ModalBody>
                 <Card>
@@ -98,6 +101,27 @@ export default function ModalReportCompta( { openDialog, toggle, label, showMess
                                         dateFormat="yyyy-MM-dd"
                                         placeholderText="yyyy-mm-dd"
                                         className="form-control color-primary"
+                                    />
+                                </FormGroup>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col md="6">
+                                <FormGroup>
+                                    <Select
+                                        className="react-select info"
+                                        classNamePrefix="react-select"
+                                        name="balance"
+                                        defaultValue={{ label: label.common.label19, value: null }}
+                                        onChange={value =>
+                                            setBalanceZero( value )
+                                        }
+                                        options={[
+                                            { value: null, label: label.common.label19 },
+                                            { value: false, label: '= 0' },
+                                            { value: true, label: '<> 0' }
+                                        ]}
+                                        placeholder={label.comptalist.label11}
                                     />
                                 </FormGroup>
                             </Col>

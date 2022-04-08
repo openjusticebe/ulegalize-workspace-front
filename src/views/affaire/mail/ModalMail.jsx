@@ -33,7 +33,6 @@ import {
     payDocument,
     sendTemporaryDocument,
     updateAddress,
-    updateDossier,
     updateSendingOptions
 } from '../../../services/PostBirdServices';
 import DocumentDTO from '../../../model/postbird/DocumentDTO';
@@ -52,6 +51,7 @@ import DossierDTO from '../../../model/affaire/DossierDTO';
 import { getClient, getClientById } from '../../../services/ClientService';
 import ContactSummary from '../../../model/client/ContactSummary';
 import AsyncCreatableSelect from 'react-select/async-creatable';
+import { validatePostBe } from '../../../utils/Utils';
 
 const isNil = require( 'lodash/isNil' );
 const map = require( 'lodash/map' );
@@ -115,7 +115,7 @@ export default function ModalMail( {
                 if ( resultDocument.error ) {
                     // close with message
                     showMessage( label.mail.error2, 'danger' );
-                    openPostMail();
+                    openPostMail('BE');
                 } else {
                     documentTmp = new DocumentDTO( resultDocument.data );
                     map( countriesCode, country => {
@@ -396,8 +396,8 @@ export default function ModalMail( {
     };
     return (
         <>
-            <Modal size="lg" isOpen={modalPostMailDisplay} toggle={openPostMail}>
-                <ModalHeader toggle={openPostMail}>
+            <Modal size="lg" isOpen={modalPostMailDisplay} toggle={()=>openPostMail('BE')}>
+                <ModalHeader toggle={()=>openPostMail('BE')}>
                     <h4 className="modal-title">{label.mail.label1}
                     </h4>
                 </ModalHeader>
@@ -647,7 +647,7 @@ export default function ModalMail( {
                                                     </FormGroup>
                                                     {/* postalCode */}
                                                     <FormGroup row className={classnames( {
-                                                        'has-danger': isEmpty( document.postalCode )
+                                                        'has-danger': isEmpty( document.postalCode ) || !validatePostBe(document.postalCode)
                                                     } )}>
                                                         <Label for="codePostal" sm={4}>{label.mail.label4}</Label>
                                                         <Col sm={8} md={8} lg={8} xl={8}>
@@ -665,6 +665,7 @@ export default function ModalMail( {
                                                                 placeholder={label.mail.label4}
                                                             />
                                                         </Col>
+                                                        <FormText>{label.mail.error6}</FormText>
                                                     </FormGroup>
                                                     {/* city */}
                                                     <FormGroup row className={classnames( {
@@ -926,7 +927,7 @@ export default function ModalMail( {
                 </ModalBody>
                 <ModalFooter>
                     <Button color="default"
-                            onClick={openPostMail}>{label.common.close}</Button>
+                            onClick={()=>openPostMail('BE')}>{label.common.close}</Button>
                     <Col>
                         {/*{ ONLY TO SEND }*/}
                         {!isNil( document )

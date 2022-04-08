@@ -5,6 +5,7 @@ export default class DocumentDTO {
     dossierPath;
     base64DocumentContent;
     documentName;
+    countryPost;
     status;
     creDate;
     city;
@@ -28,6 +29,7 @@ export default class DocumentDTO {
             this.dossierPath = data.dossierPath;
             this.base64DocumentContent = data.base64DocumentContent;
             this.documentName = data.documentName;
+            this.countryPost = data.countryPost;
             this.status = data.status;
             this.creDate = data.creDate;
             this.city = data.city;

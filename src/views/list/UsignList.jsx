@@ -200,7 +200,7 @@ export default function UsignList( {
             }
         ],
 
-        [] );
+        [label] );
 
     const {
         getTableProps,

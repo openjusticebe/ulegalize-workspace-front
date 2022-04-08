@@ -41,7 +41,7 @@ export default function DossiersList( props ) {
 
     const { getAccessTokenSilently } = useAuth0();
 
-    const [filtered, setFiltered] = useState( { client: null, number: null, year: null, balance: '', initiales: '' } );
+    const filteredRef = useRef( { client: null, number: null, year: null, balance: '', initiales: '' } );
     const [filteredArchived, setFilteredArchived] = useState( '0' );
     const [filteredBalance, setFilteredBalance] = useState( '' );
     const [filteredClient, setFilteredClient] = useState( '' );
@@ -121,32 +121,30 @@ export default function DossiersList( props ) {
             },
 
         ],
-        [] );
+        [props.label] );
     const _onChangeArchivedFilter = async ( value ) => {
         setFilteredArchived( value );
-        setFiltered( { ...filtered, archived: value } );
+        filteredRef.current = { ...filteredRef.current, archived: value } ;
     };
     const _onChangeBalanceFilter = async ( value ) => {
+        filteredRef.current = { ...filteredRef.current, balance: value } ;
         setFilteredBalance( value );
-        setFiltered( { ...filtered, balance: value } );
     };
     const _onChangeClientFilter = async ( value ) => {
+        filteredRef.current = { ...filteredRef.current, client: value } ;
         setFilteredClient( value );
-        setFiltered( { ...filtered, client: value } );
     };
     const _onChangeYearFilter = async ( value ) => {
-
+        filteredRef.current = { ...filteredRef.current, year: value } ;
         setFilteredYear( value );
-        setFiltered( { ...filtered, year: value } );
     };
     const _onChangeNumberFilter = async ( value ) => {
-
+        filteredRef.current = { ...filteredRef.current, number: value } ;
         setFilteredNumber( value );
-        setFiltered( { ...filtered, number: value } );
     };
     const _onChangeInitFilter = async ( value ) => {
+        filteredRef.current = { ...filteredRef.current, initiales: value } ;
         setFilteredInitiale( value );
-        setFiltered( { ...filtered, initiales: value } );
     };
 
     function ClientColumnFilter( { column: { filterValue, setFilter, preFilteredRows, id }, } ) {
@@ -155,7 +153,7 @@ export default function DossiersList( props ) {
                 id="custom-select"
                 type="text"
                 placeholder={label.affaire.filterClient}
-                value={filtered.client}
+                value={filteredRef.current.client}
                 onChange={( e ) => {
                     _onChangeClientFilter( e.target.value );
                     setFilter( e.target.value || undefined );
@@ -357,7 +355,7 @@ export default function DossiersList( props ) {
                 setData( result.data.content ? result.data.content : [] );
             }
         })();
-    }, [pageIndex, pageSize, filtered] );
+    }, [pageIndex, pageSize, filteredRef.current] );
 
     useEffect( () => {
         skipPageResetRef.current = false;
@@ -536,7 +534,7 @@ export default function DossiersList( props ) {
                 ) : null}
                 {openDialogDossier ? (
                     <ModalReportDossier
-                        filtered={filtered}
+                        filtered={filteredRef.current}
                         vckeySelected={vckeySelected}
                         showMessage={showMessagePopup}
                         label={label}

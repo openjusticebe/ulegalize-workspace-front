@@ -167,7 +167,7 @@ export default function CasesList( { label, email, userId, vckeySelected, enumRi
             }
         ],
 
-        [] );
+        [label] );
     const {
         getTableProps,
         getTableBodyProps,

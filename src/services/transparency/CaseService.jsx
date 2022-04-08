@@ -355,22 +355,6 @@ export async function getChannelsByCaseId( accessToken, caseId ) {
         return { error: true };
     }
 }
-export async function createChannel( accessToken, dossierId , channel) {
-    try {
-        return axios.put( `${process.env.REACT_APP_TRANSPARENCY_SERVER}v2/cases/dossier/${dossierId}/channels`,
-            new ChannelDTO(channel),
-            {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
-                }
-            } ).catch(()=>{
-            return {data: null, error: true}
-        });
-    } catch ( e ) {
-        return { error: true };
-    }
-}
 export async function checkPartiesInvolvedIntoChannel( accessToken, dossierId , channel) {
     try {
         return axios.put( `${process.env.REACT_APP_TRANSPARENCY_SERVER}v2/cases/dossier/${dossierId}/channels/parties`,

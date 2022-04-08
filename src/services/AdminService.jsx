@@ -488,6 +488,22 @@ export async function addUserToSecurityGroup( accessToken, securityGroupId, user
     }
 }
 
+export async function shareUserFolder( accessToken) {
+    try {
+        return axios.post( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/admin/users/share/global`,
+            {},
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            } ).catch( () => {
+            return { error: true };
+        } );
+    } catch ( e ) {
+        return { error: true };
+    }
+}
+
 export async function deleteUserToSecurityGroup( accessToken, securityGroupId ) {
     try {
         return await axios.delete( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/admin/security/${securityGroupId}/user`, {
