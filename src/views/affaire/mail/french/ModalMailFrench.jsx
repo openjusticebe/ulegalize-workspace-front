@@ -45,6 +45,19 @@ import {
     updateAddressEnvelope,
     updateEnvelope
 } from '../../../../services/LaPosteFrenchService';
+import {
+    addDocumentLrel,
+    createDraftLrel,
+    getAddressRecipientLrel,
+    getAllDocumentLrel,
+    getCountryCodesLrel,
+    getDocumentLrelByDefault,
+    getTotalCostLrel,
+    payDocumentLrel,
+    saveAddressEnvelopeLrel, updateAddressEnvelopeLrel,
+    updateAddressLrel,
+    updateEnvelopeLrel
+} from '../../../../services/LaPosteLrelFrenchService';
 import PdfUpload from '../../../../components/CustomUpload/PdfUpload';
 import AddressRecipientDTO from '../../../../model/postbird/AddressRecipientDTO';
 import { validatePostFrench } from '../../../../utils/Utils';
@@ -76,18 +89,27 @@ export default function ModalMailFrench( {
     const [dossierItem, setDossierItem] = useState( null );
     const [updateDossierDisable, setUpdateDossierDisable] = useState( false );
     const dossierRef = useRef( null );
+    const [registeredMail, setRegisteredMail] = useState( null );
     // use for timer
     const documentIdRef = useRef( documentId );
     const clientSelectedSender = useRef( null );
     const clientSelectedRecipent = useRef( null );
+    // check
+    const check3Approved = useRef( false );
 
     const { getAccessTokenSilently } = useAuth0();
 
     useEffect( () => {
         (async () => {
             const accessToken = await getAccessTokenSilently();
+            let resultCountry;
 
-            let resultCountry = await getCountryCodes( accessToken );
+            if ( registeredMail === true ) {
+                resultCountry = await getCountryCodesLrel( accessToken );
+            } else {
+                resultCountry = await getCountryCodes( accessToken );
+            }
+
             let countriesCode;
             if ( resultCountry.data ) {
                 countriesCode = map( resultCountry.data, country => {
@@ -133,82 +155,142 @@ export default function ModalMailFrench( {
                             isDefault: documentTmp.companySender
                         } );
                         setDocument( documentTmp );
+                        setRegisteredMail( documentTmp.registered );
 
                         _getCost( documentTmp );
 
                     },
                     ( dataAddress ) => {
+                    // check 3 not approved
+                    if(!isEmpty(dataAddress.cityRecipient)){
+                        check3Approved.current =  true;
+                    }
                         setAddressRecipient( dataAddress );
                     } );
             } else {
-                let resultDocumentByDefault = await getDocumentByDefault( accessToken );
+                let resultDocumentByDefault;
+
+                if ( registeredMail === true ) {
+                    resultDocumentByDefault = await getDocumentLrelByDefault( accessToken );
+                } else {
+                    resultDocumentByDefault = await getDocumentByDefault( accessToken );
+                }
+
                 if ( resultDocumentByDefault.data ) {
                     setDocument( new DocumentFrenchDTO( resultDocumentByDefault.data ) );
                 }
             }
         })();
-    }, [getAccessTokenSilently] );
+    }, [getAccessTokenSilently, registeredMail] );
 
     const _getCost = async ( documentParam ) => {
         if ( !isNil( documentIdRef.current ) ) {
 
-            const accessToken = await getAccessTokenSilently();
+            if ( !isNil( registeredMail ) ) {
+                const accessToken = await getAccessTokenSilently();
 
-            let resultTotalCost = await getTotalCost( accessToken, documentIdRef.current );
-            if ( !resultTotalCost.error ) {
-                const costTemp = new PriceDetail( resultTotalCost.data );
+                let resultTotalCost;
 
-                setTotalCost( costTemp );
+                if ( registeredMail === true ) {
+                    resultTotalCost = await getTotalCostLrel( accessToken, documentIdRef.current );
+                } else if ( registeredMail === false ) {
+                    resultTotalCost = await getTotalCost( accessToken, documentIdRef.current );
+                }
+
+                if ( !resultTotalCost.error ) {
+                    const costTemp = new PriceDetail( resultTotalCost.data );
+
+                    setTotalCost( costTemp );
+                }
+
             }
-
         }
+
     };
 
     const _payEnvelope = async () => {
-        setIsLoading( true );
-        const accessToken = await getAccessTokenSilently();
+        if ( !isNil( registeredMail ) ) {
+            setIsLoading( true );
+            const accessToken = await getAccessTokenSilently();
 
-        const result = await payDocument( accessToken, documentIdRef.current );
+            let result;
 
-        if ( !result.error ) {
-            const documentTmp = new DocumentFrenchDTO( result.data );
-            clientSelectedRecipent.current = new ItemDTO( {
-                value: documentTmp.recipientName,
-                label: documentTmp.recipientName,
-                isDefault: documentTmp.recipientName
-            } );
-            setDocument( documentTmp );
-            showMessage( label.mail.success3, 'primary' );
-        } else {
-            showMessage( label.mail.error3, 'danger' );
+            if ( registeredMail === true ) {
+                result = await payDocumentLrel( accessToken, documentIdRef.current );
+            } else if ( registeredMail === false ) {
+                result = await payDocument( accessToken, documentIdRef.current );
+            }
+
+            if ( !result.error ) {
+                const documentTmp = new DocumentFrenchDTO( result.data );
+                clientSelectedRecipent.current = new ItemDTO( {
+                    value: documentTmp.recipientName,
+                    label: documentTmp.recipientName,
+                    isDefault: documentTmp.recipientName
+                } );
+                setDocument( documentTmp );
+                showMessage( label.mail.success3, 'primary' );
+            } else {
+                showMessage( label.mail.error3, 'danger' );
+            }
+            updateList();
+
+            setIsLoading( false );
         }
-        updateList();
-
-        setIsLoading( false );
     };
     const _saveEnvelope = async () => {
         setIsLoading( true );
         const accessToken = await getAccessTokenSilently();
 
+        if ( isNil( document ) ) {
+            showMessage( label.common.error1, 'danger' );
+            setIsLoading( false );
+            return;
+        }
         if ( !validatePostFrench( document.postalCodeSender ) ) {
             showMessage( label.mail.error5, 'danger' );
+            setIsLoading( false );
+            return;
+        }
+        if ( (isNil( document.senderAddressLine2 ) || isEmpty( document.senderAddressLine2 )) && (isNil( document.companySender ) || isEmpty( document.companySender )) ) {
+
+            showMessage( label.mail.error7, 'danger' );
+            setIsLoading( false );
+            return;
+        }
+        if ( isNil( document.streetAndNumberSender ) || isEmpty( document.streetAndNumberSender ) ) {
+            showMessage( label.mail.error8, 'danger' );
+            setIsLoading( false );
+            return;
+        }
+        if ( isNil( document.citySender ) || isEmpty( document.citySender ) ) {
+            showMessage( label.mail.error9, 'danger' );
             setIsLoading( false );
             return;
         }
 
         let documentTmp;
 
-        if ( !isNil( dossierItem) ) {
+        if ( !isNil( dossierItem ) ) {
             document.dossierId = dossierItem.value;
         }
 
         if ( !isNil( dossierRef.current ) ) {
-            document.dossierPath = dossierRef.current ;
+            document.dossierPath = dossierRef.current;
         }
 
         // create draft
         if ( isNil( documentId ) ) {
-            const resultDraft = await createDraft( accessToken, document );
+            let resultDraft;
+            if ( registeredMail === true ) {
+                resultDraft = await createDraftLrel( accessToken, document );
+            } else {
+                resultDraft = await createDraft( accessToken, document );
+            }
+            if ( resultDraft.error ) {
+                showMessage( label.common.error1, 'danger' );
+                return;
+            }
 
             if ( resultDraft.data ) {
                 showMessage( label.mail.success1, 'primary' );
@@ -218,7 +300,16 @@ export default function ModalMailFrench( {
                 setDocument( documentTmp );
             }
         } else {
-            const resultUpdate = await updateEnvelope( accessToken, documentIdRef.current, document );
+            let resultUpdate;
+            if ( registeredMail === true ) {
+                resultUpdate = await updateEnvelopeLrel( accessToken, documentIdRef.current, document );
+            } else {
+                resultUpdate = await updateEnvelope( accessToken, documentIdRef.current, document );
+            }
+            if ( resultUpdate.error ) {
+                showMessage( label.common.error1, 'danger' );
+                return;
+            }
 
             if ( resultUpdate.data ) {
                 showMessage( label.mail.success1, 'primary' );
@@ -234,27 +325,61 @@ export default function ModalMailFrench( {
 
     const _updateAddressRecipientEnvelope = async () => {
         setIsLoading( true );
-        const accessToken = await getAccessTokenSilently();
 
-        if ( !validatePostFrench( document.postalCodeSender ) ) {
-            showMessage( label.mail.error5, 'error' );
+        const accessToken = await getAccessTokenSilently();
+        if ( isNil( addressRecipient ) ) {
+            showMessage( label.common.error1, 'danger' );
+            setIsLoading( false );
+            return;
+        }
+        if ( !validatePostFrench( addressRecipient.postalCodeRecipient ) ) {
+            showMessage( label.mail.error5, 'danger' );
+            setIsLoading( false );
+            return;
+        }
+        if ( (isNil( addressRecipient.addressLine2 ) || isEmpty( addressRecipient.addressLine2 )) && (isNil( addressRecipient.companyRecipient ) || isEmpty( addressRecipient.companyRecipient )) ) {
+            showMessage( label.mail.error7, 'danger' );
+            setIsLoading( false );
+            return;
+        }
+        if ( isNil( addressRecipient.streetAndNumberRecipient ) || isEmpty( addressRecipient.streetAndNumberRecipient ) ) {
+            showMessage( label.mail.error8, 'danger' );
+            setIsLoading( false );
+            return;
+        }
+        if ( isNil( addressRecipient.cityRecipient ) || isEmpty( addressRecipient.cityRecipient ) ) {
+            showMessage( label.mail.error9, 'danger' );
             setIsLoading( false );
             return;
         }
 
         // create draft
         if ( isNil( addressRecipient ) || isNil( addressRecipient.recipientId ) ) {
-            const resultAdded = await saveAddressEnvelope( accessToken, documentIdRef.current, addressRecipient );
+            let resultAdded;
+
+            if ( registeredMail === true ) {
+                resultAdded = await saveAddressEnvelopeLrel( accessToken, documentIdRef.current, addressRecipient );
+            } else {
+                resultAdded = await saveAddressEnvelope( accessToken, documentIdRef.current, addressRecipient );
+            }
 
             if ( resultAdded.data ) {
                 showMessage( label.mail.success1, 'primary' );
+                check3Approved.current = true;
                 setAddressRecipient( new AddressRecipientDTO( resultAdded.data ) );
             }
         } else {
-            const resultUpdate = await updateAddressEnvelope( accessToken, documentIdRef.current, addressRecipient.recipientId, addressRecipient );
+            let resultUpdate;
+
+            if ( registeredMail === true ) {
+                resultUpdate = await updateAddressEnvelopeLrel( accessToken, documentIdRef.current, addressRecipient.recipientId, addressRecipient );
+            } else {
+                resultUpdate = await updateAddressEnvelope( accessToken, documentIdRef.current, addressRecipient.recipientId, addressRecipient );
+            }
 
             if ( resultUpdate.data ) {
                 showMessage( label.mail.success1, 'primary' );
+                check3Approved.current = true;
                 setAddressRecipient( new AddressRecipientDTO( resultUpdate.data ) );
             }
         }
@@ -393,57 +518,82 @@ export default function ModalMailFrench( {
             e.preventDefault();
         }
 
-        if ( tadName === 'addressRecipient' ) {
-            const accessToken = await getAccessTokenSilently();
-            let result = await getAddressRecipient( accessToken, documentIdRef.current );
+        if ( !isNil( registeredMail ) ) {
+            if ( tadName === 'addressRecipient' ) {
+                const accessToken = await getAccessTokenSilently();
+                let result;
 
-            if ( result.data ) {
-                const addressRecipientDTO = new AddressRecipientDTO( result.data );
-                clientSelectedRecipent.current = new ItemDTO( {
-                    value: addressRecipientDTO.companyRecipient,
-                    label: addressRecipientDTO.companyRecipient,
-                    isDefault: addressRecipientDTO.companyRecipient
-                } );
-                setAddressRecipient( addressRecipientDTO );
+                if ( registeredMail === true ) {
+                    result = await getAddressRecipientLrel( accessToken, documentIdRef.current );
+                } else if ( registeredMail === false ) {
+                    result = await getAddressRecipient( accessToken, documentIdRef.current );
+                }
+
+                if ( result.data ) {
+                    const addressRecipientDTO = new AddressRecipientDTO( result.data );
+                    clientSelectedRecipent.current = new ItemDTO( {
+                        value: addressRecipientDTO.companyRecipient,
+                        label: addressRecipientDTO.companyRecipient,
+                        isDefault: addressRecipientDTO.companyRecipient
+                    } );
+                    setAddressRecipient( addressRecipientDTO );
+                }
             }
-        }
-        if ( tabState === 'horizontalTabs' ) {
-            setHorizontalTabs( tadName );
+            if ( tabState === 'horizontalTabs' ) {
+                setHorizontalTabs( tadName );
+            }
+
         }
     };
 
     const _uploadDocument = async ( file ) => {
-        setIsLoading( true );
-        let data = new FormData();
-        data.append( 'files', file );
-        if ( !isNil( dossierItem ) ) {
-            data.append( 'dossierId', dossierItem.value );
+        if ( !isNil( registeredMail ) ) {
+            setIsLoading( true );
+            let data = new FormData();
+            data.append( 'files', file );
+            if ( !isNil( dossierItem ) ) {
+                data.append( 'dossierId', dossierItem.value );
+            }
+            if ( !isNil( dossierRef.current ) ) {
+                data.append( 'dossierPath', dossierRef.current );
+            }
+            const accessToken = await getAccessTokenSilently();
+
+            changeActiveTab( null, 'horizontalTabs', 'addressSender' );
+            // check if it's ok
+            // if not show document
+            // or display cost
+            let result;
+
+            if ( registeredMail === true ) {
+                result = await addDocumentLrel( accessToken, documentIdRef.current, data );
+            } else if ( registeredMail === false ) {
+                result = await addDocument( accessToken, documentIdRef.current, data );
+            }
+
+            if ( result.data ) {
+                showMessage( label.mail.french.success1, 'primary' );
+
+                const doc = new DocumentFrenchDTO( result.data );
+                setDocument( doc );
+                setUpdateDossierDisable( !updateDossierDisable );
+                updateList();
+            } else {
+                showMessage( label.mail.french.error1, 'danger' );
+
+            }
+
+            setIsLoading( false );
         }
-        if ( !isNil( dossierRef.current ) ) {
-            data.append( 'dossierPath', dossierRef.current );
-        }
-        const accessToken = await getAccessTokenSilently();
-
-        changeActiveTab( null, 'horizontalTabs', 'addressSender' );
-        // check if it's ok
-        // if not show document
-        // or display cost
-        const result = await addDocument( accessToken, documentIdRef.current, data );
-
-        if ( result.data ) {
-            showMessage( label.mail.french.success1, 'primary' );
-
-            const doc = new DocumentFrenchDTO( result.data );
-            setDocument( doc );
-            setUpdateDossierDisable( !updateDossierDisable );
-            updateList();
-        } else {
-            showMessage( label.mail.french.error1, 'danger' );
-
-        }
-
-        setIsLoading( false );
     };
+
+    const changeToRegistered = () => {
+        setRegisteredMail( true );
+    };
+    const changeToNotRegistered = () => {
+        setRegisteredMail( false );
+    };
+
     return (
         <>
             <Modal size="lg" isOpen={modalPostMailDisplay} toggle={() => openPostMail( 'FR' )}>
@@ -454,466 +604,169 @@ export default function ModalMailFrench( {
                     {isNil( document ) && !isNil( documentId ) ? (
                         <ReactLoading className="loading" height={'20%'} width={'20%'}/>
                     ) : (
-                        <>
-                            {isNil( dossierId ) ? (
+                        registeredMail !== null ?
+                            <>
+                                {isNil( dossierId ) ? (
+                                    <Row>
+                                        <Col md={12}>
+                                            {/*<!-- dossier , once registered not updatable -->*/}
+                                            <Label>
+                                                {label.mail.dossier}
+                                            </Label>
+                                            <FormGroup row={true}>
+                                                <Col lg={7} md={7} sm={7}>
+                                                    <AsyncSelect
+                                                        value={dossierItem}
+                                                        isClearable={true}
+                                                        className="react-select info"
+                                                        classNamePrefix="react-select"
+                                                        cacheOptions
+                                                        isDisabled={!isNil( document ) && !isNil( document.status )}
+                                                        loadOptions={_loadDossierOptions}
+                                                        defaultOptions
+                                                        onChange={_handleDossierChange}
+                                                        placeholder={label.mail.dossierPlaceholder}
+                                                    />
+                                                </Col>
+                                            </FormGroup>
+                                            <FormText color="muted">
+                                                {label.common.optional}
+                                            </FormText>
+                                        </Col>
+
+                                    </Row>
+                                ) : null}
                                 <Row>
-                                    <Col md={12}>
-                                        {/*<!-- dossier , once registered not updatable -->*/}
-                                        <Label>
-                                            {label.mail.dossier}
-                                        </Label>
-                                        <FormGroup row={true}>
-                                            <Col lg={7} md={7} sm={7}>
-                                                <AsyncSelect
-                                                    value={dossierItem}
-                                                    isClearable={true}
-                                                    className="react-select info"
-                                                    classNamePrefix="react-select"
-                                                    cacheOptions
-                                                    isDisabled={!isNil(document) && !isNil(document.status)}
-                                                    loadOptions={_loadDossierOptions}
-                                                    defaultOptions
-                                                    onChange={_handleDossierChange}
-                                                    placeholder={label.mail.dossierPlaceholder}
-                                                />
-                                            </Col>
-                                        </FormGroup>
-                                        <FormText color="muted">
-                                            {label.common.optional}
-                                        </FormText>
+                                    <Col md={6}>
+                                        <ListGroup>
+                                            <ListGroupItem className="justify-content-between padding-list">
+                                                {!isNil( document ) && !isNil( document.documentId ) ? (
+                                                    <i className="tim-icons icon-check-2 green"/>
+                                                ) : (
+                                                    <i className="tim-icons icon-simple-remove red"/>
+                                                )}{' '}
+                                                {label.mail.french.check1}
+                                            </ListGroupItem>
+                                            <ListGroupItem className="justify-content-between padding-list">
+                                                {!isNil( document ) && !isNil( document.documentAttachmentId ) ? (
+                                                    <i className="tim-icons icon-check-2 green"/>
+                                                ) : (
+                                                    <i className="tim-icons icon-simple-remove red"/>
+                                                )}{' '}
+                                                {label.mail.french.check2}
+                                            </ListGroupItem>
+                                            <ListGroupItem className="justify-content-between padding-list">
+                                                {!isNil( addressRecipient ) && check3Approved.current === true ? (
+                                                    <i className="tim-icons icon-check-2 green"/>
+                                                ) : (
+                                                    <i className="tim-icons icon-simple-remove red"/>
+                                                )}{' '}
+                                                {label.mail.french.check3}{' '}
+                                            </ListGroupItem>
+                                        </ListGroup>
                                     </Col>
-
+                                    <Col md={6}>
+                                        {/* GET COST */}
+                                        {!isNil( document ) && !isNil( totalCost ) ? (
+                                            <>
+                                                <h4>{label.mail.label22}</h4>
+                                                <strong>{totalCost.totalPriceExVat} € </strong>
+                                            </>
+                                        ) : null}
+                                    </Col>
                                 </Row>
-                            ) : null}
-                            <Row>
-                                <Col md={6}>
-                                    <ListGroup>
-                                        <ListGroupItem className="justify-content-between padding-list">
-                                            {!isNil( document ) && !isNil( document.documentId ) ? (
-                                                <i className="tim-icons icon-check-2 green"/>
-                                            ) : (
-                                                <i className="tim-icons icon-simple-remove red"/>
-                                            )}{' '}
-                                            {label.mail.french.check1}
-                                        </ListGroupItem>
-                                        <ListGroupItem className="justify-content-between padding-list">
-                                            {!isNil( document ) && !isNil( document.documentAttachmentId ) ? (
-                                                <i className="tim-icons icon-check-2 green"/>
-                                            ) : (
-                                                <i className="tim-icons icon-simple-remove red"/>
-                                            )}{' '}
-                                            {label.mail.french.check2}
-                                        </ListGroupItem>
-                                        <ListGroupItem className="justify-content-between padding-list">
-                                            { !isNil( addressRecipient ) && !isEmpty( addressRecipient.cityRecipient ) ? (
-                                                <i className="tim-icons icon-check-2 green"/>
-                                            ) : (
-                                                <i className="tim-icons icon-simple-remove red"/>
-                                            )}{' '}
-                                            {label.mail.french.check3}{' '}
-                                        </ListGroupItem>
-                                    </ListGroup>
-                                </Col>
-                                <Col md={6}>
-                                    {/* GET COST */}
-                                    {!isNil( document ) && !isNil( totalCost ) ? (
-                                        <>
-                                            <h4>{label.mail.label22}</h4>
-                                            <strong>{totalCost.totalPriceExVat} € </strong>
-                                        </>
-                                    ) : null}
-                                </Col>
-                            </Row>
-                            <Row>
-                                <Col md={10}>
-                                    <Nav className="nav-pills-info" pills>
-                                        <NavItem>
-                                            <NavLink
-                                                data-toggle="tab"
-                                                href="#opt"
-                                                className={
-                                                    horizontalTabs === 'addressSender'
-                                                        ? 'active'
-                                                        : ''
-                                                }
-                                                onClick={e =>
-                                                    changeActiveTab( e, 'horizontalTabs', 'addressSender' )
-                                                }
-                                            >
-                                                {label.mail.french.address}
-                                            </NavLink>
-                                        </NavItem>
-                                        <NavItem>
-                                            <NavLink
-                                                data-toggle="tab"
-                                                href="#doc"
-                                                disabled={!isNil( document ) && isNil( document.status )}
-                                                className={
-                                                    horizontalTabs === 'sendOptions'
-                                                        ? 'active'
-                                                        : ''
-                                                }
-                                                onClick={e =>
-                                                    changeActiveTab( e, 'horizontalTabs', 'sendOptions' )
-                                                }
-                                            >
-                                                {label.mail.label25}
-                                            </NavLink>
-                                        </NavItem>
-                                        <NavItem>
-                                            <NavLink
-                                                data-toggle="tab"
-                                                href="#doc"
-                                                disabled={!isNil( document ) && isNil( document.status )}
-                                                className={
-                                                    horizontalTabs === 'document'
-                                                        ? 'active'
-                                                        : ''
-                                                }
-                                                onClick={e =>
-                                                    changeActiveTab( e, 'horizontalTabs', 'document' )
-                                                }
-                                            >
-                                                {!isNil( document ) && !isNil( document.documentAttachmentId ) ?
-                                                    // preview
-                                                    label.mail.label35 :
-                                                    // upload
-                                                    label.mail.french.document
-                                                }
-                                                {}
-                                            </NavLink>
-                                        </NavItem>
-                                        <NavItem>
-                                            <NavLink
-                                                data-toggle="tab"
-                                                href="#sm"
-                                                disabled={!isNil( document ) && isNil( document.status )}
-                                                className={
-                                                    horizontalTabs === 'addressRecipient'
-                                                        ? 'active'
-                                                        : ''
-                                                }
-                                                onClick={e =>
-                                                    changeActiveTab( e, 'horizontalTabs', 'addressRecipient' )
-                                                }
-                                            >
-                                                {label.mail.french.addressRecipient}
-                                            </NavLink>
-                                        </NavItem>
-                                    </Nav>
-                                </Col>
-                            </Row>
-                            {!isNil( document ) ? (
-                                <TabContent
-                                    className="tab-space no-padding"
-                                    activeTab={horizontalTabs}
-                                >
-                                    <TabPane tabId="addressSender">
-                                        <Row>
-                                            <Col>
-                                                {!isNil( document )
-                                                && ((!isNil( document.status ) && document.status === 'DRAFT') || isNil( document.status )) ? (
-                                                    <Button color="primary" type="button"
-                                                            className="float-right margin-left-10"
-                                                            onClick={_saveEnvelope}
-                                                    >
-                                                        {isLoading ? (
-                                                            <Spinner
-                                                                size="sm"
-                                                                color="secondary"
-                                                            />
-                                                        ) : null}
-                                                        {' '} {label.common.save}
-                                                    </Button>
-                                                ) : null}
-
-                                            </Col>
-                                            <Col md={12}>
-                                                <>
-                                                    {/* recipientName */}
-                                                    <FormGroup row className={classnames( {
-                                                        'has-danger': isEmpty( document.companySender )
-                                                    } )}>
-                                                        <Label for="companySender"
-                                                               sm={4}>{label.mail.french.label1}</Label>
-                                                        <Col sm={8} md={8} lg={8} xl={8}>
-                                                            <AsyncCreatableSelect
-                                                                value={clientSelectedSender.current}
-                                                                className="react-select info"
-                                                                classNamePrefix="react-select"
-                                                                cacheOptions
-                                                                isClearable={true}
-                                                                create
-                                                                type="email"
-                                                                placeholder={label.mail.french.label1}
-                                                                id="companySender"
-                                                                name="companySender"
-                                                                loadOptions={_loadClientOptions}
-                                                                defaultOptions
-                                                                onChange={_handleSenderChange}
-                                                            />
-                                                        </Col>
-                                                    </FormGroup>
-                                                    {/* streetAndNumber */}
-                                                    <FormGroup row className={classnames( {
-                                                        'has-danger': isEmpty( document.streetAndNumberSender )
-                                                    } )}>
-                                                        <Label for="streetAndNumberSender"
-                                                               sm={4}>{label.mail.label3}</Label>
-                                                        <Col sm={8} md={8} lg={8} xl={8}>
-                                                            <Input
-                                                                onChange={( e ) => setDocument( {
-                                                                    ...document,
-                                                                    streetAndNumberSender: e.target.value
-                                                                } )}
-                                                                disabled={(!isNil( document.status ) && document.status !== 'DRAFT')}
-                                                                id="streetAndNumberSender"
-                                                                value={document.streetAndNumberSender}
-                                                                name="streetAndNumberSender"
-                                                                className="form-control"
-                                                                type="text"
-                                                                placeholder={label.mail.label3}
-                                                            />
-                                                        </Col>
-                                                    </FormGroup>
-                                                    {/* postalCode */}
-                                                    <FormGroup row className={classnames( {
-                                                        'has-danger': isEmpty( document.postalCodeSender ) || !validatePostFrench( document.postalCodeSender )
-                                                    } )}>
-                                                        <Label for="postalCodeSender" sm={4}>{label.mail.label4}</Label>
-                                                        <Col sm={8} md={8} lg={8} xl={8}>
-                                                            <Input
-                                                                maxLength={5}
-                                                                pattern="/^\d{5}$/"
-                                                                id="postalCodeSender"
-                                                                onChange={( e ) => setDocument( {
-                                                                    ...document,
-                                                                    postalCodeSender: e.target.value
-                                                                } )}
-                                                                disabled={(!isNil( document.status ) && document.status !== 'DRAFT')}
-                                                                name="postalCodeSender"
-                                                                className="form-control"
-                                                                type="text"
-                                                                value={document.postalCodeSender}
-                                                                placeholder={label.mail.label4}
-                                                            />
-                                                            <FormText>{label.mail.error5}</FormText>
-                                                        </Col>
-                                                    </FormGroup>
-                                                    {/* city */}
-                                                    <FormGroup row className={classnames( {
-                                                        'has-danger': isEmpty( document.citySender )
-                                                    } )}>
-                                                        <Label for="citySender" sm={4}>{label.mail.label5}</Label>
-                                                        <Col sm={8} md={8} lg={8} xl={8}>
-                                                            <Input
-                                                                id="citySender"
-                                                                onChange={( e ) => setDocument( {
-                                                                    ...document,
-                                                                    citySender: e.target.value
-                                                                } )}
-                                                                disabled={(!isNil( document.status ) && document.status !== 'DRAFT')}
-                                                                name="citySender"
-                                                                className="form-control"
-                                                                type="text"
-                                                                value={document.citySender}
-                                                                placeholder={label.mail.label5}
-                                                            />
-                                                        </Col>
-                                                    </FormGroup>
-                                                    {/* countryCode */}
-                                                    <FormGroup row>
-                                                        <Label for="countryCodeItemSender"
-                                                               sm={4}>{label.mail.label6}</Label>
-                                                        <Col sm={8} md={8} lg={8} xl={8}>
-                                                            <Select
-                                                                onChange={( value ) => setDocument( {
-                                                                    ...document,
-                                                                    senderCountryCodeSender: value.value,
-                                                                    countryCodeItemSender: value
-                                                                } )}
-                                                                disabled={(!isNil( document.status ) && document.status !== 'DRAFT')}
-                                                                value={document.countryCodeItemSender}
-                                                                name="countryCodeItemSender"
-                                                                options={countryList}
-                                                            />
-                                                        </Col>
-                                                    </FormGroup>
-                                                    {/* choice */}
-                                                    <Row>
-                                                        <Col md={12}>
-                                                            <FormGroup check className="form-check-radio">
-                                                                <Label check>
-                                                                    <Input
-                                                                        checked={document.optionalAddressSheet === true}
-                                                                        disabled={(!isNil( document.status ) && document.status !== 'DRAFT')}
-                                                                        defaultValue="option1"
-                                                                        id="addAddressPage1"
-                                                                        name="addAddressPage1"
-                                                                        type="radio"
-                                                                        onChange={( e ) => setDocument( {
-                                                                            ...document,
-                                                                            optionalAddressSheet: true
-                                                                        } )}
-                                                                    />
-                                                                    <span className="form-check-sign"/>
-                                                                    {label.mail.choice1}
-                                                                </Label>
-                                                            </FormGroup>
-
-                                                        </Col>
-                                                        <Col md={12}>
-                                                            <FormGroup check className="form-check-radio">
-                                                                <Label check>
-                                                                    <Input
-                                                                        checked={document.optionalAddressSheet === false}
-                                                                        disabled={(!isNil( document.status ) && document.status !== 'DRAFT')}
-                                                                        defaultValue="option2"
-                                                                        id="overWriteAddressField2"
-                                                                        name="overWriteAddressField2"
-                                                                        type="radio"
-                                                                        onChange={( e ) => setDocument( {
-                                                                            ...document,
-                                                                            optionalAddressSheet: false
-                                                                        } )}
-                                                                    />
-                                                                    <span className="form-check-sign"/>
-                                                                    {label.mail.choice2}
-                                                                </Label>
-                                                            </FormGroup>
-
-                                                        </Col>
-                                                    </Row>
-                                                </>
-                                            </Col>
-                                        </Row>
-                                    </TabPane>
-                                    {/**** SENDING OPTION ****/}
-                                    <TabPane tabId="sendOptions">
-                                        {horizontalTabs === 'sendOptions' ? (
-                                            <Row>
-                                                <Col md={6}>
-                                                    {/**** color ****/}
-                                                    <Row>
-                                                        <Col md="12">
-                                                            <FormGroup check>
-                                                                <Label check>
-                                                                    <Input
-                                                                        disabled={document.status !== 'DRAFT'}
-                                                                        defaultChecked={document.color}
-                                                                        type="checkbox"
-                                                                        onChange={( e ) => {
-                                                                            setDocument( {
-                                                                                ...document,
-                                                                                color: e.target.checked
-                                                                            } );
-                                                                            document.color = e.target.checked;
-                                                                            _saveEnvelope();
-                                                                        }}
-                                                                    />{' '}
-                                                                    <span className={`form-check-sign`}>
-                                                                <span
-                                                                    className="check"> {label.mail.label26}</span>
-                                                            </span>
-                                                                </Label>
-                                                            </FormGroup>
-                                                        </Col>
-                                                    </Row>
-                                                    {/**** doubleSide ****/}
-                                                    <Row>
-                                                        <Col md="12">
-                                                            <FormGroup check>
-                                                                <Label check>
-                                                                    <Input
-                                                                        defaultChecked={document.twoSided}
-                                                                        disabled={document.status !== 'DRAFT'}
-                                                                        type="checkbox"
-                                                                        onChange={( e ) => {
-                                                                            setDocument( {
-                                                                                ...document,
-                                                                                twoSided: e.target.checked
-                                                                            } );
-                                                                            document.twoSided = e.target.checked;
-                                                                            _saveEnvelope();
-                                                                        }}
-                                                                    />{' '}
-                                                                    <span className={`form-check-sign`}>
-                                                                <span
-                                                                    className="check"> {label.mail.label27} </span>
-                                                            </span>
-                                                                </Label>
-                                                            </FormGroup>
-                                                        </Col>
-                                                    </Row>
-                                                    {/**** prior ****/}
-                                                    <Row>
-                                                        <Col md="12">
-                                                            <FormGroup check>
-                                                                <Label check>
-                                                                    <Input
-                                                                        defaultChecked={document.prior}
-                                                                        type="checkbox"
-                                                                        disabled={document.status !== 'DRAFT'}
-                                                                        onChange={( e ) => {
-                                                                            setDocument( {
-                                                                                ...document,
-                                                                                prior: e.target.checked
-                                                                            } );
-                                                                            document.prior = e.target.checked;
-                                                                            _saveEnvelope();
-                                                                        }}
-                                                                    />{' '}
-                                                                    <span className={`form-check-sign`}>
-                                                                <span
-                                                                    className="check"> {label.mail.label29} </span>
-                                                            </span>
-                                                                </Label>
-                                                            </FormGroup>
-                                                        </Col>
-                                                    </Row>
-
-                                                </Col>
-
-                                            </Row>
-                                        ) : null}
-
-                                    </TabPane>
-                                    <TabPane tabId="document">
-                                        {horizontalTabs === 'document' ? (
-                                            <Row>
-                                                <Col>
-                                                    {isNil( document.documentAttachmentId ) ? (
-                                                        <Row>
-                                                            <PdfUpload
-                                                                isLoading={isLoading}
-                                                                saveFile={_uploadDocument}
-                                                                avatar={null}/>
-                                                        </Row>
-                                                    ) : (
-                                                        <Row>
-                                                            {/**** PREVIEW DOCUMENT ****/}
-                                                            <Col>
-                                                                <MailLaPosteGenerator
-                                                                    showMessage={showMessage}
-                                                                    documentId={documentIdRef.current}
-                                                                    label={label}
-                                                                />
-                                                            </Col>
-                                                        </Row>
-                                                    )}
-                                                </Col>
-                                            </Row>
-                                        ) : null}
-                                    </TabPane>
-                                    <TabPane tabId="addressRecipient">
-                                        {horizontalTabs === 'addressRecipient' ? (
+                                <Row>
+                                    <Col md={10}>
+                                        <Nav className="nav-pills-info" pills>
+                                            <NavItem>
+                                                <NavLink
+                                                    data-toggle="tab"
+                                                    href="#opt"
+                                                    className={
+                                                        horizontalTabs === 'addressSender'
+                                                            ? 'active'
+                                                            : ''
+                                                    }
+                                                    onClick={e =>
+                                                        changeActiveTab( e, 'horizontalTabs', 'addressSender' )
+                                                    }
+                                                >
+                                                    {label.mail.french.address}
+                                                </NavLink>
+                                            </NavItem>
+                                            <NavItem>
+                                                <NavLink
+                                                    data-toggle="tab"
+                                                    href="#doc"
+                                                    disabled={!isNil( document ) && isNil( document.status )}
+                                                    className={
+                                                        horizontalTabs === 'sendOptions'
+                                                            ? 'active'
+                                                            : ''
+                                                    }
+                                                    onClick={e =>
+                                                        changeActiveTab( e, 'horizontalTabs', 'sendOptions' )
+                                                    }
+                                                >
+                                                    {label.mail.label25}
+                                                </NavLink>
+                                            </NavItem>
+                                            <NavItem>
+                                                <NavLink
+                                                    data-toggle="tab"
+                                                    href="#doc"
+                                                    disabled={!isNil( document ) && isNil( document.status )}
+                                                    className={
+                                                        horizontalTabs === 'document'
+                                                            ? 'active'
+                                                            : ''
+                                                    }
+                                                    onClick={e =>
+                                                        changeActiveTab( e, 'horizontalTabs', 'document' )
+                                                    }
+                                                >
+                                                    {!isNil( document ) && !isNil( document.documentAttachmentId ) ?
+                                                        // preview
+                                                        label.mail.label35 :
+                                                        // upload
+                                                        label.mail.french.document
+                                                    }
+                                                    {}
+                                                </NavLink>
+                                            </NavItem>
+                                            <NavItem>
+                                                <NavLink
+                                                    data-toggle="tab"
+                                                    href="#sm"
+                                                    disabled={!isNil( document ) && isNil( document.status )}
+                                                    className={
+                                                        horizontalTabs === 'addressRecipient'
+                                                            ? 'active'
+                                                            : ''
+                                                    }
+                                                    onClick={e =>
+                                                        changeActiveTab( e, 'horizontalTabs', 'addressRecipient' )
+                                                    }
+                                                >
+                                                    {label.mail.french.addressRecipient}
+                                                </NavLink>
+                                            </NavItem>
+                                        </Nav>
+                                    </Col>
+                                </Row>
+                                {!isNil( document ) ? (
+                                    <TabContent
+                                        className="tab-space no-padding"
+                                        activeTab={horizontalTabs}
+                                    >
+                                        <TabPane tabId="addressSender">
                                             <Row>
                                                 <Col>
                                                     {!isNil( document )
                                                     && ((!isNil( document.status ) && document.status === 'DRAFT') || isNil( document.status )) ? (
                                                         <Button color="primary" type="button"
                                                                 className="float-right margin-left-10"
-                                                                onClick={_updateAddressRecipientEnvelope}
+                                                                onClick={_saveEnvelope}
                                                         >
                                                             {isLoading ? (
                                                                 <Spinner
@@ -930,13 +783,13 @@ export default function ModalMailFrench( {
                                                     <>
                                                         {/* recipientName */}
                                                         <FormGroup row className={classnames( {
-                                                            'has-danger': isEmpty( addressRecipient.companyRecipient )
+                                                            'has-danger': (isEmpty( document.senderAddressLine2 ) && isEmpty( document.companySender ))
                                                         } )}>
-                                                            <Label for="companyRecipient"
+                                                            <Label for="companySender"
                                                                    sm={4}>{label.mail.french.label1}</Label>
                                                             <Col sm={8} md={8} lg={8} xl={8}>
                                                                 <AsyncCreatableSelect
-                                                                    value={clientSelectedRecipent.current}
+                                                                    value={clientSelectedSender.current}
                                                                     className="react-select info"
                                                                     classNamePrefix="react-select"
                                                                     cacheOptions
@@ -944,30 +797,31 @@ export default function ModalMailFrench( {
                                                                     create
                                                                     type="email"
                                                                     placeholder={label.mail.french.label1}
-                                                                    id="companyRecipient"
-                                                                    name="companyRecipient"
+                                                                    id="companySender"
+                                                                    name="companySender"
                                                                     loadOptions={_loadClientOptions}
                                                                     defaultOptions
-                                                                    onChange={_handleRecipientChange}
+                                                                    onChange={_handleSenderChange}
                                                                 />
                                                             </Col>
                                                         </FormGroup>
                                                         {/* addressLine2 */}
                                                         <FormGroup row className={classnames( {
-                                                            'has-danger': isEmpty( addressRecipient.addressLine2 )
+                                                            'has-danger': (isEmpty( document.senderAddressLine2 ) && isEmpty( document.companySender ))
                                                         } )}>
-                                                            <Label for="addressLine2"
+                                                            <Label for="senderaddressLine2"
                                                                    sm={4}>{label.mail.french.label2}</Label>
                                                             <Col sm={8} md={8} lg={8} xl={8}>
                                                                 <Input
-                                                                    onChange={( e ) => setAddressRecipient( {
-                                                                        ...addressRecipient,
-                                                                        addressLine2: e.target.value
+                                                                    maxLength={38}
+                                                                    onChange={( e ) => setDocument( {
+                                                                        ...document,
+                                                                        senderAddressLine2: e.target.value
                                                                     } )}
-                                                                    disabled={document.status !== 'DRAFT'}
-                                                                    id="addressLine2"
-                                                                    value={addressRecipient.addressLine2}
-                                                                    name="addressLine2"
+                                                                    disabled={!isNil( document.status ) && document.status !== 'DRAFT'}
+                                                                    id="senderaddressLine2"
+                                                                    value={document.senderAddressLine2}
+                                                                    name="senderAddressLine2"
                                                                     className="form-control"
                                                                     type="text"
                                                                     placeholder={label.mail.french.label2}
@@ -976,19 +830,20 @@ export default function ModalMailFrench( {
                                                         </FormGroup>
                                                         {/* streetAndNumber */}
                                                         <FormGroup row className={classnames( {
-                                                            'has-danger': isEmpty( addressRecipient.streetAndNumberRecipient )
+                                                            'has-danger': isEmpty( document.streetAndNumberSender )
                                                         } )}>
                                                             <Label for="streetAndNumberSender"
                                                                    sm={4}>{label.mail.label3}</Label>
                                                             <Col sm={8} md={8} lg={8} xl={8}>
                                                                 <Input
-                                                                    onChange={( e ) => setAddressRecipient( {
-                                                                        ...addressRecipient,
-                                                                        streetAndNumberRecipient: e.target.value
+                                                                    maxLength={38}
+                                                                    onChange={( e ) => setDocument( {
+                                                                        ...document,
+                                                                        streetAndNumberSender: e.target.value
                                                                     } )}
-                                                                    disabled={document.status !== 'DRAFT'}
+                                                                    disabled={(!isNil( document.status ) && document.status !== 'DRAFT')}
                                                                     id="streetAndNumberSender"
-                                                                    value={addressRecipient.streetAndNumberRecipient}
+                                                                    value={document.streetAndNumberSender}
                                                                     name="streetAndNumberSender"
                                                                     className="form-control"
                                                                     type="text"
@@ -998,24 +853,25 @@ export default function ModalMailFrench( {
                                                         </FormGroup>
                                                         {/* postalCode */}
                                                         <FormGroup row className={classnames( {
-                                                            'has-danger': isEmpty( addressRecipient.postalCodeRecipient ) || !validatePostFrench( addressRecipient.postalCodeRecipient )
+                                                            'has-danger': isEmpty( document.postalCodeSender ) || !validatePostFrench( document.postalCodeSender )
                                                         } )}>
-                                                            <Label for="postalCodeRecipient"
+                                                            <Label for="postalCodeSender"
                                                                    sm={4}>{label.mail.label4}</Label>
                                                             <Col sm={8} md={8} lg={8} xl={8}>
                                                                 <Input
+                                                                    minLength={5}
                                                                     maxLength={5}
                                                                     pattern="/^\d{5}$/"
-                                                                    id="postalCodeRecipient"
-                                                                    onChange={( e ) => setAddressRecipient( {
-                                                                        ...addressRecipient,
-                                                                        postalCodeRecipient: e.target.value
+                                                                    id="postalCodeSender"
+                                                                    onChange={( e ) => setDocument( {
+                                                                        ...document,
+                                                                        postalCodeSender: e.target.value
                                                                     } )}
-                                                                    disabled={document.status !== 'DRAFT'}
-                                                                    name="postalCodeRecipient"
+                                                                    disabled={(!isNil( document.status ) && document.status !== 'DRAFT')}
+                                                                    name="postalCodeSender"
                                                                     className="form-control"
                                                                     type="text"
-                                                                    value={addressRecipient.postalCodeRecipient}
+                                                                    value={document.postalCodeSender}
                                                                     placeholder={label.mail.label4}
                                                                 />
                                                                 <FormText>{label.mail.error5}</FormText>
@@ -1023,53 +879,406 @@ export default function ModalMailFrench( {
                                                         </FormGroup>
                                                         {/* city */}
                                                         <FormGroup row className={classnames( {
-                                                            'has-danger': isEmpty( addressRecipient.cityRecipient )
+                                                            'has-danger': isEmpty( document.citySender )
                                                         } )}>
-                                                            <Label for="cityRecipient"
-                                                                   sm={4}>{label.mail.label5}</Label>
+                                                            <Label for="citySender" sm={4}>{label.mail.label5}</Label>
                                                             <Col sm={8} md={8} lg={8} xl={8}>
                                                                 <Input
-                                                                    id="cityRecipient"
-                                                                    onChange={( e ) => setAddressRecipient( {
-                                                                        ...addressRecipient,
-                                                                        cityRecipient: e.target.value
+                                                                    maxLength={32}
+                                                                    id="citySender"
+                                                                    onChange={( e ) => setDocument( {
+                                                                        ...document,
+                                                                        citySender: e.target.value
                                                                     } )}
-                                                                    disabled={document.status !== 'DRAFT'}
-                                                                    name="cityRecipient"
+                                                                    disabled={(!isNil( document.status ) && document.status !== 'DRAFT')}
+                                                                    name="citySender"
                                                                     className="form-control"
                                                                     type="text"
-                                                                    value={addressRecipient.cityRecipient}
+                                                                    value={document.citySender}
                                                                     placeholder={label.mail.label5}
                                                                 />
                                                             </Col>
                                                         </FormGroup>
                                                         {/* countryCode */}
                                                         <FormGroup row>
-                                                            <Label for="senderCountryCodeRecipient"
+                                                            <Label for="countryCodeItemSender"
                                                                    sm={4}>{label.mail.label6}</Label>
                                                             <Col sm={8} md={8} lg={8} xl={8}>
                                                                 <Select
-                                                                    onChange={( value ) => setAddressRecipient( {
-                                                                        ...addressRecipient,
-                                                                        senderCountryCodeRecipient: value.value,
-                                                                        countryCodeItemRecipient: value
+                                                                    onChange={( value ) => setDocument( {
+                                                                        ...document,
+                                                                        senderCountryCodeSender: value.value,
+                                                                        countryCodeItemSender: value
                                                                     } )}
-                                                                    isDisabled={document.status !== 'DRAFT'}
-                                                                    value={addressRecipient.countryCodeItemRecipient}
-                                                                    name="senderCountryCodeRecipient"
+                                                                    disabled={(!isNil( document.status ) && document.status !== 'DRAFT')}
+                                                                    value={document.countryCodeItemSender}
+                                                                    name="countryCodeItemSender"
                                                                     options={countryList}
                                                                 />
                                                             </Col>
                                                         </FormGroup>
-                                                    </>
+                                                        {/* choice */}
+                                                        <Row>
+                                                            <Col md={12}>
+                                                                <FormGroup check className="form-check-radio">
+                                                                    <Label check>
+                                                                        <Input
+                                                                            checked={document.optionalAddressSheet === true}
+                                                                            disabled={(!isNil( document.status ) && document.status !== 'DRAFT')}
+                                                                            defaultValue="option1"
+                                                                            id="addAddressPage1"
+                                                                            name="addAddressPage1"
+                                                                            type="radio"
+                                                                            onChange={( e ) => setDocument( {
+                                                                                ...document,
+                                                                                optionalAddressSheet: true
+                                                                            } )}
+                                                                        />
+                                                                        <span className="form-check-sign"/>
+                                                                        {label.mail.choice1}
+                                                                    </Label>
+                                                                </FormGroup>
 
+                                                            </Col>
+                                                            <Col md={12}>
+                                                                <FormGroup check className="form-check-radio">
+                                                                    <Label check>
+                                                                        <Input
+                                                                            checked={document.optionalAddressSheet === false}
+                                                                            disabled={(!isNil( document.status ) && document.status !== 'DRAFT')}
+                                                                            defaultValue="option2"
+                                                                            id="overWriteAddressField2"
+                                                                            name="overWriteAddressField2"
+                                                                            type="radio"
+                                                                            onChange={( e ) => setDocument( {
+                                                                                ...document,
+                                                                                optionalAddressSheet: false
+                                                                            } )}
+                                                                        />
+                                                                        <span className="form-check-sign"/>
+                                                                        {label.mail.choice2}
+                                                                    </Label>
+                                                                </FormGroup>
+
+                                                            </Col>
+                                                        </Row>
+                                                    </>
                                                 </Col>
                                             </Row>
-                                        ) : null}
-                                    </TabPane>
-                                </TabContent>
-                            ) : null}
-                        </>
+                                        </TabPane>
+                                        {/**** SENDING OPTION ****/}
+                                        <TabPane tabId="sendOptions">
+                                            {horizontalTabs === 'sendOptions' ? (
+                                                <Row>
+                                                    <Col md={6}>
+                                                        {/**** color ****/}
+                                                        <Row>
+                                                            <Col md="12">
+                                                                <FormGroup check>
+                                                                    <Label check>
+                                                                        <Input
+                                                                            disabled={document.status !== 'DRAFT'}
+                                                                            defaultChecked={document.color}
+                                                                            type="checkbox"
+                                                                            onChange={( e ) => {
+                                                                                setDocument( {
+                                                                                    ...document,
+                                                                                    color: e.target.checked
+                                                                                } );
+                                                                                document.color = e.target.checked;
+                                                                                _saveEnvelope();
+                                                                            }}
+                                                                        />{' '}
+                                                                        <span className={`form-check-sign`}>
+                                                                <span
+                                                                    className="check"> {label.mail.label26}</span>
+                                                            </span>
+                                                                    </Label>
+                                                                </FormGroup>
+                                                            </Col>
+                                                        </Row>
+                                                        {/**** doubleSide ****/}
+                                                        <Row>
+                                                            <Col md="12">
+                                                                <FormGroup check>
+                                                                    <Label check>
+                                                                        <Input
+                                                                            defaultChecked={document.twoSided}
+                                                                            disabled={document.status !== 'DRAFT'}
+                                                                            type="checkbox"
+                                                                            onChange={( e ) => {
+                                                                                setDocument( {
+                                                                                    ...document,
+                                                                                    twoSided: e.target.checked
+                                                                                } );
+                                                                                document.twoSided = e.target.checked;
+                                                                                _saveEnvelope();
+                                                                            }}
+                                                                        />{' '}
+                                                                        <span className={`form-check-sign`}>
+                                                                <span
+                                                                    className="check"> {label.mail.label27} </span>
+                                                            </span>
+                                                                    </Label>
+                                                                </FormGroup>
+                                                            </Col>
+                                                        </Row>
+                                                        {/**** prior ****/}
+                                                        <Row>
+                                                            <Col md="12">
+                                                                <FormGroup check>
+                                                                    <Label check>
+                                                                        <Input
+                                                                            defaultChecked={document.prior}
+                                                                            type="checkbox"
+                                                                            disabled={document.status !== 'DRAFT'}
+                                                                            onChange={( e ) => {
+                                                                                setDocument( {
+                                                                                    ...document,
+                                                                                    prior: e.target.checked
+                                                                                } );
+                                                                                document.prior = e.target.checked;
+                                                                                _saveEnvelope();
+                                                                            }}
+                                                                        />{' '}
+                                                                        <span className={`form-check-sign`}>
+                                                                <span
+                                                                    className="check"> {label.mail.label29} </span>
+                                                            </span>
+                                                                    </Label>
+                                                                </FormGroup>
+                                                            </Col>
+                                                        </Row>
+
+                                                    </Col>
+
+                                                </Row>
+                                            ) : null}
+
+                                        </TabPane>
+                                        <TabPane tabId="document">
+                                            {horizontalTabs === 'document' ? (
+                                                <Row>
+                                                    <Col>
+                                                        {isNil( document.documentAttachmentId ) ? (
+                                                            <Row>
+                                                                <PdfUpload
+                                                                    isLoading={isLoading}
+                                                                    saveFile={_uploadDocument}
+                                                                    avatar={null}/>
+                                                            </Row>
+                                                        ) : (
+                                                            <Row>
+                                                                {/**** PREVIEW DOCUMENT ****/}
+                                                                <Col>
+                                                                    <MailLaPosteGenerator
+                                                                        showMessage={showMessage}
+                                                                        documentId={documentIdRef.current}
+                                                                        label={label}
+                                                                    />
+                                                                </Col>
+                                                            </Row>
+                                                        )}
+                                                    </Col>
+                                                </Row>
+                                            ) : null}
+                                        </TabPane>
+                                        <TabPane tabId="addressRecipient">
+                                            {horizontalTabs === 'addressRecipient' ? (
+                                                <Row>
+                                                    <Col>
+                                                        {!isNil( document )
+                                                        && ((!isNil( document.status ) && document.status === 'DRAFT') || isNil( document.status )) ? (
+                                                            <Button color="primary" type="button"
+                                                                    className="float-right margin-left-10"
+                                                                    onClick={_updateAddressRecipientEnvelope}
+                                                            >
+                                                                {isLoading ? (
+                                                                    <Spinner
+                                                                        size="sm"
+                                                                        color="secondary"
+                                                                    />
+                                                                ) : null}
+                                                                {' '} {label.common.save}
+                                                            </Button>
+                                                        ) : null}
+
+                                                    </Col>
+                                                    <Col md={12}>
+                                                        <>
+                                                            {/* recipientName */}
+                                                            <FormGroup row className={classnames( {
+                                                                'has-danger': (isEmpty( addressRecipient.addressLine2 ) && isEmpty( addressRecipient.companyRecipient ))
+                                                            } )}>
+                                                                <Label for="companyRecipient"
+                                                                       sm={4}>{label.mail.french.label1}</Label>
+                                                                <Col sm={8} md={8} lg={8} xl={8}>
+                                                                    <AsyncCreatableSelect
+                                                                        value={clientSelectedRecipent.current}
+                                                                        className="react-select info"
+                                                                        classNamePrefix="react-select"
+                                                                        cacheOptions
+                                                                        isClearable={true}
+                                                                        create
+                                                                        type="email"
+                                                                        placeholder={label.mail.french.label1}
+                                                                        id="companyRecipient"
+                                                                        name="companyRecipient"
+                                                                        loadOptions={_loadClientOptions}
+                                                                        defaultOptions
+                                                                        onChange={_handleRecipientChange}
+                                                                    />
+                                                                </Col>
+                                                            </FormGroup>
+                                                            {/* addressLine2 */}
+                                                            <FormGroup row className={classnames( {
+                                                                'has-danger': (isEmpty( addressRecipient.addressLine2 ) && isEmpty( addressRecipient.companyRecipient ))
+                                                            } )}>
+                                                                <Label for="addressLine2"
+                                                                       sm={4}>{label.mail.french.label2}</Label>
+                                                                <Col sm={8} md={8} lg={8} xl={8}>
+                                                                    <Input
+                                                                        maxLength={38}
+                                                                        onChange={( e ) => setAddressRecipient( {
+                                                                            ...addressRecipient,
+                                                                            addressLine2: e.target.value
+                                                                        } )}
+                                                                        disabled={document.status !== 'DRAFT'}
+                                                                        id="addressLine2"
+                                                                        value={addressRecipient.addressLine2}
+                                                                        name="addressLine2"
+                                                                        className="form-control"
+                                                                        type="text"
+                                                                        placeholder={label.mail.french.label2}
+                                                                    />
+                                                                </Col>
+                                                            </FormGroup>
+                                                            {/* streetAndNumber */}
+                                                            <FormGroup row className={classnames( {
+                                                                'has-danger': isEmpty( addressRecipient.streetAndNumberRecipient )
+                                                            } )}>
+                                                                <Label for="streetAndNumberSender"
+                                                                       sm={4}>{label.mail.label3}</Label>
+                                                                <Col sm={8} md={8} lg={8} xl={8}>
+                                                                    <Input
+                                                                        maxLength={38}
+                                                                        onChange={( e ) => setAddressRecipient( {
+                                                                            ...addressRecipient,
+                                                                            streetAndNumberRecipient: e.target.value
+                                                                        } )}
+                                                                        disabled={document.status !== 'DRAFT'}
+                                                                        id="streetAndNumberSender"
+                                                                        value={addressRecipient.streetAndNumberRecipient}
+                                                                        name="streetAndNumberSender"
+                                                                        className="form-control"
+                                                                        type="text"
+                                                                        placeholder={label.mail.label3}
+                                                                    />
+                                                                </Col>
+                                                            </FormGroup>
+                                                            {/* postalCode */}
+                                                            <FormGroup row className={classnames( {
+                                                                'has-danger': isEmpty( addressRecipient.postalCodeRecipient ) || !validatePostFrench( addressRecipient.postalCodeRecipient )
+                                                            } )}>
+                                                                <Label for="postalCodeRecipient"
+                                                                       sm={4}>{label.mail.label4}</Label>
+                                                                <Col sm={8} md={8} lg={8} xl={8}>
+                                                                    <Input
+                                                                        minLength={5}
+                                                                        maxLength={5}
+                                                                        pattern="/^\d{5}$/"
+                                                                        id="postalCodeRecipient"
+                                                                        onChange={( e ) => setAddressRecipient( {
+                                                                            ...addressRecipient,
+                                                                            postalCodeRecipient: e.target.value
+                                                                        } )}
+                                                                        disabled={document.status !== 'DRAFT'}
+                                                                        name="postalCodeRecipient"
+                                                                        className="form-control"
+                                                                        type="text"
+                                                                        value={addressRecipient.postalCodeRecipient}
+                                                                        placeholder={label.mail.label4}
+                                                                    />
+                                                                    <FormText>{label.mail.error5}</FormText>
+                                                                </Col>
+                                                            </FormGroup>
+                                                            {/* city */}
+                                                            <FormGroup row className={classnames( {
+                                                                'has-danger': isEmpty( addressRecipient.cityRecipient )
+                                                            } )}>
+                                                                <Label for="cityRecipient"
+                                                                       sm={4}>{label.mail.label5}</Label>
+                                                                <Col sm={8} md={8} lg={8} xl={8}>
+                                                                    <Input
+                                                                        maxLength={32}
+                                                                        id="cityRecipient"
+                                                                        onChange={( e ) => setAddressRecipient( {
+                                                                            ...addressRecipient,
+                                                                            cityRecipient: e.target.value
+                                                                        } )}
+                                                                        disabled={document.status !== 'DRAFT'}
+                                                                        name="cityRecipient"
+                                                                        className="form-control"
+                                                                        type="text"
+                                                                        value={addressRecipient.cityRecipient}
+                                                                        placeholder={label.mail.label5}
+                                                                    />
+                                                                </Col>
+                                                            </FormGroup>
+                                                            {/* countryCode */}
+                                                            <FormGroup row>
+                                                                <Label for="senderCountryCodeRecipient"
+                                                                       sm={4}>{label.mail.label6}</Label>
+                                                                <Col sm={8} md={8} lg={8} xl={8}>
+                                                                    <Select
+                                                                        onChange={( value ) => setAddressRecipient( {
+                                                                            ...addressRecipient,
+                                                                            senderCountryCodeRecipient: value.value,
+                                                                            countryCodeItemRecipient: value
+                                                                        } )}
+                                                                        isDisabled={document.status !== 'DRAFT'}
+                                                                        value={addressRecipient.countryCodeItemRecipient}
+                                                                        name="senderCountryCodeRecipient"
+                                                                        options={countryList}
+                                                                    />
+                                                                </Col>
+                                                            </FormGroup>
+                                                        </>
+
+                                                    </Col>
+                                                </Row>
+                                            ) : null}
+                                        </TabPane>
+                                    </TabContent>
+                                ) : null}
+                            </>
+                            : <div>
+                                <p>{label.mail.label37}</p>
+                                <Row>
+                                    <Col
+                                        xs="6"
+                                    >
+                                        <Button onClick={changeToRegistered}
+                                                block
+                                                color="primary"
+                                                size="md"
+                                        >
+                                            Oui
+                                        </Button>
+                                    </Col>
+                                    <Col
+                                        xs="6"
+                                    >
+                                        <Button onClick={changeToNotRegistered}
+                                                block
+                                                color="primary"
+                                                size="smd"
+                                        >
+                                            Non
+                                        </Button>
+                                    </Col>
+                                </Row>
+                            </div>
                     )}
 
                 </ModalBody>
@@ -1078,7 +1287,7 @@ export default function ModalMailFrench( {
                             onClick={() => openPostMail( 'FR' )}>{label.common.close}</Button>
                     {/*{ ONLY TO SEND }*/}
                     {!isNil( document )
-                    && !isNil( document.status ) && document.status === 'DRAFT' && !isNil( document.documentAttachmentId ) && !isNil( addressRecipient ) && !isNil( addressRecipient.cityRecipient ) ? (
+                    && !isNil( document.status ) && document.status === 'DRAFT' && !isNil( document.documentAttachmentId ) && !isNil( addressRecipient ) && check3Approved.current === true ? (
                         <Button color="primary" type="button" className="float-right margin-left-10"
                                 onClick={_payEnvelope}
                         >

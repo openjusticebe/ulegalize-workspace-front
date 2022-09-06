@@ -32,6 +32,7 @@ export default class DocumentFrenchDTO extends DocumentDTO {
     postalCodeRecipient;
     bpRecipient;
     optionalAddressSheet;
+    registered;
 
     constructor( data ) {
         super( data );
@@ -67,6 +68,7 @@ export default class DocumentFrenchDTO extends DocumentDTO {
             this.cityRecipient = data.cityRecipient;
             this.postalCodeRecipient = data.postalCodeRecipient;
             this.optionalAddressSheet = data.optionalAddressSheet;
+            this.registered = data.registered;
         }
     }
 }

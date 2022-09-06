@@ -359,7 +359,14 @@ export const Dashboard = ( props ) => {
             },
             {
                 Header: label.mail.label10,
-                accessor: 'documentName'
+                accessor: 'documentName',
+                Cell: row => {
+                    const docName = row.value;
+
+                    return docName.length > 12 ? docName.substring( 0, 12 ) + '...'
+                        : docName;
+
+                }
             },
             {
                 Header: label.mail.label36,

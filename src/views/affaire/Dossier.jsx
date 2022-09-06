@@ -81,7 +81,7 @@ export default function Dossier( props ) {
     const notificationAlert = useRef( null );
 
     const {
-        match: { params }, label, currency, location,fullName,
+        match: { params }, label, currency, location, fullName,
         history,
         userId,
         language, email, enumRights,
@@ -162,7 +162,7 @@ export default function Dossier( props ) {
                 return;
             }
 
-            const clientData = await refreshClientNonCase(doss);
+            const clientData = await refreshClientNonCase( doss );
 
             let partieResult = await getPartiesByDossierId( accessToken, doss.id );
             if ( !partieResult.error && !isEmpty( partieResult.data ) ) {
@@ -191,7 +191,7 @@ export default function Dossier( props ) {
         })();
     }, [getAccessTokenSilently, updateCase.current] );
 
-    const refreshClientNonCase = async(doss) =>{
+    const refreshClientNonCase = async ( doss ) => {
         const accessToken = await getAccessTokenSilently();
         let clientData = [];
         if ( doss.type !== 'MD' ) {
@@ -215,7 +215,7 @@ export default function Dossier( props ) {
         setClientList( clientData );
 
         return clientData;
-    }
+    };
     const changeActiveTab = async ( e, tabState, tadName ) => {
         e.preventDefault();
 
@@ -299,7 +299,7 @@ export default function Dossier( props ) {
                     isDefault: clientResult.data.email
                 } );
         }
-        await refreshClientNonCase(dossier);
+        await refreshClientNonCase( dossier );
 
         setDossier( dossier );
         setClientModal( null );
@@ -787,7 +787,7 @@ export default function Dossier( props ) {
                                     <Card className="card-chart" style={{ minHeight: MAX_HEIGHT_CARD }}>
                                         <CardBody>
                                             <Agenda
-                                                dossierItem={new ItemDTO({value: dossier.id, label : dossier.label})}
+                                                dossierItem={new ItemDTO( { value: dossier.id, label: dossier.label } )}
                                                 onlyDossier={true}
                                                 auth0={props.auth0}
                                                 dossierId={affaireId}
@@ -818,20 +818,25 @@ export default function Dossier( props ) {
                             </TabPane>
                             <TabPane tabId="dev1">
                                 {verticalTabsIcons === 'dev1' ? (
-                                            <Mail
-                                                userId={userId}
-                                                email={email}
-                                                dossierId={affaireId}
-                                                vckeySelected={vckeySelected}
-                                                showMessage={showMessagePopup}
-                                                label={label}/>
+                                    <Mail
+                                        userId={userId}
+                                        email={email}
+                                        dossierId={affaireId}
+                                        vckeySelected={vckeySelected}
+                                        showMessage={showMessagePopup}
+                                        label={label}/>
                                 ) : null}
                             </TabPane>
                             <TabPane tabId="dev2">
                                 <Card className="card-chart" style={{ minHeight: MAX_HEIGHT_CARD }}>
                                     <CardBody>
                                         <Row>
-
+                                            <Col>
+                                                <h3>{label.affaire.label46}
+                                                </h3>
+                                            </Col>
+                                        </Row>
+                                        <Row>
                                             <Col lg={6} md={6} sm={12} xs={12}>
                                                 <Button size={`lg`}
                                                         className="very-big-btn"
@@ -1026,11 +1031,11 @@ export default function Dossier( props ) {
                                     </TabPane>
                                     <TabPane tabId="invoice">
                                         {horizontalTabs === 'invoice' ? (
-                                            <InvoiceAffaireTable
-                                            vckeySelected={vckeySelected}
-                                            currency={currency}
-                                            label={label}
-                                            affaireid={affaireId}/>
+                                                <InvoiceAffaireTable
+                                                    vckeySelected={vckeySelected}
+                                                    currency={currency}
+                                                    label={label}
+                                                    affaireid={affaireId}/>
                                             ) :
                                             <ReactLoading className="loading" height={'20%'} width={'20%'}/>
                                         }

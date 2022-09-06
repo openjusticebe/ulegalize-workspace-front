@@ -22,6 +22,7 @@ import { shareUserFolder, updateIsActiveLawfirmUsers } from '../../../services/A
 import { updateRoleLawfirmUser } from '../../../services/LawfirmsService';
 import { getOptionNotification } from '../../../utils/AlertUtils';
 import NotificationAlert from 'react-notification-alert';
+import ReactBSAlert from 'react-bootstrap-sweetalert';
 
 const isNil = require( 'lodash/isNil' );
 const map = require( 'lodash/map' );
@@ -34,6 +35,7 @@ const UpdateUserModal = ( {
                               handleshowAlert
                           } ) => {
     const { getAccessTokenSilently } = useAuth0();
+    const [deleteAlert, setDeleteAlert] = useState( null );
     const [data, setData] = useState( item );
     const [loading, setLoading] = useState( false );
     const [functionIdItems, setFunctionIdItems] = useState( [] );
@@ -84,14 +86,7 @@ const UpdateUserModal = ( {
 
     };
 
-    const _updateIsActiceUser = async ( userId, isActive ) => {
-        const accessToken = await getAccessTokenSilently();
-
-        const result = await updateIsActiveLawfirmUsers( accessToken, userId, isActive );
-        if ( !result.error ) {
-            let message = isActive === true ? label.users.label100 : label.users.label101; //props.label.public.label102 : props.label.public.label103;
-            notificationAlert.current.notificationAlert( getOptionNotification( message, 'primary' ) );
-        }
+    const _updateIsActiceUser = async ( isActive ) => {
         setData( {
             ...data,
             active: isActive
@@ -167,9 +162,32 @@ const UpdateUserModal = ( {
                             <FormGroup check>
                                 <Label check>
                                     <Input
-                                        defaultChecked={data.active}
+                                        checked={data.active}
                                         type="checkbox"
-                                        onChange={( e ) => _updateIsActiceUser( data.id, !data.active )}
+                                        onChange={( e ) => {
+                                            setDeleteAlert( <ReactBSAlert
+                                                warning
+                                                style={{ display: 'block', marginTop: '100px' }}
+                                                title={data.active ? label.users.label104 : label.users.label106}
+                                                onConfirm={() => {
+                                                    _updateIsActiceUser( !data.active )
+
+                                                    setDeleteAlert( null );
+                                                }}
+                                                onCancel={() => {
+                                                    _updateIsActiceUser( data.active )
+
+                                                    setDeleteAlert( null ); }}
+                                                confirmBtnBsStyle="success"
+                                                cancelBtnBsStyle="danger"
+                                                confirmBtnText={label.common.label2}
+                                                cancelBtnText={label.common.cancel}
+                                                showCancel
+                                                btnSize=""
+                                            >
+                                                {data.active ? label.users.label105 : label.users.label107}
+                                            </ReactBSAlert> );
+                                        }}
                                     />
                                     <span className="form-check-sign">
                                     <span className="check">{label.users.label102}</span>
@@ -216,6 +234,7 @@ const UpdateUserModal = ( {
                     </Button>
                 </ModalFooter>
             </Modal>
+            {deleteAlert}
         </>
     );
 };

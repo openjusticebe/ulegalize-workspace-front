@@ -22,22 +22,15 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import AsyncSelect from 'react-select/async/dist/react-select.esm';
 import Select, { components } from 'react-select';
 import ReactDatetime from 'react-datetime';
-import {
-    createDossier,
-    getDossierById,
-    getDossierDefault,
-    switchDossierDigital,
-    updateDossier
-} from '../../../services/DossierService';
+import { createDossier, getDossierById, getDossierDefault, updateDossier } from '../../../services/DossierService';
 import { useAuth0 } from '@auth0/auth0-react';
-import { getClient, getClientById, getClientListByIds } from '../../../services/ClientService';
+import { getClient, getClientById } from '../../../services/ClientService';
 import ItemDTO from '../../../model/ItemDTO';
 import DossierDTO from '../../../model/affaire/DossierDTO';
 import * as classnames from 'classnames';
 import { getDossierType, getMatieres, getUserResponsableList } from '../../../services/SearchService';
 import NotificationAlert from 'react-notification-alert';
 import { getOptionNotification } from '../../../utils/AlertUtils';
-import ContactSummary from '../../../model/client/ContactSummary';
 import { RegisterClientModal } from '../../../components/client/RegisterClientModal';
 import ReactLoading from 'react-loading';
 import ModalCheckSessionDrive from '../../popup/drive/ModalCheckSessionDrive';
@@ -212,46 +205,7 @@ export const RegisterDossier = ( props ) => {
         let result = await createDossier( accessToken, dossier );
 
         if ( !result.error ) {
-            // change this to have the switch with topic
-            // create transparency only if client has an email
-            let isTransparency = false;
-            if ( dossier.type !== 'MD' ) {
-                const clientResult = await getClientById( accessToken, dossier.idClient );
-                if ( !clientResult.error ) {
-
-                    const client = new ContactSummary( clientResult.data, label );
-
-                    isTransparency = !isNil( client.email ) && client.email !== '';
-                } else {
-                    props.history.push( { pathname: `/admin/affaire/${result.data.id}`, state: { isCreate: true } } );
-                }
-            } else {
-                const clientIds = map( dossier.clientList, clientTmp => clientTmp.value );
-                const clientResult = await getClientListByIds( accessToken, clientIds );
-
-                if ( !clientResult.error ) {
-                    forEach( clientResult.data, data => {
-                        // if one of them is valid
-                        if ( !isTransparency ) {
-                            isTransparency = !isNil( data.email ) && data.email !== '';
-                        }
-                    } );
-
-                } else {
-                    props.history.push( { pathname: `/admin/affaire/${result.data.id}`, state: { isCreate: true } } );
-                }
-            }
-
-            if ( isTransparency ) {
-                const newDossier = new DossierDTO( result.data );
-                switchDossierDigital( accessToken, newDossier.id );
-                props.history.push( {
-                    pathname: `/admin/affaire/${result.data.id}`,
-                    state: { isCreate: true }
-                } );
-            } else {
-                props.history.push( { pathname: `/admin/affaire/${result.data.id}`, state: { isCreate: true } } );
-            }
+            props.history.push( { pathname: `/admin/affaire/${result.data.id}`, state: { isCreate: true } } );
 
         } else {
             notificationAlert.current.notificationAlert( getOptionNotification( label.affaire.error10, 'danger' ) );
@@ -328,14 +282,14 @@ export const RegisterDossier = ( props ) => {
                     } );
             }
         } else if ( isDossierTypeMediation ) {
-            if(!isNil(tempClientMediation)){
+            if ( !isNil( tempClientMediation ) ) {
                 let clientResult = await getClientById( accessToken, tempClientMediation.value );
-                setTempClientMediation(new ItemDTO(
+                setTempClientMediation( new ItemDTO(
                     {
                         value: clientResult.data.id,
                         label: clientResult.data.fullName,
                         isDefault: clientResult.data.email
-                    } ));
+                    } ) );
             }
             for ( let i = 0; i < dossier.clientList.length; i++ ) {
                 let client = dossier.clientList[ i ];
@@ -363,16 +317,21 @@ export const RegisterDossier = ( props ) => {
         const accessToken = await getAccessTokenSilently();
 
         let clientResult = await getClientById( accessToken, client.id );
-
-        dossier.idClient = client.id;
-        dossier.client = new ItemDTO(
+        const clientItem = new ItemDTO(
             {
                 value: clientResult.data.id,
                 label: clientResult.data.fullName,
                 isDefault: clientResult.data.email
             } );
+        if ( isDossierTypeMediation ) {
+            setTempClientMediation( clientItem );
+        } else {
+            dossier.idClient = client.id;
+            dossier.client = clientItem;
 
-        setDossier( dossier );
+            setDossier( dossier );
+        }
+
         setClientModal( null );
         setOpenclientModal( false );
         notificationAlert.current.notificationAlert( getOptionNotification( label.ajout_client.toastrSuccessPInsert, 'primary' ) );
@@ -764,7 +723,6 @@ export const RegisterDossier = ( props ) => {
                             (
                                 <>
                                     <Row>
-                                        {parties}
                                         <Col md="4">
                                             <Label>{label.affaire.selDossType}</Label>
                                             <FormGroup>
@@ -784,6 +742,9 @@ export const RegisterDossier = ( props ) => {
                                                 />
                                             </FormGroup>
                                         </Col>
+                                    </Row>
+                                    <Row>
+                                        {parties}
                                     </Row>
                                     {isDossierTypeMediation ?
                                         map( dossier.clientList, client => {
@@ -1144,54 +1105,60 @@ export const RegisterDossier = ( props ) => {
                                         </Col>
                                     </Row>
 
-                                    <RegisterClientModal
-                                        isCreate={isNil( clientModal )}
-                                        userId={userId}
-                                        label={label}
-                                        history={history}
-                                        idClient={clientModal}
-                                        vckeySelected={vckeySelected}
-                                        fullName={fullName}
-                                        language={language}
-                                        clientUpdated={_clientUpdated}
-                                        clientCreated={_clientCreated}
-                                        toggleClient={_toggleClient}
-                                        modal={openclientModal}
-                                        emailUserConnected={email}
-                                        enumRights={enumRights}
-                                    />
-                                    <RegisterClientModal
-                                        isCreate={isNil( clientModal )}
-                                        userId={userId}
-                                        history={history}
-                                        label={label}
-                                        idClient={clientModal}
-                                        vckeySelected={vckeySelected}
-                                        fullName={fullName}
-                                        language={language}
-                                        clientUpdated={_clientUpdated}
-                                        clientCreated={_clientAdvCreated}
-                                        toggleClient={_toggleClient}
-                                        modal={openclientAdvModal}
-                                        emailUserConnected={email}
-                                        enumRights={enumRights}
-                                    />
-                                    <RegisterClientModal
-                                        isCreate={isNil( clientModal )}
-                                        userId={userId}
-                                        history={history}
-                                        label={label}
-                                        idClient={clientModal}
-                                        vckeySelected={vckeySelected}
-                                        fullName={fullName}
-                                        language={language}
-                                        clientUpdated={_clientUpdated}
-                                        clientCreated={_clientConseilAdvCreated}
-                                        toggleClient={_toggleClient}
-                                        modal={openclientConseilAdvModal}
-                                        emailUserConnected={email}
-                                        enumRights={enumRights}
-                                    />
+                                    {openclientModal ? (
+                                        <RegisterClientModal
+                                            isCreate={isNil( clientModal )}
+                                            userId={userId}
+                                            label={label}
+                                            history={history}
+                                            idClient={clientModal}
+                                            vckeySelected={vckeySelected}
+                                            fullName={fullName}
+                                            language={language}
+                                            clientUpdated={_clientUpdated}
+                                            clientCreated={_clientCreated}
+                                            toggleClient={_toggleClient}
+                                            modal={openclientModal}
+                                            emailUserConnected={email}
+                                            enumRights={enumRights}
+                                        />
+                                    ) : null}
+                                    {openclientAdvModal ? (
+                                        <RegisterClientModal
+                                            isCreate={isNil( clientModal )}
+                                            userId={userId}
+                                            history={history}
+                                            label={label}
+                                            idClient={clientModal}
+                                            vckeySelected={vckeySelected}
+                                            fullName={fullName}
+                                            language={language}
+                                            clientUpdated={_clientUpdated}
+                                            clientCreated={_clientAdvCreated}
+                                            toggleClient={_toggleClient}
+                                            modal={openclientAdvModal}
+                                            emailUserConnected={email}
+                                            enumRights={enumRights}
+                                        />
+                                    ) : null}
+                                    {openclientConseilAdvModal ? (
+                                        <RegisterClientModal
+                                            isCreate={isNil( clientModal )}
+                                            userId={userId}
+                                            history={history}
+                                            label={label}
+                                            idClient={clientModal}
+                                            vckeySelected={vckeySelected}
+                                            fullName={fullName}
+                                            language={language}
+                                            clientUpdated={_clientUpdated}
+                                            clientCreated={_clientConseilAdvCreated}
+                                            toggleClient={_toggleClient}
+                                            modal={openclientConseilAdvModal}
+                                            emailUserConnected={email}
+                                            enumRights={enumRights}
+                                        />
+                                    ) : null}
 
                                     {checkTokenDrive ?
                                         (

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import {
     Button,
+    CardSubtitle,
     Col,
     Form,
     FormGroup,
@@ -33,6 +34,9 @@ import GetApp from '@material-ui/icons/GetApp';
 import { Link } from 'react-router-dom';
 import VisibilityIcon from '@material-ui/icons/Visibility';
 import { RegisterFraisModal } from '../Affaire/RegisterFraisModal';
+import Switch from 'react-bootstrap-switch';
+import { openMeetingEvent } from '../../services/JitsiService';
+import { CircularProgress } from '@material-ui/core';
 
 const map = require( 'lodash/map' );
 const isNil = require( 'lodash/isNil' );
@@ -62,6 +66,7 @@ export default function AppointmentModalPanel( {
     const userResponsableRef = useRef( userResponsableList );
 
     const [selectedEvent, setSelectedEvent] = useState( selectedEventProps );
+    const [loadingJitsi, setloadingJitsi] = useState( false );
     const [optionsUsers, setOptionsUsers] = useState( userResponsableRef.current );
     const [isLoading, setIsLoading] = useState( isLoadingSave );
     const [deleteAlert, setDeleteAlert] = useState( null );
@@ -141,23 +146,75 @@ export default function AppointmentModalPanel( {
 
     };
 
-    const handleDatePickerChange = ( date ) => {
+    const handleDatePickerChange = async ( date ) => {
+        let selectTmp = selectedEvent;
+        let end = selectedEvent.end;
         // if the end date is before start date => add 30 min to end date
         if ( moment( date ).isAfter( selectedEvent.end )
             || moment( date ).isSame( selectedEvent.end ) ) {
-            const end = moment( date ).add( 30, 'minutes' );
-            setSelectedEvent( { ...selectedEvent, start: date, end: end } );
-        } else {
-            setSelectedEvent( { ...selectedEvent, start: date } );
+            end = moment( date ).add( 30, 'minutes' );
+            selectTmp.start = date;
+            selectTmp.end = end;
 
+        } else {
+            selectTmp.start = date;
         }
 
+        if ( selectedEvent.roomAttached === true ) {
+            const accessToken = await getAccessTokenSilently();
+
+            const resultLink = await openMeetingEvent( accessToken, selectedEvent.user_id, date, end );
+
+            if ( !resultLink.error ) {
+                selectTmp.urlRoom = resultLink.data;
+            }
+        }
+        setSelectedEvent( { ...selectTmp } );
+
     };
 
-    const handleEndDatePickerChange = ( date ) => {
-        setSelectedEvent( { ...selectedEvent, end: date } );
+    const handleEndDatePickerChange = async ( date ) => {
+        let selectTmp = selectedEvent;
+        if ( selectedEvent.roomAttached === true ) {
+            const accessToken = await getAccessTokenSilently();
+
+            let resultLink = await openMeetingEvent( accessToken, selectedEvent.user_id, selectedEvent.start, date );
+
+            if ( !resultLink.error ) {
+                selectTmp = {
+                    ...selectTmp,
+                    urlRoom: resultLink.data,
+                };
+            }
+        }
+        setSelectedEvent( { ...selectTmp, end: date } );
+
     };
 
+    const calculateMinTime = startDate => {
+        let end;
+        // if it's today > to the start date , otherwise full day
+        if ( moment( selectedEvent.start ).isSame( selectedEvent.end, 'day' )
+            && moment( selectedEvent.start ).isSame( selectedEvent.end, 'month' ) ) {
+            end = moment( selectedEvent.start );
+        } else {
+            // end date with 00:00 to 23:59
+            end = moment( selectedEvent.start ).set( { hour: 0, minute: 0 } );
+        }
+        return end.toDate();
+    };
+    const calculateMaxTime = ( date ) => {
+        let end;
+        // if it's today > to the start date , otherwise full day
+        if ( moment( selectedEvent.start ).isSame( selectedEvent.end, 'day' )
+            && moment( selectedEvent.start ).isSame( selectedEvent.end, 'month' ) ) {
+            end = moment( selectedEvent.start ).set( { hour: 23, minute: 59 } );
+        } else {
+            // end date with 00:00 to 23:59
+            end = moment( moment( selectedEvent.end ).set( { hour: 0, minute: 0 } ) ).set( { hour: 23, minute: 59 } );
+        }
+        return end.toDate();
+    };
     const handleEventTypeChange = ( event ) => {
         let selectedUser;
         if ( event.value === 'TASK' || event.value === 'RECORD' ) {
@@ -238,6 +295,33 @@ export default function AppointmentModalPanel( {
                 {label.appointmentmodalpanel.label19}
             </ReactBSAlert>
         ) );
+    };
+
+    const _attachJitsiRoom = async ( roomAttached ) => {
+        setloadingJitsi( true );
+        let selectTmp = selectedEvent;
+        const accessToken = await getAccessTokenSilently();
+        // was false , active option
+        if ( roomAttached === false ) {
+            const resultLink = await openMeetingEvent( accessToken, selectedEvent.user_id, selectedEvent.start, selectedEvent.end );
+
+            if ( !resultLink.error ) {
+                selectTmp.urlRoom = resultLink.data;
+            } else {
+                selectTmp.urlRoom = '';
+            }
+        } else {
+            selectTmp.urlRoom = '';
+
+        }
+        selectTmp = {
+            ...selectTmp,
+            roomAttached: !roomAttached
+        };
+        setSelectedEvent( selectTmp );
+
+        setloadingJitsi( false );
+
     };
 
     const handleEventNoteChange = ( event ) => {
@@ -467,6 +551,7 @@ export default function AppointmentModalPanel( {
             showMessageFromPopup( message, type );
         }
     };
+
     return (
         <>
             {isCreated === false ? (
@@ -531,7 +616,7 @@ export default function AppointmentModalPanel( {
                                 <DatePicker
                                     selected={selectedEvent.start}
                                     onChange={handleDatePickerChange}
-                                    showTimeSelect
+                                    showTimeSelect={true}
                                     locale="fr"
                                     timeFormat="HH:mm"
                                     timeIntervals={30}
@@ -549,6 +634,8 @@ export default function AppointmentModalPanel( {
                                         selected={new Date( selectedEvent.end )}
                                         minDate={selectedEvent.start}
                                         onChange={handleEndDatePickerChange}
+                                        minTime={calculateMinTime( selectedEvent.start )}
+                                        maxTime={calculateMaxTime()}
                                         showTimeSelect
                                         locale="fr"
                                         timeFormat="HH:mm"
@@ -568,6 +655,43 @@ export default function AppointmentModalPanel( {
                 {selectedEvent.eventType === 'RDV' ? panelRendezVous() : ''}
                 {selectedEvent.eventType === 'OTH' ? panelOther() : ''}
                 {selectedEvent.eventType === 'TASK' || selectedEvent.eventType === 'RECORD' ? panelTask() : ''}
+
+                {/* jitsi */}
+                <Row>
+                    <Col md="10">
+                        <CardSubtitle>{label.appointmentmodalpanel.label22}</CardSubtitle>
+                        <Switch
+                            value={selectedEvent.roomAttached}
+                            defaultValue={selectedEvent.roomAttached}
+                            offColor="primary"
+                            onText={label.wizardFrais.label12}
+                            onColor="primary"
+                            offText={label.wizardFrais.label14}
+                            onChange={value => {
+                                _attachJitsiRoom( selectedEvent.roomAttached );
+                            }
+                            }
+                            disabled={loadingJitsi}
+                        />{' '}
+                    </Col>
+                </Row>
+                {loadingJitsi ? (
+                    <CircularProgress color="primary" size={35}/>
+                ) : null
+                }
+                {selectedEvent && selectedEvent.roomAttached === true ? (
+                    <Row>
+                        <Col lg="12">
+                            <FormGroup>
+                                <a href={selectedEvent.urlRoom} target="_blank" rel="noreferrer">
+                                    https://8x8.vc/vpaas-magic-cookie
+                                </a> {' '}
+                                <FormText>{label.appointmentmodalpanel.label23}</FormText>
+
+                            </FormGroup>
+                        </Col>
+                    </Row>
+                ) : null}
 
                 {/* REMARKS */}
                 <Row>

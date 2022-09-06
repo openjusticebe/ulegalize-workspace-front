@@ -16,4 +16,20 @@ export async function openMeeting( accessToken ) {
         return { error: true };
     }
 
+}export async function openMeetingEvent( accessToken, roomName, start, end ) {
+    try {
+        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/jitsi/event`, {
+            params: {
+                roomName: roomName,
+                start: start,
+                end: end,
+            },
+            headers: {
+                Authorization: `Bearer ${accessToken}`
+            }
+        } );
+    } catch ( e ) {
+        return { error: true };
+    }
+
 }

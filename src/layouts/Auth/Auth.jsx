@@ -48,7 +48,19 @@ class Pages extends React.Component {
     //document.body.classList.toggle( 'white-content' );
 
     window.addEventListener( 'scroll', this.showNavbarButton );
-    const { getAccessTokenSilently } = this.props.auth0;
+
+    const subdomain = window.location.host.split( '.' )[ 0 ];
+    const subdomainStorage = localStorage.getItem('subdomain');
+    const {
+      getAccessTokenSilently,
+      logout
+    } = this.props.auth0;
+
+    if(subdomain !== subdomainStorage) {
+      logout( { returnTo: window.location.origin } );
+      return;
+    }
+
     const accessToken = await getAccessTokenSilently();
 
     const result = await getLightUsers( accessToken );
@@ -64,10 +76,6 @@ class Pages extends React.Component {
           //{ label: label[ language ],
         //vckeySelected: result.data.vcKeySelected, language: language } );
     } else {
-
-      const {
-        logout
-      } = this.props.auth0;
 
       logout( { returnTo: window.location.origin } );
       //this.setState( { label: label[ 'fr' ] } );

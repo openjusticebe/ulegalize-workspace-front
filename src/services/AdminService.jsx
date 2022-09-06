@@ -78,24 +78,6 @@ export async function updateIsPublicLawfirmUsers( accessToken, userId, isPublic 
     }
 }
 
-export async function updateIsActiveLawfirmUsers( accessToken, userId, isActive ) {
-    try {
-        return await axios.put( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/lawfirm/user/${userId}/active`,
-            '' + isActive,
-            {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    'Content-Type': 'text/plain'
-                }
-            } ).catch( () => {
-            return { error: true };
-        } );
-
-    } catch ( e ) {
-        return { error: true };
-    }
-}
-
 export async function getAdminPrestationList( accessToken ) {
     try {
         return axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/admin/prestation/type`, {

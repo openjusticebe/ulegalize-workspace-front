@@ -56,8 +56,15 @@ class Admin extends React.Component {
         //document.body.classList.toggle( 'white-content' );
 
         window.addEventListener( 'scroll', this.showNavbarButton );
-        const { getAccessTokenSilently, user } = this.props.auth0;
+        const { getAccessTokenSilently, user, logout } = this.props.auth0;
         const accessToken = await getAccessTokenSilently();
+        const subdomain = window.location.host.split( '.' )[ 0 ];
+        const subdomainStorage = localStorage.getItem('subdomain');
+
+        if(subdomain !== subdomainStorage) {
+            logout( { returnTo: window.location.origin } );
+            return;
+        }
 
         const result = await getUsers( accessToken );
 

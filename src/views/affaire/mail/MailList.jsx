@@ -60,7 +60,6 @@ export default function MailList( {
         setShowMail( !showMail );
     };
 
-
     const _deletePostMail = async ( documentId ) => {
         documentIdRef.current = documentId;
 
@@ -104,7 +103,7 @@ export default function MailList( {
                         </Button>
                         {` `}
                         {/* payment ok => cannot be deleted */}
-                        {(row.row.original.countryPost === 'BE' && parseInt(row.row.original.status) < 8) || (row.row.original.countryPost === 'FR' && row.row.original.status === 'DRAFT') ? (
+                        {(row.row.original.countryPost === 'BE' && parseInt( row.row.original.status ) < 8) || (row.row.original.countryPost === 'FR' && row.row.original.status === 'DRAFT') ? (
                             <Button
                                 className="btn-icon btn-link margin-left-10"
                                 onClick={() => {
@@ -129,7 +128,7 @@ export default function MailList( {
                                 color="primary" size="sm">
                                 <i className="fa fa-trash"/>
                             </Button>
-                        ): null}
+                        ) : null}
                         {` `}
                     </div>;
                 }
@@ -244,7 +243,6 @@ export default function MailList( {
             notificationAlert.current.notificationAlert( getOptionNotification( message, type ) );
         }
     };
-
 
     const _toggleMail = async ( country, documentId ) => {
         documentIdRef.current = documentId;

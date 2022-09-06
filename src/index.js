@@ -6,6 +6,7 @@ import './assets/css/nucleo-icons.css';
 import './assets/scss/black-dashboard-pro-react.scss';
 import '@repay/react-credit-card/dist/react-credit-card.css';
 import 'react-notification-alert/dist/animate.css';
+//import "react-datepicker/dist/react-datepicker.css";
 
 import App from './App';
 import CssBaseline from '@material-ui/core/CssBaseline';

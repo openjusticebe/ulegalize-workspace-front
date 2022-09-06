@@ -14,6 +14,8 @@ export const Callback = ( props ) => {
         (async () => {
             try {
                 const accessToken = await getAccessTokenSilently();
+                const subdomain = window.location.host.split( '.' )[ 0 ];
+                localStorage.setItem('subdomain', subdomain);
 
                 if(!isNil(user[ process.env.REACT_APP_AUTH_RULES_URL + 'app_metadata' ] )) {
                     const signup = user[ process.env.REACT_APP_AUTH_RULES_URL + 'app_metadata' ].signedup_submitted;

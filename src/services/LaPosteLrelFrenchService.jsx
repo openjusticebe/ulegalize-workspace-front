@@ -2,11 +2,11 @@ import axios from 'axios';
 import DocumentFrenchDTO from '../model/postbird/DocumentFrenchDTO';
 import AddressRecipientDTO from '../model/postbird/AddressRecipientDTO';
 
-export async function getAllDocument( accessToken,documentId, callback, callbackAddress ) {
+export async function getAllDocumentLrel( accessToken, documentId, callback, callbackAddress ) {
 
     return await axios.all( [
-        getDocumentById( accessToken, documentId),
-        getAddressRecipient( accessToken, documentId ),
+        getDocumentLrelById( accessToken, documentId),
+        getAddressRecipientLrel( accessToken, documentId ),
 
     ] )
     .then(
@@ -19,9 +19,9 @@ export async function getAllDocument( accessToken,documentId, callback, callback
     } );
 }
 
-export async function addDocument( accessToken, documentId, file ) {
+export async function addDocumentLrel( accessToken, documentId, file ) {
     try {
-        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/${documentId}/documents`,
+        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/${documentId}/documents`,
             file,
             {
                 headers: {
@@ -34,11 +34,9 @@ export async function addDocument( accessToken, documentId, file ) {
         return { error: true };
     }
 
-}
-
-export async function createDraft( accessToken, document ) {
+}export async function createDraftLrel( accessToken, document ) {
     try {
-        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench`,
+        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench`,
             new DocumentFrenchDTO(document),
             {
                 headers: {
@@ -53,9 +51,9 @@ export async function createDraft( accessToken, document ) {
 
 }
 
-export async function updateAddress( accessToken , documentId, document) {
+export async function updateAddressLrel( accessToken , documentId, document) {
     try {
-        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/address/${documentId}`,
+        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/address/${documentId}`,
             new DocumentFrenchDTO(document),
             {
                 headers: {
@@ -69,9 +67,9 @@ export async function updateAddress( accessToken , documentId, document) {
     }
 
 }
-export async function updateEnvelope( accessToken , documentId, document) {
+export async function updateEnvelopeLrel( accessToken , documentId, document) {
     try {
-        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/sendOption/${documentId}`,
+        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/sendOption/${documentId}`,
             new DocumentFrenchDTO(document),
             {
                 headers: {
@@ -85,9 +83,9 @@ export async function updateEnvelope( accessToken , documentId, document) {
     }
 
 }
-export async function saveAddressEnvelope( accessToken , documentId, document) {
+export async function saveAddressEnvelopeLrel( accessToken , documentId, document) {
     try {
-        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/address/${documentId}`,
+        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/address/${documentId}`,
             new AddressRecipientDTO(document),
             {
                 headers: {
@@ -101,9 +99,9 @@ export async function saveAddressEnvelope( accessToken , documentId, document) {
     }
 
 }
-export async function updateAddressEnvelope( accessToken , documentId,recipientId, document) {
+export async function updateAddressEnvelopeLrel( accessToken , documentId, recipientId, document) {
     try {
-        return await axios.put( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/address/${documentId}/recipient/${recipientId}`,
+        return await axios.put( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/address/${documentId}/recipient/${recipientId}`,
             new AddressRecipientDTO(document),
             {
                 headers: {
@@ -118,9 +116,9 @@ export async function updateAddressEnvelope( accessToken , documentId,recipientI
 
 }
 
-export async function payDocument( accessToken , documentId) {
+export async function payDocumentLrel( accessToken , documentId) {
     try {
-        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/${documentId}/payment`,
+        return await axios.post( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/${documentId}/payment`,
             {},
             {
                 headers: {
@@ -135,9 +133,9 @@ export async function payDocument( accessToken , documentId) {
 
 }
 
-export async function getTotalCost( accessToken , documentId) {
+export async function getTotalCostLrel( accessToken , documentId) {
     try {
-        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/${documentId}/cost/total`,
+        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/${documentId}/cost/total`,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`
@@ -149,9 +147,9 @@ export async function getTotalCost( accessToken , documentId) {
         return { error: true };
     }
 }
-export async function getStatus( accessToken , documentId) {
+export async function getStatusLrel( accessToken , documentId) {
     try {
-        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/${documentId}/status`,
+        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/${documentId}/status`,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`
@@ -163,9 +161,9 @@ export async function getStatus( accessToken , documentId) {
         return { error: true };
     }
 }
-export async function getDocumentById( accessToken , documentId) {
+export async function getDocumentLrelById( accessToken , documentId) {
     try {
-        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/${documentId}`,
+        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/${documentId}`,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`
@@ -177,9 +175,9 @@ export async function getDocumentById( accessToken , documentId) {
         return { error: true };
     }
 }
-export async function getAddressRecipient( accessToken , documentId) {
+export async function getAddressRecipientLrel( accessToken , documentId) {
     try {
-        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/address/${documentId}`,
+        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/address/${documentId}`,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`
@@ -191,9 +189,9 @@ export async function getAddressRecipient( accessToken , documentId) {
         return { error: true };
     }
 }
-export async function getDocumentByDefault( accessToken, dossierId ) {
+export async function getDocumentLrelByDefault( accessToken, dossierId ) {
     try {
-        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/default`,
+        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/default`,
             {
                 params: {
                     dossierId: dossierId,
@@ -208,9 +206,9 @@ export async function getDocumentByDefault( accessToken, dossierId ) {
         return { error: true };
     }
 }
-export async function getDocumentsMail( accessToken , offset, limit, dossierId) {
+export async function getDocumentsMailLrel( accessToken , offset, limit, dossierId) {
     try {
-        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/list`,
+        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/list`,
             {
                 params: {
                     dossierId: dossierId,
@@ -227,9 +225,9 @@ export async function getDocumentsMail( accessToken , offset, limit, dossierId) 
         return { error: true };
     }
 }
-export async function generateMail( accessToken, documentId ) {
+export async function generateMailLrel( accessToken, documentId ) {
     try {
-        return axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/${documentId}/pdf`, {
+        return axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/${documentId}/pdf`, {
                 headers: {
                     Authorization: `Bearer ${accessToken}`
                 }
@@ -243,9 +241,9 @@ export async function generateMail( accessToken, documentId ) {
     }
 }
 
-export async function getCountryCodes( accessToken ) {
+export async function getCountryCodesLrel( accessToken ) {
     try {
-        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/countryCodes`,
+        return await axios.get( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/countryCodes`,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`
@@ -257,9 +255,9 @@ export async function getCountryCodes( accessToken ) {
         return { error: true };
     }
 }
-export async function deleteDocumentById( accessToken , documentId) {
+export async function deleteDocumentLrelById( accessToken , documentId) {
     try {
-        return await axios.delete( `${process.env.REACT_APP_PAYMENT_SERVER}v1/laPosteFrench/${documentId}`,
+        return await axios.delete( `${process.env.REACT_APP_PAYMENT_SERVER}v1/registered/laPosteFrench/${documentId}`,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`

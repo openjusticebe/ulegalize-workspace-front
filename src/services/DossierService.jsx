@@ -2,7 +2,7 @@ import axios from 'axios';
 import DossierDTO from '../model/affaire/DossierDTO';
 import ShareAffaireDTO from '../model/affaire/ShareAffaireDTO';
 
-export async function getDossierList( accessToken, offset, limit, vckeySelected, searchCriteriaClient, searchCriteriaYear, searchCriteriaNumber, searchCriteriaBalance , searchCriteriaInitiale, searchArchived) {
+export async function getDossierList( accessToken, offset, limit, vckeySelected, searchCriteriaClient, searchCriteriaYear, searchCriteriaNumber, searchCriteriaBalance , searchCriteriaInitiale, searchArchived, sortOpenDate) {
     try {
         return await axios.get( `${process.env.REACT_APP_LAWFIRM_SERVER}v2/affaires/list`, {
             params:{ offset : offset, limit:limit, searchCriteriaClient : searchCriteriaClient,
@@ -12,6 +12,7 @@ export async function getDossierList( accessToken, offset, limit, vckeySelected,
                 searchCriteriaBalance: searchCriteriaBalance,
                 searchCriteriaInitiale: searchCriteriaInitiale,
                 searchArchived: searchArchived,
+                sortOpenDate: sortOpenDate,
             },
             headers: {
                 Authorization: `Bearer ${accessToken}`

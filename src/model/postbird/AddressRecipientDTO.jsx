@@ -1,5 +1,3 @@
-import DocumentDTO from './DocumentDTO';
-
 export default class AddressRecipientDTO {
     vcKey;
     username;

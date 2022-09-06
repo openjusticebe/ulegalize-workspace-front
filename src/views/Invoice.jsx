@@ -8,7 +8,6 @@ import {
     CardHeader,
     CardTitle,
     Col,
-    Collapse,
     Form,
     FormGroup,
     Input,
@@ -28,7 +27,6 @@ import Select from 'react-select';
 import AsyncSelect from 'react-select/async';
 import { getOptionNotification } from '../utils/AlertUtils';
 import InvoiceGenerator from '../components/Invoice/InvoiceGenerator';
-import ReactTableLocal from '../components/ReactTableLocal';
 import { getAffairesByVcUserIdAndSearchCriteria, getDossierById } from '../services/DossierService';
 import ItemDTO from '../model/ItemDTO';
 import { useAuth0 } from '@auth0/auth0-react';
@@ -37,7 +35,6 @@ import {
     createInvoice,
     deleteInvoiceById,
     generateInvoiceValid,
-    getAllFrais,
     getDefaultInvoice,
     getInvoiceById,
     updateInvoice,
@@ -47,8 +44,6 @@ import ReactLoading from 'react-loading';
 import { getClient, getClientById } from '../services/ClientService';
 import { getFactureEcheances, getFacturesTypes, getPostes, getVats } from '../services/SearchService';
 import InvoiceDetailsDTO from '../model/invoice/InvoiceDetailsDTO';
-import PrestationSummary from '../model/prestation/PrestationSummary';
-import { getDate } from '../utils/DateUtils';
 import DossierDTO from '../model/affaire/DossierDTO';
 import moment from 'moment';
 import 'moment/locale/fr';
@@ -61,8 +56,11 @@ import { checkPaymentActivated } from '../services/PaymentServices';
 import ModalNoActivePayment from './affaire/popup/ModalNoActivePayment';
 import { Link, withRouter } from 'react-router-dom';
 import VisibilityIcon from '@material-ui/icons/Visibility';
-import FraisAdminDTO from '../model/fraisadmin/FraisAdminDTO';
-import ComptaDTO from '../model/compta/ComptaDTO';
+import PrestationInvoiceTable from './invoice/PrestationInvoiceTable';
+import FraisAdminInvoiceTable from './invoice/FraisAdminInvoiceTable';
+import DeboursInvoiceTable from './invoice/DeboursInvoiceTable';
+import FraisCollaborationInvoiceTable from './invoice/FraisCollaborationInvoiceTable';
+import { b64toBlob, downloadBlob } from '../utils/TableUtils';
 
 const maxBy = require( 'lodash/maxBy' );
 const forEach = require( 'lodash/forEach' );
@@ -75,16 +73,12 @@ const isEmpty = require( 'lodash/isEmpty' );
 const size = require( 'lodash/size' );
 const filter = require( 'lodash/filter' );
 
-const PRESTATION = 'prestation';
-const FRAIS_ADMIN = 'fraisAdmin';
-const DEBOURS = 'debours';
-const FRAIS_COLLABORATION = 'fraisColla';
-
 function Invoice( props ) {
 
     const notificationAlert = useRef( null );
 
     const [loadingSave, setLoadingSave] = useState( false );
+    const [loadingAnnexe, setLoadingAnnexe] = useState( true );
     const {
         match: { params },
         location: { query },
@@ -94,10 +88,6 @@ function Invoice( props ) {
         vckeySelected, driveType
     } = props;
     const [deleteAlert, setDeleteAlert] = useState( null );
-    const [prestations, setPrestations] = useState( [] );
-    const [fraisAdmin, setFraisAdmin] = useState( [] );
-    const [debours, setDebours] = useState( [] );
-    const [fraisColl, setFraisColl] = useState( [] );
     const [showInvoice, setShowInvoice] = useState( false );
     const [data, setData] = useState( new InvoiceDTO() );
     const { getAccessTokenSilently } = useAuth0();
@@ -110,17 +100,18 @@ function Invoice( props ) {
     const [vats, setVats] = useState( [] );
     const [modalEmailDisplay, setModalEmailDisplay] = useState( false );
     const [modalNotPaidSignDocument, setModalNotPaidSignDocument] = useState( false );
+    const [sendModal, setSendModal] = useState( false );
     const [invoicePdf, setInvoicePdf] = useState( [] );
-    const [subTotalPrestation, setsubTotalPrestation] = useState( { description: label.invoice.label117, amount: 0 } );
-    const [subTotalFraisAdmin, setSubTotalFraisAdmin] = useState( { description: label.invoice.label128, amount: 0 } );
-    const [subTotalDebours, setSubTotalDebours] = useState( { description: label.invoice.label129, amount: 0 } );
-    const [subTotalFraisColla, setSubTotalFraisColla] = useState( { description: label.invoice.label130, amount: 0 } );
 
-    // collapse
-    const [openedCollapsePrestation, setopenedCollapsePrestation] = React.useState( true );
-    const [openedCollapseFraisAdm, setopenedCollapseFraisAdm] = React.useState( false );
-    const [openedCollapseDebours, setopenedCollapseDebours] = React.useState( false );
-    const [openedCollapseFraisColla, setopenedCollapseFraisColla] = React.useState( false );
+    // Annexes
+    const [prestationListVisible, setprestationListVisible] = useState( false );
+    const [fraisAdminListVisible, setfraisAdminListVisible] = useState( false );
+    const [deboursListVisible, setdeboursListVisible] = useState( false );
+    const [fraisCollListVisible, setfraisCollListVisible] = useState( false );
+    const prestations = useRef( [] );
+    const fraisAdmin = useRef( [] );
+    const debours = useRef( [] );
+    const fraisColl = useRef( [] );
 
     const isCreated = useRef( !isNil( params.invoiceid ) ? false : true );
     const affaireid = useRef( !isNil( query ) && !isNil( query.affaireId ) ? query.affaireId : null );
@@ -211,6 +202,11 @@ function Invoice( props ) {
                     }
                 }
 
+                // if no dossier id attached , remove loading because the components are called after dossier id != null
+                if ( isNil( invoiceSummary.dossierId ) ) {
+                    setLoadingAnnexe( false );
+                }
+
                 setData( invoiceSummary );
 
                 // display from creation
@@ -229,35 +225,51 @@ function Invoice( props ) {
 
     useEffect( () => {
         (async () => {
-            const accessToken = await getAccessTokenSilently();
-            // get prestation for invoice
             if ( !isNil( data.dossierId ) ) {
-                getAllFrais( accessToken, invoiceIdRef.current, data.dossierId, ( prest ) => {
-                    let prestList = map( prest, prest => {
-                        return new PrestationSummary( prest );
-                    } );
-                    setPrestations( prestList );
-
-                }, ( fraisAdm ) => {
-                    let fraisTmp = map( fraisAdm, prest => {
-                        return new FraisAdminDTO( prest );
-                    } );
-                    setFraisAdmin( fraisTmp );
-                }, ( debours ) => {
-                    let fraisTmp = map( debours, prest => {
-                        return new ComptaDTO( prest );
-                    } );
-                    setDebours( fraisTmp );
-                }, ( fraisColla ) => {
-                    let fraisTmp = map( fraisColla, prest => {
-                        return new ComptaDTO( prest );
-                    } );
-                    setFraisColl( fraisTmp );
-                } );
+                setLoadingAnnexe( true );
             }
-
         })();
-    }, [getAccessTokenSilently, data.dossierId, params.invoiceid] );
+    }, [data.dossierId] );
+
+    const prestationListFunction = ( list ) => {
+        if ( size( list ) > 0 ) {
+            setprestationListVisible( true );
+        } else {
+            setprestationListVisible( false );
+        }
+        prestations.current = list;
+        setLoadingAnnexe( false );
+    };
+
+    const fraisAdminListFunction = ( list ) => {
+        if ( size( list ) > 0 ) {
+            setfraisAdminListVisible( true );
+        } else {
+            setfraisAdminListVisible( false );
+        }
+        fraisAdmin.current = list;
+        setLoadingAnnexe( false );
+    };
+
+    const deboursListFunction = ( list ) => {
+        if ( size( list ) > 0 ) {
+            setdeboursListVisible( true );
+        } else {
+            setdeboursListVisible( false );
+        }
+        debours.current = list;
+        setLoadingAnnexe( false );
+    };
+
+    const fraisCollListFunction = ( list ) => {
+        if ( size( list ) > 0 ) {
+            setfraisCollListVisible( true );
+        } else {
+            setfraisCollListVisible( false );
+        }
+        fraisColl.current = list;
+        setLoadingAnnexe( false );
+    };
 
     const _togglePopupCheckSession = ( message, type ) => {
         if ( !isNil( message ) && !isNil( type ) ) {
@@ -319,44 +331,10 @@ function Invoice( props ) {
             data.invoiceDetailsDTOList.push( detail );
         }
 
-        const tmp = { description: '', amount: 0 };
-
-        if ( type === PRESTATION ) {
-            tmp.description = label.invoice.label117;
-            setsubTotalPrestation( tmp );
-        } else if ( type === FRAIS_ADMIN ) {
-            tmp.description = label.invoice.label128;
-            setSubTotalFraisAdmin( tmp );
-        } else if ( type === DEBOURS ) {
-            tmp.description = label.invoice.label129;
-            setSubTotalDebours( tmp );
-        } else if ( type === FRAIS_COLLABORATION) {
-            tmp.description = label.invoice.label130;
-            setSubTotalFraisColla( tmp );
-        }
-
         setData( {
             ...data,
             invoiceDetailsDTOList: data.invoiceDetailsDTOList
         } );
-    };
-    const handlesubTotalRemoveDetailClick = ( type ) => {
-        const tmp = { description: '', amount: 0 };
-
-        if ( type === PRESTATION ) {
-            tmp.description = label.invoice.label117;
-            setsubTotalPrestation( tmp );
-        } else if ( type === FRAIS_ADMIN ) {
-            tmp.description = label.invoice.label128;
-            setSubTotalFraisAdmin( tmp );
-        } else if ( type === DEBOURS ) {
-            tmp.description = label.invoice.label129;
-            setSubTotalDebours( tmp );
-        } else if ( type === FRAIS_COLLABORATION ) {
-            tmp.description = label.invoice.label130;
-            setSubTotalFraisColla( tmp );
-        }
-
     };
 
     const handleDeleteDetailClick = ( detail ) => {
@@ -430,19 +408,19 @@ function Invoice( props ) {
 
         data.montant = totalAmount.current;
 
-        data.prestationIdList = filter( map( prestations, prestation => {
+        data.prestationIdList = filter( map( prestations.current, prestation => {
             return prestation.invoiceChecked === true ? prestation.id : null;
         } ), prest => { return !isNil( prest );} );
 
-        data.fraisAdminIdList = filter( map( fraisAdmin, prestation => {
+        data.fraisAdminIdList = filter( map( fraisAdmin.current, prestation => {
             return prestation.invoiceChecked === true ? prestation.id : null;
         } ), prest => { return !isNil( prest );} );
 
-        data.deboursIdList = filter( map( debours, prestation => {
+        data.deboursIdList = filter( map( debours.current, prestation => {
             return prestation.invoiceChecked === true ? prestation.id : null;
         } ), prest => { return !isNil( prest );} );
 
-        data.fraisCollaborationIdList = filter( map( fraisColl, prestation => {
+        data.fraisCollaborationIdList = filter( map( fraisColl.current, prestation => {
             return prestation.invoiceChecked === true ? prestation.id : null;
         } ), prest => { return !isNil( prest );} );
 
@@ -490,19 +468,19 @@ function Invoice( props ) {
 
         data.montant = totalAmount.current;
 
-        data.prestationIdList = filter( map( prestations, prestation => {
+        data.prestationIdList = filter( map( prestations.current, prestation => {
             return prestation.invoiceChecked === true ? prestation.id : null;
         } ), prest => { return !isNil( prest );} );
 
-        data.fraisAdminIdList = filter( map( fraisAdmin, prestation => {
+        data.fraisAdminIdList = filter( map( fraisAdmin.current, prestation => {
             return prestation.invoiceChecked === true ? prestation.id : null;
         } ), prest => { return !isNil( prest );} );
 
-        data.deboursIdList = filter( map( debours, prestation => {
+        data.deboursIdList = filter( map( debours.current, prestation => {
             return prestation.invoiceChecked === true ? prestation.id : null;
         } ), prest => { return !isNil( prest );} );
 
-        data.fraisCollaborationIdList = filter( map( fraisColl, prestation => {
+        data.fraisCollaborationIdList = filter( map( fraisColl.current, prestation => {
             return prestation.invoiceChecked === true ? prestation.id : null;
         } ), prest => { return !isNil( prest );} );
 
@@ -513,6 +491,13 @@ function Invoice( props ) {
         setLoadingSave( false );
     };
 
+    const _openSendModal = async () => {
+        // double check only if it's valid
+        if(data &&  data.valid ) {
+            setSendModal( !sendModal );
+        }
+
+    };
     const _openRegisteredInvoice = async () => {
         const accessToken = await getAccessTokenSilently();
 
@@ -532,7 +517,23 @@ function Invoice( props ) {
         } else {
             _toggleUnPaid();
         }
+        _openSendModal();
     };
+
+    const _download = async() => {
+        let result;
+        if ( data.valid === true ) {
+            const accessToken = await getAccessTokenSilently();
+            result = await generateInvoiceValid( accessToken, data.id );
+            if ( !result.error ) {
+                let pdf = b64toBlob( result.data.binary, result.data.contentType );
+                downloadBlob( pdf, 'report' + moment().format( 'yyyyMMDDhmmss' ) + '.pdf' );
+            } else {
+                showMessage( label.invoice.alert103, 'danger' );
+            }
+        }
+    };
+
     const _toggleUnPaid = () => {
         setModalNotPaidSignDocument( !modalNotPaidSignDocument );
     };
@@ -644,16 +645,24 @@ function Invoice( props ) {
 
     const _handleDossierChange = async ( newValue ) => {
         const accessToken = await getAccessTokenSilently();
-        let resultDossier = await getDossierById( accessToken, newValue.value, vckeySelected );
+        if ( !isNil( newValue ) ) {
+            let resultDossier = await getDossierById( accessToken, newValue.value, vckeySelected );
 
-        if ( !resultDossier.error && !isNil( resultDossier.data ) && !isEmpty( resultDossier.data ) ) {
-            const dossierDefault = new DossierDTO( resultDossier.data );
+            if ( !resultDossier.error && !isNil( resultDossier.data ) && !isEmpty( resultDossier.data ) ) {
+                const dossierDefault = new DossierDTO( resultDossier.data );
+                setData( {
+                    ...data,
+                    dossierId: newValue.value,
+                    dossierItem: newValue,
+                    clientId: isNil( data.clientId ) ? dossierDefault.idClient : data.clientId,
+                    clientItem: isNil( data.clientItem ) ? dossierDefault.client : data.clientItem
+                } );
+            }
+        } else {
             setData( {
                 ...data,
-                dossierId: newValue.value,
-                dossierItem: newValue,
-                clientId: isNil( data.clientId ) ? dossierDefault.idClient : data.clientId,
-                clientItem: isNil( data.clientItem ) ? dossierDefault.client : data.clientItem
+                dossierId: null,
+                dossierItem: null,
             } );
         }
     };
@@ -784,426 +793,6 @@ function Invoice( props ) {
             </Row>
         );
     } ) : null;
-
-    // Data table prestation
-    const columnsPrestation = React.useMemo(
-        () => [
-            {
-                Header: '#',
-                accessor: 'invoiceChecked',
-                Cell: row => {
-                    return (
-                        <FormGroup check>
-                            <Label check>
-                                <Input
-                                    disabled={data.valid}
-                                    defaultChecked={row.value}
-                                    onChange={() => {
-                                        onChangePrestationSelection( row.row.original.id, row.row.original.totalHt );
-                                    }}
-                                    type="checkbox"
-                                />{' '}
-                                <span className="form-check-sign">
-                                    <span className="check"></span>
-                                </span>
-                            </Label>
-                        </FormGroup>
-                    );
-                }
-            }, {
-                Header: label.prestation.label2,
-                accessor: 'tsTypeItem.label'
-            },
-            {
-                Header: label.prestation.label3,
-                accessor: 'dateAction',
-                Cell: row => {
-                    return (
-                        <>{getDate( row.value )}</>
-                    );
-                }
-            },
-            {
-                Header: label.prestation.label4,
-                accessor: 'time',
-                Cell: row => {
-                    return row.row.original.forfait === true ? label.prestation.label1 : (
-                        <p>{row.value}</p>
-                    );
-                }
-            },
-            {
-                Header: label.prestation.label5,
-                accessor: 'totalHt',
-                Cell: row => {
-                    return (
-                        <>{row.value} {currency}</>
-                    );
-                }
-            },
-            {
-                Header: 'Prestataire',
-                accessor: 'idGestItem.label'
-            },
-            {
-                Header: label.prestation.label9,
-                accessor: 'alreadyInvoiced',
-                Cell: row => {
-                    return row.value ? (
-                        <Link to={`/admin/invoice/${row.row.original.factExtId}`}>{row.row.original.factExtRef} </Link>
-                    ) : 'NA';
-                }
-            },
-            {
-                Header: 'Note',
-                accessor: 'comment'
-            },
-            {
-                Header: '',
-                accessor: 'id',
-                Cell: row => {
-                    return (
-                        <div className="float-right">
-                            <Button
-                                disabled={data.valid}
-                                color="primary"
-                                type="button"
-                                size="sm"
-                                onClick={() => {
-                                    const tot = row.row.original.totalHt;
-                                    const descr = row.row.original.tsTypeItem.label;
-
-                                    setsubTotalPrestation( {
-                                        ...subTotalPrestation,
-                                        amount: (subTotalPrestation.amount + tot)
-                                    } );
-
-                                    handlesubTotalAddDetailClick( { description: descr, amount: tot }, PRESTATION );
-                                }}
-                            >
-                                <i className="tim-icons icon-simple-add"/> {label.invoice.label132}
-                            </Button>
-                        </div>
-                    );
-                }
-            }
-        ] );
-
-    // Data table frais admin
-    const columnsFraisAdmin = React.useMemo(
-        () => [
-            {
-                Header: '#',
-                accessor: 'invoiceChecked',
-                Cell: row => {
-                    return (
-                        <FormGroup check>
-                            <Label check>
-                                <Input
-                                    disabled={data.valid}
-                                    defaultChecked={row.value}
-                                    onChange={() => {
-                                        let cost = parseFloat( row.row.original.pricePerUnit ) * parseFloat( row.row.original.unit );
-                                        const tot = parseFloat( round( cost, 2 ).toFixed( 2 ) );
-                                        onChangeFraisAdminSelection( row.row.original.id, tot );
-                                    }}
-                                    type="checkbox"
-                                />{' '}
-                                <span className="form-check-sign">
-                                    <span className="check"></span>
-                                </span>
-                            </Label>
-                        </FormGroup>
-                    );
-                }
-            },
-            {
-                Header: 'Type',
-                accessor: 'idDebourTypeItem.label'
-            },
-            {
-                Header: 'Mesure',
-                accessor: 'mesureDescription'
-            },
-            {
-                Header: 'Prix',
-                accessor: 'price',
-                Cell: row => {
-                    let cost = parseFloat( row.row.original.pricePerUnit ) * parseFloat( row.row.original.unit );
-                    data.costCalculated = round( cost, 2 ).toFixed( 2 );
-                    return (
-                        <>{data.costCalculated} {currency}</>
-                    );
-                }
-            },
-            {
-                Header: 'Unite',
-                accessor: 'unit'
-            },
-            {
-                Header: label.prestation.label9,
-                accessor: 'alreadyInvoiced',
-                Cell: row => {
-                    return row.value ? (
-                        <Link to={`/admin/invoice/${row.row.original.factExtId}`}>{row.row.original.factExtRef} </Link>
-                    ) : 'NA';
-                }
-            },
-            {
-                Header: '',
-                accessor: 'id',
-                Cell: row => {
-                    return (
-                        <div className="float-right">
-                            <Button
-                                color="primary"
-                                disabled={data.valid}
-                                type="button"
-                                size="sm"
-                                onClick={() => {
-                                    let cost = parseFloat( row.row.original.pricePerUnit ) * parseFloat( row.row.original.unit );
-                                    const tot = parseFloat( round( cost, 2 ).toFixed( 2 ) );
-                                    const descr = row.row.original.idDebourTypeItem.label;
-
-                                    setSubTotalFraisAdmin( {
-                                        ...subTotalFraisAdmin,
-                                        amount: (subTotalFraisAdmin.amount + tot)
-                                    } );
-
-                                    handlesubTotalAddDetailClick( { description: descr, amount: tot }, FRAIS_ADMIN );
-                                }}
-                            >
-                                <i className="tim-icons icon-simple-add"/> {label.invoice.label132}
-                            </Button>
-                        </div>
-                    );
-                }
-            }
-        ] );
-
-    // Data table debours
-    const columnsDebours = React.useMemo(
-        () => [
-            {
-                Header: '#',
-                accessor: 'invoiceChecked',
-                Cell: row => {
-                    return (
-                        <FormGroup check>
-                            <Label check>
-                                <Input
-                                    defaultChecked={row.value}
-                                    disabled={data.valid}
-                                    onChange={() => {
-                                        onChangeDeboursSelection( row.row.original.id, row.row.original.montantHt );
-                                    }}
-                                    type="checkbox"
-                                />{' '}
-                                <span className="form-check-sign">
-                                    <span className="check"></span>
-                                </span>
-                            </Label>
-                        </FormGroup>
-                    );
-                }
-            },
-            {
-                Header: 'Poste',
-                accessor: 'poste.label'
-            },
-            {
-                Header: 'Tiers',
-                accessor: 'tiersFullname'
-            },
-            {
-                Header: 'Montant HT',
-                accessor: 'montantHt',
-                width: 50
-            },
-            {
-                Header: 'Montant',
-                accessor: 'montant',
-                width: 50
-            },
-            {
-                Header: label.prestation.label9,
-                accessor: 'alreadyInvoiced',
-                Cell: row => {
-                    return row.value ? (
-                        <Link to={`/admin/invoice/${row.row.original.factExtId}`}>{row.row.original.factExtRef} </Link>
-                    ) : 'NA';
-                }
-            },
-            {
-                Header: '',
-                accessor: 'id',
-                Cell: row => {
-                    return (
-                        <div className="float-right">
-                            <Button
-                                color="primary"
-                                type="button"
-                                disabled={data.valid}
-                                size="sm"
-                                onClick={() => {
-                                    const tot = row.row.original.montant;
-                                    const descr = row.row.original.poste.label;
-
-                                    setSubTotalDebours( {
-                                        ...subTotalDebours,
-                                        amount: (subTotalDebours.amount + tot)
-                                    } );
-
-                                    handlesubTotalAddDetailClick( { description: descr, amount: tot }, DEBOURS );
-                                }}
-                            >
-                                <i className="tim-icons icon-simple-add"/> {label.invoice.label132}
-                            </Button>
-                        </div>
-                    );
-                }
-            }
-        ] );
-    // Data table fraisCollaborat
-    const columnsFraisCollaborat = React.useMemo(
-        () => [
-            {
-                Header: '#',
-                accessor: 'invoiceChecked',
-                Cell: row => {
-                    return (
-                        <FormGroup check>
-                            <Label check>
-                                <Input
-                                    defaultChecked={row.value}
-                                    disabled={data.valid}
-                                    onChange={() => {
-                                        onChangeFraisCollaboratSelection( row.row.original.id, row.row.original.montantHt );
-                                    }}
-                                    type="checkbox"
-                                />{' '}
-                                <span className="form-check-sign">
-                                    <span className="check"></span>
-                                </span>
-                            </Label>
-                        </FormGroup>
-                    );
-                }
-            },
-            {
-                Header: 'Poste',
-                accessor: 'poste.label'
-            },
-            {
-                Header: 'Tiers',
-                accessor: 'tiersFullname'
-            },
-            {
-                Header: 'Montant HT',
-                accessor: 'montantHt',
-                width: 50
-            },
-            {
-                Header: 'Montant',
-                accessor: 'montant',
-                width: 50
-            },
-            {
-                Header: label.prestation.label9,
-                accessor: 'alreadyInvoiced',
-                Cell: row => {
-                    return row.value ? (
-                        <Link to={`/admin/invoice/${row.row.original.factExtId}`}>{row.row.original.factExtRef} </Link>
-                    ) : 'NA';
-                }
-            },
-            {
-                Header: '',
-                accessor: 'id',
-                Cell: row => {
-                    return (
-                        <div className="float-right">
-                            <Button
-                                color="primary"
-                                disabled={data.valid}
-                                type="button"
-                                size="sm"
-                                onClick={() => {
-                                    const tot = <row className="row original montantHt"></row>;
-                                    const descr = row.row.original.poste.label;
-
-                                    setSubTotalFraisColla( {
-                                        ...subTotalFraisColla,
-                                        amount: (subTotalFraisColla.amount + tot)
-                                    } );
-
-                                    handlesubTotalAddDetailClick( {
-                                        description: descr,
-                                        amount: tot
-                                    }, FRAIS_COLLABORATION );
-                                }}
-                            >
-                                <i className="tim-icons icon-simple-add"/> {label.invoice.label132}
-                            </Button>
-                        </div>
-                    );
-                }
-            }
-        ] );
-
-    const onChangePrestationSelection = ( id, totalHt ) => {
-        let prestationsTemp = prestations;
-
-        let index = prestationsTemp.findIndex( object => object.id === id );
-        let prestation = prestationsTemp[ index ];
-        prestation.invoiceChecked = !prestation.invoiceChecked;
-
-        if ( prestation.invoiceChecked === true ) {
-            setsubTotalPrestation( { ...subTotalPrestation, amount: (subTotalPrestation.amount + totalHt) } );
-        }
-
-        prestationsTemp[ index ] = prestation;
-        setPrestations( [...prestationsTemp] );
-    };
-    const onChangeFraisAdminSelection = ( id, totalHt ) => {
-        let fraisAdminTmp = fraisAdmin;
-        let index = fraisAdminTmp.findIndex( object => object.id === id );
-        let fraisAdm = fraisAdminTmp[ index ];
-        fraisAdm.invoiceChecked = !fraisAdm.invoiceChecked;
-
-        if ( fraisAdm.invoiceChecked === true ) {
-            setSubTotalFraisAdmin( { ...subTotalFraisAdmin, amount: (subTotalFraisAdmin.amount + totalHt) } );
-        }
-        fraisAdminTmp[ index ] = fraisAdm;
-        setFraisAdmin( [...fraisAdminTmp] );
-    };
-
-    const onChangeDeboursSelection = ( id, totalHt ) => {
-        let deboursTmp = debours;
-        let index = deboursTmp.findIndex( object => object.id === id );
-        let debour = deboursTmp[ index ];
-        debour.invoiceChecked = !debour.invoiceChecked;
-
-        if ( debour.invoiceChecked === true ) {
-            setSubTotalDebours( { ...subTotalDebours, amount: (subTotalDebours.amount + totalHt) } );
-        }
-
-        deboursTmp[ index ] = debour;
-        setDebours( [...deboursTmp] );
-    };
-    const onChangeFraisCollaboratSelection = ( id, totalHt ) => {
-        let fraisCollaboratTmp = fraisColl;
-        let index = fraisCollaboratTmp.findIndex( object => object.id === id );
-        let fraisCol = fraisCollaboratTmp[ index ];
-        fraisCol.invoiceChecked = !fraisCol.invoiceChecked;
-
-        if ( fraisCol.invoiceChecked === true ) {
-            setSubTotalFraisColla( { ...subTotalFraisColla, amount: (subTotalFraisColla.amount + totalHt) } );
-        }
-
-        fraisCollaboratTmp[ index ] = fraisCol;
-        setFraisColl( [...fraisCollaboratTmp] );
-    };
 
     const totalTVAComponent = () => {
 
@@ -1345,7 +934,7 @@ function Invoice( props ) {
                                         <Button color="primary" type="button" disabled={loadingSave}
                                                 onClick={_updateInvoice}
                                         >
-                                            {label.common.update}
+                                            {label.common.save}
                                         </Button>
                                     ) : null}
                                     {(isCreated.current === false ? (
@@ -1388,7 +977,7 @@ function Invoice( props ) {
                                     {/*  SEND REGISTERED EMAIL BUTTON */}
                                     {!isCreated.current && data.valid === true ? (
                                         <Button color="primary" type="button" disabled={loadingSave}
-                                                onClick={_openRegisteredInvoice}
+                                                onClick={_openSendModal}
                                         >
                                             {label.common.send}
                                         </Button>
@@ -1472,7 +1061,8 @@ function Invoice( props ) {
                                                                     loadOptions={_loadDossierOptions}
                                                                     defaultOptions
                                                                     onChange={_handleDossierChange}
-                                                                    placeholder="numero dossier ou annee"
+                                                                    isClearable={true}
+                                                                    placeholder={label.affaire.filterDossier}
                                                                 />
                                                             </FormGroup>
                                                         </Col>
@@ -1706,27 +1296,32 @@ function Invoice( props ) {
                         {/* ANNEXE */}
                         <Row>
                             <Col md="12" sm={12}>
-                                {(size( prestations ) > 0
-                                    || size( fraisAdmin ) > 0
-                                    || size( debours ) > 0
-                                    || size( fraisColl ) > 0) ? (
-                                    <Card>
-                                        <CardHeader>
-                                            <Row>
-                                                <Col md={8}>
-                                                    <CardTitle>
-                                                        <h4>{label.invoice.label131}
-                                                        </h4>
-                                                    </CardTitle>
-                                                </Col>
-                                            </Row>
-                                        </CardHeader>
+                                {loadingAnnexe === false ? (
+                                    <>
+                                        {(prestationListVisible === true
+                                            || fraisAdminListVisible === true
+                                            || deboursListVisible === true
+                                            || fraisCollListVisible === true) ? (
+                                            <Card>
+                                                <CardHeader>
+                                                    <Row>
+                                                        <Col md={8}>
+                                                            <CardTitle>
+                                                                <h4>{label.invoice.label131}
+                                                                </h4>
+                                                            </CardTitle>
+                                                        </Col>
+                                                    </Row>
+                                                </CardHeader>
 
-                                    </Card>
-                                ) : null}
+                                            </Card>
+                                        ) : null}
+                                    </>
+                                ) : (
+                                    <ReactLoading className="loading" height={'20%'} width={'20%'}/>
+                                )}
                             </Col>
                         </Row>
-
                         <div
                             aria-multiselectable={true}
                             className="card-collapse"
@@ -1734,306 +1329,60 @@ function Invoice( props ) {
                             role="tablist"
                         >
                             {/* prestations*/}
-                            {prestations && size( prestations ) > 0 ? (
-                                <Card className="card-plain">
-                                    <CardHeader role="tab">
-                                        <a
-                                            aria-expanded={openedCollapsePrestation}
-                                            href="#pablo"
-                                            data-parent="#accordion"
-                                            data-toggle="collapse"
-                                            onClick={( e ) => {
-                                                e.preventDefault();
-                                                setopenedCollapsePrestation( !openedCollapsePrestation );
-                                            }}
-                                        >
-                                            {label.invoice.label117}{' '}
+                            {!isNil( data.dossierId ) ? (
+                                <PrestationInvoiceTable
+                                    currency={currency}
+                                    prestationListFunction={prestationListFunction}
+                                    invoiceId={invoiceIdRef.current}
+                                    dossierId={data.dossierId}
+                                    prestations={prestations.current}
+                                    label={label}
+                                    handlesubTotalAddDetail={handlesubTotalAddDetailClick}
+                                />
+                            ) : null
+                            }
 
-
-                                            <i className="tim-icons icon-minimal-down"/>
-                                        </a>
-                                        {/* SUBTOTAL PRESTATION*/}
-                                        <Form className="form-horizontal">
-                                            <Col md={6}>
-                                                {subTotalPrestation.amount > 0 ? (
-                                                    <Row>
-                                                        <Col md="7" sm={7}>
-                                                            <label>{label.invoice.label118}</label>
-                                                            <FormGroup>
-                                                                <Input type="textarea"
-                                                                       rows={2}
-                                                                       onChange={( event ) => {
-                                                                           subTotalPrestation.description = event.target.value;
-
-                                                                           setsubTotalPrestation( {
-                                                                               ...subTotalPrestation,
-                                                                               description: subTotalPrestation.description
-                                                                           } );
-                                                                       }}
-                                                                       value={subTotalPrestation.description}/>
-                                                            </FormGroup>
-                                                        </Col>
-                                                        <Col md="3" sm={3}>
-                                                            <label>{label.invoice.label104}</label>
-                                                            <FormGroup>
-                                                                {subTotalPrestation.amount} {currency}
-                                                            </FormGroup>
-                                                        </Col>
-                                                        <Col md="2" sm={2}>
-                                                            <label></label>
-                                                            <FormGroup>
-                                                                <Button className="float-right" size="sm"
-                                                                        color="primary"
-                                                                        onClick={() => handlesubTotalAddDetailClick( subTotalPrestation, PRESTATION )}
-                                                                >
-                                                                    <i className="tim-icons  icon-simple-add padding-icon-text"/> {label.invoice.label132}
-                                                                </Button>
-                                                                <Button className="float-right" size="sm"
-                                                                        color="danger"
-                                                                        onClick={() => handlesubTotalRemoveDetailClick( PRESTATION )}
-                                                                >
-                                                                    <i className="tim-icons icon-simple-remove padding-icon-text"/> {label.common.clear}
-                                                                </Button>
-                                                            </FormGroup>
-                                                        </Col>
-                                                    </Row>
-                                                ) : null}
-                                            </Col>
-                                        </Form>
-                                    </CardHeader>
-                                    <Collapse role="tabpanel" isOpen={openedCollapsePrestation}>
-                                        <CardBody>
-                                            <ReactTableLocal columns={columnsPrestation} data={prestations}/>
-                                        </CardBody>
-                                    </Collapse>
-                                </Card>
-                            ) : null}
 
                             {/* frais admin */}
-                            {fraisAdmin && size( fraisAdmin ) > 0 ? (
-                                <Card className="card-plain">
-                                    <CardHeader role="tab">
-                                        <a
-                                            aria-expanded={openedCollapseFraisAdm}
-                                            href="#pablo"
-                                            data-parent="#accordion"
-                                            data-toggle="collapse"
-                                            onClick={( e ) => {
-                                                e.preventDefault();
-                                                setopenedCollapseFraisAdm( !openedCollapseFraisAdm );
-                                            }}
-                                        >
-                                            {label.invoice.label128}{' '}
-                                            <i className="tim-icons icon-minimal-down"/>
-                                        </a>
-                                        {/* SUBTOTAL FRAIS ADMIN*/}
-                                        <Form className="form-horizontal">
-                                            <Col md={6}>
-                                                {subTotalFraisAdmin.amount > 0 ? (
-                                                    <Row>
-                                                        <Col md="7" sm={7}>
-                                                            <label>{label.invoice.label118}</label>
-                                                            <FormGroup>
-                                                                <Input type="textarea"
-                                                                       rows={2}
-                                                                       onChange={( event ) => {
-                                                                           subTotalFraisAdmin.description = event.target.value;
-
-                                                                           setSubTotalFraisAdmin( {
-                                                                               ...subTotalFraisAdmin,
-                                                                               description: subTotalFraisAdmin.description
-                                                                           } );
-                                                                       }}
-                                                                       value={subTotalFraisAdmin.description}/>
-                                                            </FormGroup>
-                                                        </Col>
-                                                        <Col md="3" sm={3}>
-                                                            <label>{label.invoice.label104}</label>
-                                                            <FormGroup>
-                                                                {subTotalFraisAdmin.amount} {currency}
-                                                            </FormGroup>
-                                                        </Col>
-                                                        <Col md="2" sm={2}>
-                                                            <label></label>
-                                                            <FormGroup>
-                                                                <Button className="float-right" size="sm"
-                                                                        color="primary"
-                                                                        onClick={() => handlesubTotalAddDetailClick( subTotalFraisAdmin, FRAIS_ADMIN )}
-                                                                >
-                                                                    <i className="tim-icons  icon-simple-add padding-icon-text"/> {label.invoice.label132}
-                                                                </Button>
-                                                                <Button className="float-right" size="sm"
-                                                                        color="danger"
-                                                                        onClick={() => handlesubTotalRemoveDetailClick( FRAIS_ADMIN )}
-                                                                >
-                                                                    <i className="tim-icons icon-simple-remove padding-icon-text"/> {label.common.clear}
-                                                                </Button>
-                                                            </FormGroup>
-                                                        </Col>
-                                                    </Row>
-                                                ) : null}
-                                            </Col>
-                                        </Form>
-
-                                    </CardHeader>
-                                    <Collapse role="tabpanel" isOpen={openedCollapseFraisAdm}>
-                                        <CardBody>
-                                            <ReactTableLocal columns={columnsFraisAdmin} data={fraisAdmin}/>
-                                        </CardBody>
-                                    </Collapse>
-                                </Card>
-                            ) : null}
-
+                            {!isNil( data.dossierId ) ? (
+                                <FraisAdminInvoiceTable
+                                    currency={currency}
+                                    fraisAdminListFunction={fraisAdminListFunction}
+                                    invoiceId={invoiceIdRef.current}
+                                    dossierId={data.dossierId}
+                                    fraisAdmin={fraisAdmin.current}
+                                    label={label}
+                                    handlesubTotalAddDetailClick={handlesubTotalAddDetailClick}
+                                />
+                            ) : null
+                            }
                             {/* debours */}
-                            {debours && size( debours ) > 0 ? (
-                                <Card className="card-plain">
-                                    <CardHeader role="tab">
-                                        <a
-                                            aria-expanded={openedCollapseDebours}
-                                            href="#pablo"
-                                            data-parent="#accordion"
-                                            data-toggle="collapse"
-                                            onClick={( e ) => {
-                                                e.preventDefault();
-                                                setopenedCollapseDebours( !openedCollapseDebours );
-                                            }}
-                                        >
-                                            {label.invoice.label129}{' '}
-                                            <i className="tim-icons icon-minimal-down"/>
-                                        </a>
-                                        {/* SUBTOTAL DEBOURS */}
-                                        <Form className="form-horizontal">
-                                            <Col md={6}>
-                                                {subTotalDebours.amount > 0 ? (
-                                                    <Row>
-                                                        <Col md="7" sm={7}>
-                                                            <label>{label.invoice.label118}</label>
-                                                            <FormGroup>
-                                                                <Input type="textarea"
-                                                                       rows={2}
-                                                                       onChange={( event ) => {
-                                                                           subTotalDebours.description = event.target.value;
-
-                                                                           setSubTotalDebours( {
-                                                                               ...subTotalDebours,
-                                                                               description: subTotalDebours.description
-                                                                           } );
-                                                                       }}
-                                                                       value={subTotalDebours.description}/>
-                                                            </FormGroup>
-                                                        </Col>
-                                                        <Col md="3" sm={3}>
-                                                            <label>{label.invoice.label104}</label>
-                                                            <FormGroup>
-                                                                {subTotalDebours.amount} {currency}
-                                                            </FormGroup>
-                                                        </Col>
-                                                        <Col md="2" sm={2}>
-                                                            <label></label>
-                                                            <FormGroup>
-                                                                <Button className="float-right" size="sm"
-                                                                        color="primary"
-                                                                        onClick={() => handlesubTotalAddDetailClick( subTotalDebours, DEBOURS )}
-                                                                >
-                                                                    <i className="tim-icons  icon-simple-add padding-icon-text"/> {label.invoice.label132}
-                                                                </Button>
-                                                                <Button className="float-right" size="sm"
-                                                                        color="danger"
-                                                                        onClick={() => handlesubTotalRemoveDetailClick( DEBOURS )}
-                                                                >
-                                                                    <i className="tim-icons icon-simple-remove padding-icon-text"/> {label.common.clear}
-                                                                </Button>
-                                                            </FormGroup>
-                                                        </Col>
-                                                    </Row>
-                                                ) : null}
-                                            </Col>
-                                        </Form>
-
-                                    </CardHeader>
-                                    <Collapse role="tabpanel" isOpen={openedCollapseDebours}>
-                                        <CardBody>
-                                            <ReactTableLocal columns={columnsDebours} data={debours}/>
-                                        </CardBody>
-                                    </Collapse>
-                                </Card>
-                            ) : null}
+                            {!isNil( data.dossierId ) ? (
+                                <DeboursInvoiceTable
+                                    currency={currency}
+                                    deboursListFunction={deboursListFunction}
+                                    invoiceId={invoiceIdRef.current}
+                                    dossierId={data.dossierId}
+                                    debours={debours.current}
+                                    label={label}
+                                    handlesubTotalAddDetailClick={handlesubTotalAddDetailClick}
+                                />
+                            ) : null
+                            }
 
                             {/* frais colla */}
-                            {fraisColl && size( fraisColl ) > 0 ? (
-                                <Card className="card-plain">
-                                    <CardHeader role="tab">
-                                        <a
-                                            aria-expanded={openedCollapseFraisColla}
-                                            href="#pablo"
-                                            data-parent="#accordion"
-                                            data-toggle="collapse"
-                                            onClick={( e ) => {
-                                                e.preventDefault();
-                                                setopenedCollapseFraisColla( !openedCollapseFraisColla );
-                                            }}
-                                        >
-                                            {label.invoice.label130}{' '}
-                                            <i className="tim-icons icon-minimal-down"/>
-                                        </a>
-                                        {/* SUBTOTAL frais colla */}
-                                        <Form className="form-horizontal">
-                                            <Col md={6}>
-                                                {subTotalFraisColla.amount > 0 ? (
-                                                    <Row>
-                                                        <Col md="7" sm={7}>
-                                                            <label>{label.invoice.label118}</label>
-                                                            <FormGroup>
-                                                                <Input type="textarea"
-                                                                       rows={2}
-                                                                       onChange={( event ) => {
-                                                                           subTotalFraisColla.description = event.target.value;
-
-                                                                           setSubTotalFraisColla( {
-                                                                               ...subTotalFraisColla,
-                                                                               description: subTotalFraisColla.description
-                                                                           } );
-                                                                       }}
-                                                                       value={subTotalFraisColla.description}/>
-                                                            </FormGroup>
-                                                        </Col>
-                                                        <Col md="3" sm={3}>
-                                                            <label>{label.invoice.label104}</label>
-                                                            <FormGroup>
-                                                                {subTotalFraisColla.amount} {currency}
-                                                            </FormGroup>
-                                                        </Col>
-                                                        <Col md="2" sm={2}>
-                                                            <label></label>
-                                                            <FormGroup>
-                                                                <Button className="float-right" size="sm"
-                                                                        color="primary"
-                                                                        onClick={() => handlesubTotalAddDetailClick( subTotalFraisColla, FRAIS_COLLABORATION )}
-                                                                >
-                                                                    <i className="tim-icons  icon-simple-add padding-icon-text"/> {label.invoice.label132}
-                                                                </Button>
-                                                                <Button className="float-right" size="sm"
-                                                                        color="danger"
-                                                                        onClick={() => handlesubTotalRemoveDetailClick( FRAIS_COLLABORATION )}
-                                                                >
-                                                                    <i className="tim-icons icon-simple-remove padding-icon-text"/> {label.common.clear}
-                                                                </Button>
-                                                            </FormGroup>
-                                                        </Col>
-                                                    </Row>
-                                                ) : null}
-                                            </Col>
-                                        </Form>
-
-                                    </CardHeader>
-                                    <Collapse role="tabpanel" isOpen={openedCollapseFraisColla}>
-                                        <CardBody>
-                                            <ReactTableLocal columns={columnsFraisCollaborat} data={fraisColl}/>
-                                        </CardBody>
-                                    </Collapse>
-                                </Card>
-                            ) : null}
-
+                            {!isNil( data.dossierId ) ? (
+                                <FraisCollaborationInvoiceTable
+                                    currency={currency}
+                                    fraisCollListFunction={fraisCollListFunction}
+                                    invoiceId={invoiceIdRef.current}
+                                    dossierId={data.dossierId}
+                                    fraisColl={fraisColl.current}
+                                    label={label}
+                                    handlesubTotalAddDetailClick={handlesubTotalAddDetailClick}
+                                />
+                            ) : null
+                            }
                         </div>
 
                     </fieldset>
@@ -2110,6 +1459,42 @@ function Invoice( props ) {
                     toggleModalDetails={_toggleUnPaid}
                     modalDisplay={modalNotPaidSignDocument}/>
             ) : null}
+
+            {/*  SEND INVOICE MODAL  */}
+            {sendModal ? (
+                <Modal isOpen={sendModal} toggle={_openSendModal}
+                       size="sm" >
+                    <ModalHeader className="justify-content-center" toggle={_openSendModal}>
+                        {label.invoice.label134}
+                    </ModalHeader>
+                    <ModalBody>
+                        <Card>
+                            <CardHeader>
+                            </CardHeader>
+                            <CardBody>
+                                <Row>
+                                    <Col lg={12} md={12} sm={12} xs={12}>
+                                        <Button size={`md`}
+                                                className="very-big-btn"
+                                                color={`info`}
+                                                onClick={_openRegisteredInvoice}
+                                                block>{label.mail.label32}</Button>
+                                    </Col>
+                                    <Col lg={12} md={12} sm={12} xs={12}>
+                                        <Button size={`md`}
+                                                color={`info`}
+                                                className="very-big-btn"
+                                                onClick={_download}
+                                                block>{label.common.download}</Button>
+                                    </Col>
+                                </Row>
+
+                            </CardBody>
+                        </Card>
+                    </ModalBody>
+                </Modal>
+            ) : null}
+
         </>
     );
 };

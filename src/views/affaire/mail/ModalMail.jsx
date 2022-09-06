@@ -297,6 +297,8 @@ export default function ModalMail( {
                 , 1000 );
 
             setUpdateDossierDisable( !updateDossierDisable );
+        } else {
+            showMessage( label.mail.error1, 'error' );
         }
 
         setIsLoading( false );

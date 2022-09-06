@@ -143,7 +143,9 @@ class App extends Component {
         if ( isAuthenticated ) {
             route = (
                 <Switch>
+                    {/* already login */}
                     <Route exact path='/callback' component={Callback}/>
+                    <Route exact path='/login' component={Callback}/>
                     <Route exact path='/verify' component={(props)=> <Verify labelProps={labelDefault} {...props}/>}/>
                     <Route exact path='/dropbox' component={Dropbox}/>
                     <PrivateRoute path="/auth" render={props => <AuthLayout {...props} />}/>

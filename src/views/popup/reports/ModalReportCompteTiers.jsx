@@ -6,7 +6,7 @@ import {
     CardBody,
     CardFooter,
     CardHeader,
-    Col, FormGroup,
+    Col, FormGroup, Input,
     Modal,
     ModalBody,
     ModalHeader,
@@ -20,6 +20,7 @@ import ReactLoading from 'react-loading';
 import { generateReportCompteTiers } from '../../../services/ComptaServices';
 import DatePicker from 'react-datepicker';
 import Select from 'react-select';
+const isNil = require( 'lodash/isNil' );
 
 export default function ModalReportCompteTiers( { openDialog, toggle, label, showMessage, vckeySelected } ) {
     const tempStart = moment( moment().startOf( 'year' ).format( 'YYYY-MM-DD' ) ).toDate();
@@ -30,6 +31,7 @@ export default function ModalReportCompteTiers( { openDialog, toggle, label, sho
     const [start, setStart] = useState( tempStart );
     const [end, setEnd] = useState( tempEnd );
     const [balanceZero, setBalanceZero] = useState( [{ value: null, label: label.common.label19 }] );
+    const [balance, setBalance] = useState( null );
 
     const [numPages, setNumPages] = useState( null );
     const [pageNumber, setPageNumber] = useState( 1 );
@@ -37,7 +39,7 @@ export default function ModalReportCompteTiers( { openDialog, toggle, label, sho
     const _generate = async () => {
         const accessToken = await getAccessTokenSilently();
         setIsLoading( true );
-        let result = await generateReportCompteTiers( accessToken, start, end, vckeySelected, balanceZero );
+        let result = await generateReportCompteTiers( accessToken, start, end, vckeySelected, balanceZero, balance );
         if ( !result.error ) {
             let pdf = b64toBlob( result.data, '' );
             setPageNumber( 1 );
@@ -106,7 +108,7 @@ export default function ModalReportCompteTiers( { openDialog, toggle, label, sho
                             </Col>
                         </Row>
                         <Row>
-                            <Col md="6">
+                            <Col md="2">
                                 <FormGroup>
                                     <Select
                                         className="react-select info"
@@ -118,13 +120,30 @@ export default function ModalReportCompteTiers( { openDialog, toggle, label, sho
                                         }
                                         options={[
                                             { value: null, label: label.common.label19 },
-                                            { value: false, label: '= 0' },
-                                            { value: true, label: '<> 0' }
+                                            { value: 0, label: '= ' },
+                                            { value: 1, label: '> ' },
+                                            { value: -1, label: '< ' }
                                         ]}
                                         placeholder={label.comptalist.label11}
                                     />
                                 </FormGroup>
                             </Col>
+                            {!isNil(balanceZero) && !isNil(balanceZero.value) ? (
+                                <Col md="3">
+                                    <FormGroup>
+                                        <Input
+                                            className="form-control"
+                                            type="number"
+                                            name="balance"
+                                            defaultValue={balance}
+                                            onChange={event =>
+                                                setBalance( event.target.valueAsNumber )
+                                            }
+                                            placeholder={label.comptalist.label11}
+                                        />
+                                    </FormGroup>
+                                </Col>
+                            ): null}
                         </Row>
                         {file ? (<>
                             <Document

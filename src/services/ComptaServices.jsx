@@ -204,7 +204,7 @@ export async function generateReportCompta( accessToken, start, end, vckeySelect
         return { error: true, data: {}};
     }
 }
-export async function generateReportCompteTiers( accessToken, start, end, vckeySelected, balanceZero ) {
+export async function generateReportCompteTiers( accessToken, start, end, vckeySelected, balanceZero, balance, compteId ) {
     try {
         return axios.get( `${process.env.REACT_APP_REPORT_SERVER}v1/compta/tiers`, {
                 params:{
@@ -212,6 +212,8 @@ export async function generateReportCompteTiers( accessToken, start, end, vckeyS
                     endDate: end,
                     vcKey: vckeySelected,
                     balanceZero: balanceZero.value,
+                    balance: balance,
+                    compteId: compteId,
                 },
                 headers: {
                     Authorization: `Bearer ${accessToken}`

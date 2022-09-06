@@ -25,6 +25,8 @@ export default class LawfirmCalendarEventDTO {
     microText;
     audioText;
     speechToTextActivated = false;
+    roomAttached = false;
+    urlRoom ;
     // use in v1
     contact;
     dossier;
@@ -53,6 +55,8 @@ export default class LawfirmCalendarEventDTO {
             this.microText = data.microText;
             this.audioText = data.audioText;
             this.speechToTextActivated = data.speechToTextActivated;
+            this.roomAttached = data.roomAttached;
+            this.urlRoom = data.urlRoom;
             this.start = moment(data.start).toDate();
             this.end = moment(data.end).toDate();
         }

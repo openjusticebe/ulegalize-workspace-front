@@ -15,7 +15,7 @@ import {
     Table
 } from 'reactstrap';
 import ReactLoading from 'react-loading';
-import { useFilters, usePagination, useTable } from 'react-table';
+import { useFilters, usePagination, useTable, useSortBy } from 'react-table';
 // nodejs library that concatenates classes
 import { Link } from 'react-router-dom';
 import { getDossierList } from '../../services/DossierService';
@@ -41,10 +41,11 @@ export default function DossiersList( props ) {
 
     const { getAccessTokenSilently } = useAuth0();
 
-    const filteredRef = useRef( { client: null, number: null, year: null, balance: '', initiales: '' } );
+    const filteredRef = useRef( { client: null, number: null, year: null, balance: '', initiales: '', orderOpen: 0 } );
     const [filteredArchived, setFilteredArchived] = useState( '0' );
     const [filteredBalance, setFilteredBalance] = useState( '' );
     const [filteredClient, setFilteredClient] = useState( '' );
+    const [sortOpenDate, setsortOpenDate] = useState( 0 );
     const [filteredNumber, setFilteredNumber] = useState( null );
     const [filteredYear, setFilteredYear] = useState( null );
     const [filteredInitiale, setFilteredInitiale] = useState( '' );
@@ -68,20 +69,23 @@ export default function DossiersList( props ) {
                         </div>
                     );
                 },
-                disableFilters: true
+                disableFilters: true,
+                disableSortBy: true,
             },
             {
                 Header: label.affaireList.label2,
                 accessor: row => (row.year + '/' + padStart( row.num, 4, '0' )),
                 filter: 'fuzzyText',
                 Filter: DossierColumnFilter,
-                width: 150
+                width: 150,
+                disableSortBy: true
             },
             {
                 Header: label.affaireList.label7,
                 accessor: 'typeItem.label',
                 disableFilters: true,
-                minWidth: 200
+                minWidth: 200,
+                disableSortBy: true
             },
             {
                 Header: label.affaireList.label3,
@@ -89,8 +93,8 @@ export default function DossiersList( props ) {
                 accessor: row => (`(${row.initiales})`),
                 filter: 'fuzzyText',
                 Filter: InitialeColumnFilter,
-                width: 100
-
+                width: 100,
+                disableSortBy: true
             },
             {
                 Header: label.affaireList.label4,
@@ -105,19 +109,31 @@ export default function DossiersList( props ) {
                 // Use our custom `fuzzyText` filter on this column
                 filter: 'fuzzyText',
                 Filter: ClientColumnFilter,
-                minWidth: 600
+                minWidth: 600,
+                disableSortBy: true
             },
             {
                 Header: label.affaireList.label5,
                 accessor: 'balance',
                 filter: 'fuzzyText',
                 Filter: BalanceColumnFilter,
+                disableSortBy: true
             },
             {
                 Header: label.affaireList.label6,
                 accessor: row => (row.closeDossier ? getDate( row.closeDossier ) : 'NA'),
                 filter: 'fuzzyText',
                 Filter: ArchivedColumnFilter,
+                disableSortBy: true
+            },
+            {
+                Header: label.affaireList.label8,
+                accessor: row => (row.openDossier ? getDate( row.openDossier ) : 'NA'),
+                disableFilters: true,
+                disableSortBy: false,
+                sortType: (row)=> {
+                    console.log("info sort")
+                }
             },
 
         ],
@@ -325,6 +341,7 @@ export default function DossiersList( props ) {
                 pageSize: PAGE_SIZE,
                 pageIndex: 0,
             },
+            manualSortBy:true,
             manualPagination: true,
             pageCount: ceil( count / PAGE_SIZE ),
             autoResetPage: !skipPageResetRef.current,
@@ -336,6 +353,7 @@ export default function DossiersList( props ) {
             autoResetRowState: !skipPageResetRef.current,
         },
         useFilters,
+        useSortBy,
         usePagination
     );
 
@@ -347,7 +365,7 @@ export default function DossiersList( props ) {
             let result;
             loadRef.current = false;
 
-            result = await getDossierList( accessToken, offset, pageSize, vckeySelected, filteredClient, filteredYear, filteredNumber, filteredBalance, filteredInitiale, filteredArchived );
+            result = await getDossierList( accessToken, offset, pageSize, vckeySelected, filteredClient, filteredYear, filteredNumber, filteredBalance, filteredInitiale, filteredArchived, sortOpenDate );
 
             if ( !result.error ) {
                 skipPageResetRef.current = true;
@@ -474,7 +492,24 @@ export default function DossiersList( props ) {
                                                     {headerGroups.map( headerGroup => (
                                                         <tr {...headerGroup.getHeaderGroupProps()}>
                                                             {headerGroup.headers.map( column => (
-                                                                <th {...column.getHeaderProps()}>{column.render( 'Header' )}
+                                                                <th {...column.getHeaderProps(column.getSortByToggleProps())}
+                                                                    onClick={(e)=>{
+                                                                        console.log(column)
+                                                                        if(!column.disableSortBy) {
+                                                                            // openDate
+                                                                            column.id
+                                                                            filteredRef.current = { ...filteredRef.current, orderOpen: !filteredRef.current.orderOpen } ;
+                                                                            setsortOpenDate(!sortOpenDate)
+                                                                            return;
+                                                                        }
+
+                                                                    }
+                                                                    }
+                                                                >
+                                                                    {column.render( 'Header' )}
+                                                                    <span>
+                                                                        {!column.disableSortBy ? (column.isSortedDesc ? ' 🔽' : ' 🔼') : ''}
+                                                                    </span>
                                                                     {/* Render the columns filter UI */}
                                                                     <div>{column.canFilter ? column.render( 'Filter' ) : null}</div>
 
